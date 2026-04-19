@@ -1,0 +1,1582 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<title>Cari Takip — Premium</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root {
+  /* Premium palette — warm neutrals + deep navy accent + muted gold for balance */
+  --bg: #f7f5f0;
+  --bg-elev: #fbfaf6;
+  --panel: #ffffff;
+  --panel-soft: #f3efe8;
+  --border: #e7e1d5;
+  --border-strong: #d6cebd;
+  --ink: #1a1d24;
+  --ink-soft: #44495a;
+  --ink-dim: #7a7e8c;
+  --navy: #1a2d48;
+  --navy-soft: #2a4566;
+  --accent: #0d9b6c;
+  --accent-soft: #e6f4ee;
+  --accent-ink: #0a6d4c;
+  --gold: #b08840;
+  --gold-soft: #f4ecd9;
+  --danger: #b53a3a;
+  --danger-soft: #faeaea;
+  --warn: #c28a2b;
+  --warn-soft: #f7efd9;
+  --shadow-xs: 0 1px 2px rgba(26,29,36,0.04);
+  --shadow-sm: 0 1px 3px rgba(26,29,36,0.06), 0 1px 2px rgba(26,29,36,0.04);
+  --shadow-md: 0 8px 24px -8px rgba(26,29,36,0.12), 0 2px 6px rgba(26,29,36,0.05);
+  --shadow-lg: 0 24px 48px -12px rgba(26,29,36,0.18), 0 4px 12px rgba(26,29,36,0.06);
+  color-scheme: light;
+}
+[data-theme="dark"] {
+  --bg: #0f1115;
+  --bg-elev: #14171d;
+  --panel: #1a1e26;
+  --panel-soft: #14171d;
+  --border: #252932;
+  --border-strong: #323742;
+  --ink: #f0ece3;
+  --ink-soft: #c2beb5;
+  --ink-dim: #8a8d95;
+  --navy: #2a4566;
+  --navy-soft: #3a5a7e;
+  --accent: #3dbd8a;
+  --accent-soft: rgba(61,189,138,0.12);
+  --accent-ink: #6cd4a8;
+  --gold: #d4a85c;
+  --gold-soft: rgba(212,168,92,0.12);
+  --danger: #d86060;
+  --danger-soft: rgba(216,96,96,0.12);
+  --warn: #e0a855;
+  --warn-soft: rgba(224,168,85,0.12);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  background: var(--bg); color: var(--ink);
+  font-family: 'Geist', -apple-system, system-ui, sans-serif;
+  font-size: 13.5px; line-height: 1.5;
+  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.005em;
+}
+body { min-height: 100vh; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; font-size: inherit; }
+input, select, textarea { font-family: inherit; font-size: inherit; color: inherit; }
+.serif { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; letter-spacing: -0.01em; }
+.mono, .num { font-family: 'Geist Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+svg { display: block; }
+
+#root { display: flex; min-height: 100vh; }
+
+/* ====================== SIDEBAR ====================== */
+.sidebar {
+  width: 258px; flex-shrink: 0;
+  background: var(--bg-elev);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  position: sticky; top: 0; height: 100vh;
+}
+.sb-brand {
+  padding: 22px 20px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+}
+.sb-logo {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-soft) 100%);
+  color: #f7f5f0; display: grid; place-items: center;
+  font-weight: 600; font-size: 15px; letter-spacing: 0.5px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 2px 6px rgba(26,45,72,0.25);
+}
+.sb-brand-name {
+  font-family: 'Instrument Serif', serif; font-size: 19px;
+  letter-spacing: -0.01em; line-height: 1; color: var(--ink);
+}
+.sb-brand-sub { font-size: 10.5px; color: var(--ink-dim); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.14em; font-weight: 500; }
+
+.sb-group-title {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.14em;
+  color: var(--ink-dim); padding: 18px 20px 8px; font-weight: 600;
+}
+.sb-nav { padding: 2px 10px; display: flex; flex-direction: column; gap: 1px; }
+.sb-item {
+  display: flex; align-items: center; gap: 11px;
+  padding: 9px 11px; border-radius: 8px;
+  color: var(--ink-soft); font-size: 13px; font-weight: 500;
+  width: 100%; text-align: left;
+  transition: all 0.12s;
+  position: relative;
+}
+.sb-item:hover { background: var(--panel-soft); color: var(--ink); }
+.sb-item.active {
+  background: var(--panel); color: var(--ink);
+  font-weight: 600;
+  box-shadow: var(--shadow-xs);
+}
+.sb-item.active::before {
+  content: ''; position: absolute; left: -10px; top: 6px; bottom: 6px; width: 3px;
+  background: var(--navy); border-radius: 0 2px 2px 0;
+}
+.sb-item svg { color: var(--ink-dim); flex-shrink: 0; }
+.sb-item.active svg { color: var(--navy); }
+[data-theme="dark"] .sb-item.active svg { color: var(--accent); }
+[data-theme="dark"] .sb-item.active::before { background: var(--accent); }
+.sb-badge {
+  margin-left: auto; font-size: 10.5px; color: var(--ink-dim);
+  font-family: 'Geist Mono', monospace; font-weight: 500;
+  padding: 1px 7px; border-radius: 999px;
+  background: var(--panel-soft);
+}
+.sb-item.active .sb-badge { background: var(--bg); color: var(--ink-soft); }
+
+.sb-foot {
+  margin-top: auto; padding: 14px 16px;
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--gold) 0%, #9a7434 100%);
+  color: white; display: grid; place-items: center;
+  font-weight: 600; font-size: 12px; flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(176,136,64,0.3);
+}
+.sb-user-name { font-size: 13px; font-weight: 500; letter-spacing: -0.01em; }
+.sb-user-role { font-size: 10.5px; color: var(--ink-dim); margin-top: 1px; }
+
+/* ====================== MAIN ====================== */
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.topbar {
+  display: flex; align-items: center; gap: 18px;
+  padding: 16px 32px;
+  background: rgba(247,245,240,0.8);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 20;
+}
+[data-theme="dark"] .topbar { background: rgba(15,17,21,0.8); }
+.tb-eyebrow { font-size: 11px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.14em; font-weight: 500; }
+.tb-title { font-family: 'Instrument Serif', serif; font-size: 24px; letter-spacing: -0.015em; margin-top: 1px; line-height: 1.1; }
+.tb-spacer { flex: 1; }
+.tb-search {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 13px; border: 1px solid var(--border); border-radius: 9px;
+  background: var(--panel); width: 320px;
+  transition: all 0.15s;
+  box-shadow: var(--shadow-xs);
+}
+.tb-search:focus-within { border-color: var(--navy); box-shadow: 0 0 0 3px rgba(26,45,72,0.08); }
+[data-theme="dark"] .tb-search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.tb-search input { flex: 1; border: none; background: none; outline: none; font-size: 13px; }
+.tb-search input::placeholder { color: var(--ink-dim); }
+.tb-search kbd { font-family: 'Geist Mono', monospace; font-size: 10px; color: var(--ink-dim); border: 1px solid var(--border); padding: 1px 6px; border-radius: 4px; background: var(--bg); }
+
+.content { flex: 1; padding: 28px 32px 56px; overflow-x: auto; }
+.content-wrap { max-width: 1440px; margin: 0 auto; }
+
+/* ====================== BUTTONS ====================== */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 14px; border-radius: 8px;
+  font-size: 13px; font-weight: 500;
+  border: 1px solid var(--border-strong); background: var(--panel); color: var(--ink);
+  transition: all 0.12s;
+  letter-spacing: -0.005em;
+  box-shadow: var(--shadow-xs);
+}
+.btn:hover { background: var(--panel-soft); border-color: var(--ink-dim); }
+.btn-primary {
+  background: var(--navy); color: white; border-color: var(--navy);
+  box-shadow: 0 1px 3px rgba(26,45,72,0.25);
+}
+.btn-primary:hover { background: var(--navy-soft); border-color: var(--navy-soft); color: white; }
+[data-theme="dark"] .btn-primary { background: var(--accent); border-color: var(--accent); color: #0f1115; }
+[data-theme="dark"] .btn-primary:hover { background: var(--accent-ink); border-color: var(--accent-ink); color: #0f1115; }
+.btn-success { background: var(--accent); color: white; border-color: var(--accent); }
+.btn-success:hover { background: var(--accent-ink); border-color: var(--accent-ink); color: white; }
+.btn-danger { background: var(--danger); color: white; border-color: var(--danger); }
+.btn-ghost { border-color: transparent; background: transparent; color: var(--ink-soft); box-shadow: none; }
+.btn-ghost:hover { background: var(--panel-soft); color: var(--ink); }
+.btn-sm { padding: 6px 10px; font-size: 12px; }
+.btn-icon { padding: 8px; }
+
+/* ====================== CARDS ====================== */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-xs);
+}
+.card-hd { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+.card-ttl { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+.card-sub { font-size: 12px; color: var(--ink-dim); margin-top: 2px; }
+
+/* ====================== KPI ====================== */
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
+.kpi {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  position: relative;
+  box-shadow: var(--shadow-xs);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.kpi:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+.kpi-label {
+  font-size: 10.5px; color: var(--ink-dim); font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.12em;
+  display: flex; align-items: center; gap: 6px;
+}
+.kpi-val {
+  font-family: 'Instrument Serif', serif;
+  font-size: 32px; letter-spacing: -0.02em;
+  margin-top: 8px; line-height: 1.1;
+  font-weight: 400;
+}
+.kpi-val .kpi-suffix { font-family: 'Geist', sans-serif; font-size: 14px; color: var(--ink-dim); font-weight: 500; margin-left: 4px; }
+.kpi-delta { font-size: 12px; color: var(--ink-dim); margin-top: 8px; display: flex; align-items: center; gap: 4px; }
+.kpi-delta.up { color: var(--accent-ink); }
+.kpi-delta.down { color: var(--danger); }
+[data-theme="dark"] .kpi-delta.up { color: var(--accent); }
+
+/* ====================== TABLE ====================== */
+.tbl-wrap { overflow-x: auto; }
+table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.tbl thead th {
+  text-align: left; padding: 11px 16px;
+  font-size: 10.5px; font-weight: 600; color: var(--ink-dim);
+  text-transform: uppercase; letter-spacing: 0.1em;
+  background: var(--bg-elev);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+table.tbl tbody td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+table.tbl tbody tr { transition: background 0.1s; }
+table.tbl tbody tr:hover { background: var(--panel-soft); cursor: pointer; }
+table.tbl tbody tr:last-child td { border-bottom: none; }
+.td-right { text-align: right; }
+.td-center { text-align: center; }
+.td-num { font-family: 'Geist Mono', monospace; font-variant-numeric: tabular-nums; text-align: right; letter-spacing: -0.02em; }
+.td-date { font-family: 'Geist Mono', monospace; color: var(--ink-soft); font-size: 12.5px; letter-spacing: -0.02em; }
+.td-ref { font-family: 'Geist Mono', monospace; font-size: 11.5px; color: var(--ink-dim); letter-spacing: -0.02em; }
+
+/* ====================== CHIPS ====================== */
+.chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 5px;
+  font-size: 11px; font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+.chip-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+.chip-green { background: var(--accent-soft); color: var(--accent-ink); border-color: rgba(13,155,108,0.15); }
+.chip-green .chip-dot { background: var(--accent); }
+[data-theme="dark"] .chip-green { color: var(--accent); }
+.chip-red { background: var(--danger-soft); color: var(--danger); border-color: rgba(181,58,58,0.15); }
+.chip-red .chip-dot { background: var(--danger); }
+.chip-warn { background: var(--warn-soft); color: #8a5f1e; border-color: rgba(194,138,43,0.2); }
+.chip-warn .chip-dot { background: var(--warn); }
+[data-theme="dark"] .chip-warn { color: var(--warn); }
+.chip-gold { background: var(--gold-soft); color: var(--gold); border-color: rgba(176,136,64,0.2); }
+.chip-gold .chip-dot { background: var(--gold); }
+.chip-navy { background: rgba(26,45,72,0.08); color: var(--navy); border-color: rgba(26,45,72,0.12); }
+.chip-navy .chip-dot { background: var(--navy); }
+[data-theme="dark"] .chip-navy { background: rgba(106,146,191,0.15); color: #9ab5d4; border-color: rgba(106,146,191,0.2); }
+.chip-neutral { background: var(--panel-soft); color: var(--ink-soft); border-color: var(--border); }
+.chip-neutral .chip-dot { background: var(--ink-dim); }
+
+.balance-chip {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 7px 14px; border-radius: 10px;
+  background: var(--accent-soft);
+  border: 1px solid rgba(13,155,108,0.2);
+  color: var(--accent-ink);
+  font-weight: 500;
+}
+.balance-chip.neg { background: var(--danger-soft); border-color: rgba(181,58,58,0.2); color: var(--danger); }
+.balance-chip.zero { background: var(--panel-soft); border-color: var(--border); color: var(--ink-soft); }
+.balance-chip .bc-label {
+  font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.12em; opacity: 0.7;
+}
+.balance-chip .bc-val {
+  font-family: 'Geist Mono', monospace; font-size: 14px; font-weight: 600;
+  letter-spacing: -0.02em;
+}
+[data-theme="dark"] .balance-chip { color: var(--accent); }
+
+/* ====================== FILTER BAR ====================== */
+.filterbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+.flt {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 12px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--panel);
+  font-size: 12.5px; font-weight: 500; color: var(--ink);
+  transition: all 0.12s;
+  box-shadow: var(--shadow-xs);
+}
+.flt:hover { border-color: var(--ink-dim); }
+.flt.active { border-color: var(--navy); background: rgba(26,45,72,0.05); color: var(--navy); }
+[data-theme="dark"] .flt.active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.flt svg { color: var(--ink-dim); }
+.flt.active svg { color: var(--navy); }
+[data-theme="dark"] .flt.active svg { color: var(--accent); }
+.flt select { border: none; background: transparent; outline: none; cursor: pointer; color: inherit; font-weight: 500; font-size: 12.5px; appearance: none; padding-right: 14px; }
+
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 8px; overflow: hidden;
+  background: var(--panel);
+  box-shadow: var(--shadow-xs);
+}
+.seg button {
+  padding: 7px 14px; font-size: 12.5px; font-weight: 500;
+  color: var(--ink-dim);
+  border-right: 1px solid var(--border);
+  transition: all 0.1s;
+}
+.seg button:last-child { border-right: none; }
+.seg button:hover { background: var(--panel-soft); color: var(--ink); }
+.seg button.active {
+  background: var(--navy); color: white; font-weight: 500;
+}
+[data-theme="dark"] .seg button.active { background: var(--accent); color: #0f1115; }
+
+/* ====================== MODAL ====================== */
+.modal-scrim {
+  position: fixed; inset: 0;
+  background: rgba(26,29,36,0.4);
+  backdrop-filter: blur(6px);
+  display: grid; place-items: center;
+  z-index: 100;
+  animation: fadeIn 0.18s;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.modal {
+  background: var(--panel);
+  border-radius: 14px; border: 1px solid var(--border);
+  width: 540px; max-width: calc(100vw - 40px); max-height: calc(100vh - 40px);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden; display: flex; flex-direction: column;
+  animation: slideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.modal-hd {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 14px;
+}
+.modal-ttl { font-family: 'Instrument Serif', serif; font-size: 20px; letter-spacing: -0.01em; }
+.modal-sub { font-size: 12px; color: var(--ink-dim); margin-top: 2px; }
+.modal-bd { padding: 22px 24px; overflow-y: auto; }
+.modal-ft {
+  padding: 14px 24px;
+  border-top: 1px solid var(--border);
+  display: flex; justify-content: flex-end; gap: 10px;
+  background: var(--bg-elev);
+}
+
+.field { display: flex; flex-direction: column; gap: 7px; margin-bottom: 16px; }
+.field label { font-size: 11px; font-weight: 600; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.1em; }
+.field input, .field select, .field textarea {
+  padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--panel); font-size: 13.5px; outline: none;
+  transition: all 0.12s;
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  border-color: var(--navy);
+  box-shadow: 0 0 0 3px rgba(26,45,72,0.08);
+}
+[data-theme="dark"] .field input:focus, [data-theme="dark"] .field select:focus, [data-theme="dark"] .field textarea:focus {
+  border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+.type-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.type-pick label {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px; border: 1px solid var(--border); border-radius: 10px;
+  cursor: pointer; transition: all 0.12s;
+  background: var(--panel);
+}
+.type-pick label:hover { border-color: var(--ink-dim); }
+.type-pick input { display: none; }
+.type-pick label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.tp-icon {
+  width: 34px; height: 34px; border-radius: 9px;
+  background: var(--bg-elev); display: grid; place-items: center;
+  color: var(--ink-soft); flex-shrink: 0;
+  border: 1px solid var(--border);
+}
+.type-pick label:has(input:checked) .tp-icon { background: var(--accent); color: white; border-color: var(--accent); }
+.type-pick label:has(input[value="payment"]:checked) { border-color: var(--danger); background: var(--danger-soft); }
+.type-pick label:has(input[value="payment"]:checked) .tp-icon { background: var(--danger); color: white; border-color: var(--danger); }
+.type-pick label:has(input[value="payment"]:checked) .tp-body { color: var(--danger); }
+.tp-ttl { font-size: 13.5px; font-weight: 600; letter-spacing: -0.005em; }
+.tp-sub { font-size: 11px; color: var(--ink-dim); margin-top: 1px; }
+
+/* ====================== TWEAKS ====================== */
+.tweaks {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--panel);
+  border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  padding: 14px 18px;
+  display: flex; align-items: center; gap: 16px;
+  z-index: 90;
+  animation: slideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.tweak-ttl { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-dim); }
+.toggle { position: relative; width: 38px; height: 22px; background: var(--border-strong); border-radius: 999px; cursor: pointer; transition: background 0.2s; }
+.toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.15); transition: transform 0.2s; }
+.toggle.on { background: var(--navy); }
+[data-theme="dark"] .toggle.on { background: var(--accent); }
+.toggle.on::after { transform: translateX(16px); }
+
+/* ====================== DASHBOARD LAYOUT ====================== */
+.two-col { display: grid; grid-template-columns: 2fr 1fr; gap: 18px; margin-bottom: 18px; }
+
+.top-customers .row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+}
+.top-customers .row:hover { background: var(--panel-soft); cursor: pointer; }
+.top-customers .row:last-child { border-bottom: none; }
+.tc-rank {
+  font-family: 'Instrument Serif', serif; font-size: 18px;
+  color: var(--ink-dim); width: 24px; line-height: 1;
+}
+.tc-name { flex: 1; font-weight: 500; font-size: 13px; letter-spacing: -0.005em; }
+.tc-bar { width: 110px; height: 3px; background: var(--panel-soft); border-radius: 999px; overflow: hidden; }
+.tc-bar-fill { height: 100%; background: linear-gradient(90deg, var(--navy) 0%, var(--navy-soft) 100%); }
+[data-theme="dark"] .tc-bar-fill { background: linear-gradient(90deg, var(--accent) 0%, var(--accent-ink) 100%); }
+.tc-val { font-family: 'Geist Mono', monospace; font-size: 12.5px; font-weight: 500; width: 110px; text-align: right; letter-spacing: -0.02em; }
+
+/* ====================== DETAIL HERO ====================== */
+.cd-hero {
+  display: flex; align-items: flex-start; gap: 22px;
+  padding: 24px 26px;
+  border-bottom: 1px solid var(--border);
+}
+.cd-avatar {
+  width: 60px; height: 60px; border-radius: 14px;
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-soft) 100%);
+  color: #f7f5f0; display: grid; place-items: center;
+  font-family: 'Instrument Serif', serif; font-size: 22px;
+  flex-shrink: 0;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 3px 8px rgba(26,45,72,0.2);
+}
+.cd-name { font-family: 'Instrument Serif', serif; font-size: 26px; letter-spacing: -0.015em; line-height: 1.15; }
+.cd-meta {
+  display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px;
+  font-size: 12px; color: var(--ink-soft);
+}
+.cd-meta span { display: flex; align-items: center; gap: 5px; }
+.cd-stats {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--border);
+  background: var(--bg-elev);
+}
+.cd-stat { padding: 16px 22px; border-right: 1px solid var(--border); }
+.cd-stat:last-child { border-right: none; }
+.cd-stat-lbl { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-dim); font-weight: 600; }
+.cd-stat-val { font-family: 'Instrument Serif', serif; font-size: 22px; margin-top: 5px; letter-spacing: -0.015em; line-height: 1.1; }
+.cd-stat-sub { font-size: 11.5px; color: var(--ink-dim); margin-top: 3px; }
+
+.spark { width: 100%; height: 140px; }
+
+/* Report grid */
+.rp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* Utility */
+.muted { color: var(--ink-dim); }
+.hstack { display: flex; align-items: center; gap: 8px; }
+.vstack { display: flex; flex-direction: column; gap: 4px; }
+.grow { flex: 1; }
+.pos { color: var(--accent-ink); }
+.neg { color: var(--danger); }
+[data-theme="dark"] .pos { color: var(--accent); }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--ink); color: var(--bg);
+  padding: 11px 18px; border-radius: 10px;
+  font-size: 13px; font-weight: 500;
+  box-shadow: var(--shadow-lg);
+  z-index: 200;
+  animation: slideUp 0.22s;
+  display: flex; align-items: center; gap: 9px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 8px; border: 2px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-dim); }
+::-webkit-scrollbar-track { background: transparent; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script type="application/json" id="tweak-defaults">
+/*EDITMODE-BEGIN*/{"theme":"light"}/*EDITMODE-END*/
+</script>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" data-presets="react">
+// ========== ICONS ==========
+const Icon = ({ d, size = 18, stroke = 1.6, children, ...rest }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" {...rest}>
+    {d ? <path d={d} /> : children}
+  </svg>
+);
+const IconDashboard = (p) => <Icon {...p}><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></Icon>;
+const IconCari = (p) => <Icon {...p}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></Icon>;
+const IconEkstre = (p) => <Icon {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5M8 9h2"/></Icon>;
+const IconReport = (p) => <Icon {...p}><path d="M3 3v18h18"/><path d="M7 15l4-4 4 4 5-6"/></Icon>;
+const IconStok = (p) => <Icon {...p}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></Icon>;
+const IconKasa = (p) => <Icon {...p}><path d="M20 12V8H6a2 2 0 0 1 0-4h12v4"/><path d="M4 6v12a2 2 0 0 0 2 2h14v-4"/><circle cx="16" cy="14" r="1.5"/></Icon>;
+const IconCek = (p) => <Icon {...p}><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M7 15h3"/></Icon>;
+const IconGelir = (p) => <Icon {...p}><path d="M12 2v20M5 9l7-7 7 7"/></Icon>;
+const IconApart = (p) => <Icon {...p}><rect x="4" y="2" width="16" height="20" rx="1"/><path d="M9 22v-4h6v4M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01"/></Icon>;
+const IconSettings = (p) => <Icon {...p}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></Icon>;
+const IconInvoice = (p) => <Icon {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16l3-2 3 2 3-2 3 2V8z"/><path d="M14 2v6h6"/><path d="M9 12h6M9 16h4"/></Icon>;
+const IconCheck = (p) => <Icon {...p}><path d="M20 6 9 17l-5-5"/></Icon>;
+const IconSearch = (p) => <Icon {...p}><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></Icon>;
+const IconPlus = (p) => <Icon {...p}><path d="M12 5v14M5 12h14"/></Icon>;
+const IconFilter = (p) => <Icon {...p}><path d="M3 5h18M6 12h12M10 19h4"/></Icon>;
+const IconCal = (p) => <Icon {...p}><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></Icon>;
+const IconChevDown = (p) => <Icon {...p}><path d="m6 9 6 6 6-6"/></Icon>;
+const IconChevRight = (p) => <Icon {...p}><path d="m9 18 6-6-6-6"/></Icon>;
+const IconX = (p) => <Icon {...p}><path d="M18 6 6 18M6 6l18 18"/></Icon>;
+const IconArrowUp = (p) => <Icon {...p}><path d="M12 19V5M5 12l7-7 7 7"/></Icon>;
+const IconArrowDown = (p) => <Icon {...p}><path d="M12 5v14M19 12l-7 7-7-7"/></Icon>;
+const IconPhone = (p) => <Icon {...p}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></Icon>;
+const IconMail = (p) => <Icon {...p}><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></Icon>;
+const IconMap = (p) => <Icon {...p}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></Icon>;
+const IconTag = (p) => <Icon {...p}><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></Icon>;
+const IconPdf = (p) => <Icon {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><text x="7" y="18" fontSize="6" fontFamily="monospace" fontWeight="700" stroke="none" fill="currentColor">PDF</text></Icon>;
+const IconXls = (p) => <Icon {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><text x="7" y="18" fontSize="6" fontFamily="monospace" fontWeight="700" stroke="none" fill="currentColor">XLS</text></Icon>;
+const IconMore = (p) => <Icon {...p}><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></Icon>;
+const IconBell = (p) => <Icon {...p}><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></Icon>;
+const IconReceipt = (p) => <Icon {...p}><path d="M6 2h12a1 1 0 0 1 1 1v19l-3-2-3 2-3-2-3 2-3-2V3a1 1 0 0 1 1-1z"/><path d="M9 7h6M9 11h6M9 15h4"/></Icon>;
+const IconWallet = (p) => <Icon {...p}><path d="M20 12V8H6a2 2 0 0 1 0-4h12v4"/><path d="M4 6v12a2 2 0 0 0 2 2h14v-4"/><circle cx="16" cy="14" r="1.5"/></Icon>;
+const IconSun = (p) => <Icon {...p}><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></Icon>;
+const IconMoon = (p) => <Icon {...p}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></Icon>;
+const IconSort = (p) => <Icon {...p}><path d="M8 3v18M8 3l-3 3M8 3l3 3M16 21V3M16 21l-3-3M16 21l3-3"/></Icon>;
+const IconInsights = (p) => <Icon {...p}><path d="M22 12c0 5.5-4.5 10-10 10S2 17.5 2 12 6.5 2 12 2s10 4.5 10 10z"/><path d="M8 12l3 3 5-6"/></Icon>;
+const IconFactory = (p) => <Icon {...p}><path d="M2 20V8l5 3V8l5 3V8l5 3V3h3v17a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/></Icon>;
+const IconBadge = (p) => <Icon {...p}><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></Icon>;
+
+// ========== DATA ==========
+const fmtTL = (n) => {
+  const sign = n < 0 ? '-' : '';
+  const abs = Math.abs(n);
+  return sign + abs.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
+};
+const fmtTLShort = (n) => {
+  const abs = Math.abs(n);
+  if (abs >= 1e6) return (n/1e6).toFixed(1).replace('.', ',') + ' M ₺';
+  if (abs >= 1e3) return (n/1e3).toFixed(0) + ' B ₺';
+  return fmtTL(n);
+};
+const fmtDate = (d) => new Date(d).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+const CUSTOMERS = [
+  { id: 'C-1042', code: '120.01.042', name: 'Yıldız İnşaat Malzemeleri A.Ş.', city: 'İstanbul', district: 'Pendik', phone: '0216 412 88 90', email: 'muhasebe@yildizinsaat.com.tr', tax: '9870012345', taxOffice: 'Pendik V.D.', balance: 284650.50, credit: 500000, lastActivity: '2026-04-16', paymentTerm: 45, status: 'active' },
+  { id: 'C-1019', code: '120.01.019', name: 'Demir Çelik Ticaret Ltd. Şti.', city: 'İstanbul', district: 'Tuzla', phone: '0216 395 11 22', email: 'info@demircelikltd.com', tax: '4320098765', taxOffice: 'Tuzla V.D.', balance: 142800.00, credit: 300000, lastActivity: '2026-04-18', paymentTerm: 30, status: 'active' },
+  { id: 'C-1078', code: '120.01.078', name: 'Karadeniz Metal Sanayi A.Ş.', city: 'Samsun', district: 'Atakum', phone: '0362 445 67 89', email: 'satinalma@kdzmetal.com.tr', tax: '6540087654', taxOffice: 'Atakum V.D.', balance: 98500.75, credit: 200000, lastActivity: '2026-04-15', paymentTerm: 60, status: 'active' },
+  { id: 'C-1055', code: '120.01.055', name: 'Bayraktar Yapı Market', city: 'Ankara', district: 'Sincan', phone: '0312 278 90 11', email: 'bayraktaryapi@gmail.com', tax: '1230087456', taxOffice: 'Sincan V.D.', balance: -18400.00, credit: 150000, lastActivity: '2026-04-17', paymentTerm: 30, status: 'active' },
+  { id: 'C-1033', code: '120.01.033', name: 'Ege Profil İnşaat Ltd.', city: 'İzmir', district: 'Çiğli', phone: '0232 376 55 44', email: 'info@egeprofil.com', tax: '8760054321', taxOffice: 'Çiğli V.D.', balance: 67200.00, credit: 150000, lastActivity: '2026-04-14', paymentTerm: 45, status: 'active' },
+  { id: 'C-1088', code: '120.01.088', name: 'Güney Hırdavat Kollektif Şti.', city: 'Antalya', district: 'Kepez', phone: '0242 344 12 77', email: 'guney.hrd@outlook.com', tax: '3210054678', taxOffice: 'Kepez V.D.', balance: 38950.25, credit: 80000, lastActivity: '2026-04-10', paymentTerm: 30, status: 'active' },
+  { id: 'C-1012', code: '120.01.012', name: 'Anadolu Yapı Kimyasalları', city: 'Konya', district: 'Selçuklu', phone: '0332 221 66 33', email: 'muhasebe@anadoluyapi.com', tax: '5670012890', taxOffice: 'Selçuklu V.D.', balance: 215400.00, credit: 400000, lastActivity: '2026-04-18', paymentTerm: 60, status: 'active' },
+  { id: 'C-1099', code: '120.01.099', name: 'Marmara Çelik Konstrüksiyon', city: 'Kocaeli', district: 'Gebze', phone: '0262 642 33 11', email: 'info@marmaracelik.com.tr', tax: '2340087120', taxOffice: 'Gebze V.D.', balance: 425800.00, credit: 600000, lastActivity: '2026-04-19', paymentTerm: 45, status: 'active' },
+  { id: 'C-1061', code: '120.01.061', name: 'Mete Hırdavat & Nalbur', city: 'Bursa', district: 'Nilüfer', phone: '0224 453 22 88', email: 'mete.hrd@hotmail.com', tax: '7890012345', taxOffice: 'Nilüfer V.D.', balance: 0, credit: 50000, lastActivity: '2026-04-02', paymentTerm: 15, status: 'passive' },
+  { id: 'C-1025', code: '120.01.025', name: 'Doğu Anadolu Demir Tic.', city: 'Erzurum', district: 'Yakutiye', phone: '0442 233 11 66', email: 'doga.demir@gmail.com', tax: '6540012987', taxOffice: 'Yakutiye V.D.', balance: 52300.00, credit: 100000, lastActivity: '2026-04-12', paymentTerm: 30, status: 'active' },
+];
+
+const DOC_TYPES = ['fatura', 'tahsilat', 'cek', 'odeme', 'iade'];
+const DOC_LABEL = { fatura: 'Satış Faturası', tahsilat: 'Tahsilat', cek: 'Çek/Senet', odeme: 'Ödeme', iade: 'İade Faturası' };
+const DOC_CHIP = { fatura: 'navy', tahsilat: 'green', cek: 'gold', odeme: 'red', iade: 'neutral' };
+
+function seeded(seed) { let x = seed; return () => { x = (x * 16807) % 2147483647; return (x - 1) / 2147483646; }; }
+function genTransactions() {
+  const rnd = seeded(42); const tx = []; let id = 10000;
+  const today = new Date('2026-04-19');
+  const products = ['Ø12 İnşaat demiri', 'Ø16 nervürlü demir', 'HEA 120 profil', 'Kare profil 40x40', 'Sac levha 2mm', 'L köşebent 50x50', 'U demir', 'IPE 200', 'Galvaniz tel', 'Hasır çelik Q188'];
+  CUSTOMERS.forEach(c => {
+    const count = Math.floor(rnd() * 18) + 8;
+    const entries = [];
+    for (let i = 0; i < count; i++) {
+      const daysAgo = Math.floor(rnd() * 180);
+      const d = new Date(today); d.setDate(d.getDate() - daysAgo);
+      let type; const r = rnd();
+      if (r < 0.55) type = 'fatura';
+      else if (r < 0.85) type = 'tahsilat';
+      else if (r < 0.93) type = 'cek';
+      else if (r < 0.98) type = 'odeme';
+      else type = 'iade';
+      let amount;
+      if (type === 'fatura') amount = +(rnd() * 45000 + 3500).toFixed(2);
+      else if (type === 'tahsilat') amount = +(rnd() * 30000 + 5000).toFixed(2);
+      else if (type === 'cek') amount = +(rnd() * 25000 + 5000).toFixed(2);
+      else if (type === 'odeme') amount = +(rnd() * 8000 + 1000).toFixed(2);
+      else amount = +(rnd() * 6000 + 500).toFixed(2);
+      const borc = (type === 'fatura') ? amount : 0;
+      const alacak = (type !== 'fatura') ? amount : 0;
+      const p = products[Math.floor(rnd() * products.length)];
+      const tonaj = +(rnd() * 8 + 0.5).toFixed(1);
+      let desc = '';
+      if (type === 'fatura') desc = `${p} — ${tonaj} ton`;
+      else if (type === 'iade') desc = `${p} — iade`;
+      else if (type === 'tahsilat') desc = ['Havale', 'EFT', 'Nakit tahsilat', 'Kredi kartı'][Math.floor(rnd() * 4)];
+      else if (type === 'cek') {
+        const vd = new Date('2026-04-19'); vd.setDate(vd.getDate() + Math.floor(rnd() * 90) + 30);
+        desc = `Vadeli çek — ${fmtDate(vd)}`;
+      }
+      else desc = 'Banka masrafı / komisyon';
+      const prefix = type === 'fatura' ? 'FT' : type === 'iade' ? 'IF' : type === 'tahsilat' ? 'TH' : type === 'cek' ? 'CK' : 'OD';
+      entries.push({
+        id: `T-${++id}`, customerId: c.id,
+        date: d.toISOString().slice(0, 10),
+        type, ref: `${prefix}2026-${String(id).padStart(5, '0')}`,
+        description: desc, borc, alacak, running: 0
+      });
+    }
+    entries.sort((a, b) => a.date.localeCompare(b.date));
+    let run = 0; entries.forEach(e => { run += e.borc - e.alacak; e.running = run; });
+    tx.push(...entries);
+  });
+  return tx;
+}
+const TRANSACTIONS = genTransactions();
+
+// ========== SHARED COMPONENTS ==========
+function Sidebar({ page, onNav }) {
+  const opGroup = [
+    { id: 'dashboard', label: 'Bilgi Ekranı', icon: <IconDashboard /> },
+    { id: 'hareketler', label: 'Stok Hareketler', icon: <IconReceipt /> },
+    { id: 'cariler', label: 'Cari Hesaplar', icon: <IconCari />, badge: String(CUSTOMERS.length) },
+    { id: 'firmalar', label: 'Firmalar', icon: <IconApart /> },
+    { id: 'stok', label: 'Stok', icon: <IconStok /> },
+    { id: 'kasa', label: 'Kasa', icon: <IconKasa /> },
+    { id: 'gelirgider', label: 'Gelir / Gider', icon: <IconGelir /> },
+    { id: 'personel', label: 'Personel', icon: <IconBadge /> },
+    { id: 'cekler', label: 'Çek / Senet', icon: <IconCek /> },
+    { id: 'uretim', label: 'Üretim', icon: <IconFactory /> },
+  ];
+  const finGroup = [
+    { id: 'cektakvim', label: 'Çek Takvimi', icon: <IconCal /> },
+    { id: 'mutabakat', label: 'Mutabakat', icon: <IconCheck /> },
+    { id: 'tahsilatoneri', label: 'Tahsilat Öneri', icon: <IconInsights /> },
+    { id: 'karlilik', label: 'Kârlılık', icon: <IconReport /> },
+    { id: 'rapor', label: 'Raporlar', icon: <IconReport /> },
+  ];
+  const ynGroup = [
+    { id: 'ayarlar', label: 'Ayarlar', icon: <IconSettings /> },
+  ];
+  const render = (items) => items.map(it => (
+    <button key={it.id} className={`sb-item ${page === it.id || (page === 'cari' && it.id === 'cariler') || (page === 'ekstre' && it.id === 'cariler') ? 'active' : ''}`} onClick={() => onNav(it.id)}>
+      {it.icon}<span>{it.label}</span>{it.badge && <span className="sb-badge">{it.badge}</span>}
+    </button>
+  ));
+  return (
+    <aside className="sidebar">
+      <div className="sb-brand">
+        <div className="sb-logo">ŞÇ</div>
+        <div>
+          <div className="sb-brand-name">Şenol Çelik</div>
+          <div className="sb-brand-sub">Cari Takip</div>
+        </div>
+      </div>
+      <div className="sb-group-title">Operasyon</div>
+      <nav className="sb-nav">{render(opGroup)}</nav>
+      <div className="sb-group-title">Finans Analiz</div>
+      <nav className="sb-nav">{render(finGroup)}</nav>
+      <div className="sb-group-title">Yönetim</div>
+      <nav className="sb-nav">{render(ynGroup)}</nav>
+      <div className="sb-foot">
+        <div className="avatar">MY</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="sb-user-name">Mustafa Yıldırım</div>
+          <div className="sb-user-role">Muhasebe</div>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function Topbar({ title, eyebrow, onSearch, searchValue }) {
+  return (
+    <div className="topbar">
+      <div>
+        {eyebrow && <div className="tb-eyebrow">{eyebrow}</div>}
+        <div className="tb-title">{title}</div>
+      </div>
+      <div className="tb-spacer" />
+      <div className="tb-search">
+        <IconSearch size={16} />
+        <input placeholder="Cari, belge no veya açıklama ara…" value={searchValue || ''} onChange={e => onSearch?.(e.target.value)} />
+        <kbd>⌘K</kbd>
+      </div>
+      <button className="btn btn-icon btn-ghost" title="Bildirimler"><IconBell size={17} /></button>
+    </div>
+  );
+}
+
+function BalanceChip({ value, size }) {
+  const neg = value < 0, zero = value === 0;
+  const label = zero ? 'Bakiye Sıfır' : (neg ? 'Alacak' : 'Borç');
+  return (
+    <span className={`balance-chip ${neg ? 'neg' : ''} ${zero ? 'zero' : ''}`} style={size === 'lg' ? { padding: '8px 16px' } : {}}>
+      <span className="bc-label">{label}</span>
+      <span className="bc-val" style={size === 'lg' ? { fontSize: '15px' } : {}}>{fmtTL(Math.abs(value))}</span>
+    </span>
+  );
+}
+
+function Chip({ kind = 'neutral', children, dot = true }) {
+  return <span className={`chip chip-${kind}`}>{dot && <span className="chip-dot" />}{children}</span>;
+}
+
+function DocTypeBadge({ type }) {
+  return <Chip kind={DOC_CHIP[type]}>{DOC_LABEL[type]}</Chip>;
+}
+
+function Sparkline({ data, color = 'var(--navy)', height = 140 }) {
+  if (!data || !data.length) return null;
+  const w = 280, h = height, pad = 6;
+  const max = Math.max(...data), min = Math.min(...data);
+  const range = max - min || 1;
+  const pts = data.map((v, i) => [pad + (i / (data.length - 1)) * (w - pad * 2), h - pad - ((v - min) / range) * (h - pad * 2)]);
+  const path = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+  const area = path + ` L${w - pad},${h - pad} L${pad},${h - pad} Z`;
+  return (
+    <svg className="spark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ width: '100%', height }}>
+      <path d={area} fill={color} opacity="0.1" />
+      <path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function Toast({ message, onDone }) {
+  React.useEffect(() => { const t = setTimeout(onDone, 2200); return () => clearTimeout(t); }, []);
+  return <div className="toast"><IconCheck size={15} />{message}</div>;
+}
+
+// ========== DASHBOARD ==========
+function Dashboard({ onOpenCustomer }) {
+  const totalAlacak = CUSTOMERS.reduce((s, c) => s + Math.max(0, c.balance), 0);
+  const totalBorc = Math.abs(CUSTOMERS.reduce((s, c) => s + Math.min(0, c.balance), 0));
+  const activeCount = CUSTOMERS.filter(c => c.status === 'active').length;
+  const monthlyTahsilat = [285, 312, 278, 340, 395, 420, 388, 445, 510, 478, 522, 612];
+  const monthlyFatura = [320, 345, 310, 378, 410, 455, 420, 480, 540, 520, 568, 640];
+  const months = ['May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara', 'Oca', 'Şub', 'Mar', 'Nis'];
+  const top = [...CUSTOMERS].filter(c => c.balance > 0).sort((a, b) => b.balance - a.balance).slice(0, 6);
+  const maxTop = top[0]?.balance || 1;
+  const recent = [...TRANSACTIONS].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6);
+
+  return (
+    <div>
+      <div className="kpi-grid">
+        <div className="kpi">
+          <div className="kpi-label"><IconWallet size={12} /> Toplam Alacak</div>
+          <div className="kpi-val serif">{fmtTL(totalAlacak).replace(' ₺', '')}<span className="kpi-suffix">₺</span></div>
+          <div className="kpi-delta up"><IconArrowUp size={12} /> %8,4 geçen aya göre</div>
+        </div>
+        <div className="kpi">
+          <div className="kpi-label"><IconArrowDown size={12} /> Toplam Borç</div>
+          <div className="kpi-val serif">{fmtTL(totalBorc).replace(' ₺', '')}<span className="kpi-suffix">₺</span></div>
+          <div className="kpi-delta down"><IconArrowDown size={12} /> %3,2 geçen aya göre</div>
+        </div>
+        <div className="kpi">
+          <div className="kpi-label"><IconReceipt size={12} /> Bu Ay Tahsilat</div>
+          <div className="kpi-val serif">{fmtTL(612400).replace(' ₺', '')}<span className="kpi-suffix">₺</span></div>
+          <div className="kpi-delta up"><IconArrowUp size={12} /> %17,2 artış</div>
+        </div>
+        <div className="kpi">
+          <div className="kpi-label"><IconCari size={12} /> Aktif Cari</div>
+          <div className="kpi-val serif">{activeCount}</div>
+          <div className="kpi-delta">{CUSTOMERS.length - activeCount} pasif cari</div>
+        </div>
+      </div>
+
+      <div className="two-col">
+        <div className="card">
+          <div className="card-hd">
+            <div>
+              <div className="card-ttl">Aylık Hareket Özeti</div>
+              <div className="card-sub">Son 12 ay · fatura vs tahsilat (bin ₺)</div>
+            </div>
+            <div className="grow" />
+            <div className="hstack" style={{ fontSize: 11.5, color: 'var(--ink-soft)' }}>
+              <span className="hstack" style={{ gap: 6 }}><span style={{ width: 10, height: 10, background: 'var(--navy)', borderRadius: 2 }} /> Tahsilat</span>
+              <span className="hstack" style={{ gap: 6 }}><span style={{ width: 10, height: 10, background: 'var(--border-strong)', borderRadius: 2 }} /> Fatura</span>
+            </div>
+          </div>
+          <div style={{ padding: '22px 22px 18px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 200 }}>
+              {months.map((m, i) => {
+                const max = Math.max(...monthlyFatura);
+                return (
+                  <div key={m} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                    <div style={{ flex: 1, width: '100%', display: 'flex', alignItems: 'flex-end', gap: 3 }}>
+                      <div style={{ flex: 1, height: `${(monthlyTahsilat[i] / max) * 100}%`, background: 'var(--navy)', borderRadius: '3px 3px 0 0', opacity: i === months.length - 1 ? 1 : 0.85 }} />
+                      <div style={{ flex: 1, height: `${(monthlyFatura[i] / max) * 100}%`, background: 'var(--border-strong)', borderRadius: '3px 3px 0 0' }} />
+                    </div>
+                    <div style={{ fontSize: 10.5, color: 'var(--ink-dim)', fontFamily: 'Geist Mono, monospace' }}>{m}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div className="card top-customers">
+          <div className="card-hd"><div><div className="card-ttl">En Yüksek Bakiyeler</div><div className="card-sub">Alacak tutarına göre</div></div></div>
+          {top.map((c, i) => (
+            <div key={c.id} className="row" onClick={() => onOpenCustomer(c.id)}>
+              <span className="tc-rank serif">{String(i + 1).padStart(2, '0')}</span>
+              <span className="tc-name" title={c.name}>{c.name.length > 26 ? c.name.slice(0, 26) + '…' : c.name}</span>
+              <div className="tc-bar"><div className="tc-bar-fill" style={{ width: `${(c.balance / maxTop) * 100}%` }} /></div>
+              <span className="tc-val">{fmtTL(c.balance)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-hd">
+          <div><div className="card-ttl">Son Hareketler</div><div className="card-sub">Tüm carilerden son 6 kayıt</div></div>
+          <div className="grow" />
+          <button className="btn btn-sm" onClick={() => window.__nav?.('ekstre')}>Tümünü Gör <IconChevRight size={13} /></button>
+        </div>
+        <div className="tbl-wrap">
+          <table className="tbl">
+            <thead><tr><th>Tarih</th><th>Cari</th><th>Belge No</th><th>Açıklama</th><th>Tip</th><th className="td-right">Borç</th><th className="td-right">Alacak</th></tr></thead>
+            <tbody>
+              {recent.map(t => {
+                const c = CUSTOMERS.find(c => c.id === t.customerId);
+                return (
+                  <tr key={t.id} onClick={() => onOpenCustomer(t.customerId)}>
+                    <td className="td-date">{fmtDate(t.date)}</td>
+                    <td style={{ fontWeight: 500 }}>{c?.name}</td>
+                    <td className="td-ref">{t.ref}</td>
+                    <td style={{ color: 'var(--ink-soft)' }}>{t.description}</td>
+                    <td><DocTypeBadge type={t.type} /></td>
+                    <td className="td-num">{t.borc ? fmtTL(t.borc) : '—'}</td>
+                    <td className="td-num pos">{t.alacak ? fmtTL(t.alacak) : '—'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ========== EKSTRE ==========
+function Ekstre({ initialCustomerId, search, onOpenCustomer }) {
+  const [selected, setSelected] = React.useState(initialCustomerId || CUSTOMERS[0].id);
+  const [typeFilter, setTypeFilter] = React.useState('all');
+  const [range, setRange] = React.useState('90');
+  const [localSearch, setLocalSearch] = React.useState('');
+
+  React.useEffect(() => { if (initialCustomerId) setSelected(initialCustomerId); }, [initialCustomerId]);
+
+  const customer = CUSTOMERS.find(c => c.id === selected);
+  const q = (search || localSearch || '').toLowerCase().trim();
+  let txs = TRANSACTIONS.filter(t => t.customerId === selected);
+  if (typeFilter !== 'all') txs = txs.filter(t => t.type === typeFilter);
+  if (range !== 'all') {
+    const days = parseInt(range, 10);
+    const cutoff = new Date('2026-04-19'); cutoff.setDate(cutoff.getDate() - days);
+    txs = txs.filter(t => new Date(t.date) >= cutoff);
+  }
+  if (q) txs = txs.filter(t => (t.ref + ' ' + t.description).toLowerCase().includes(q));
+  txs = [...txs].sort((a, b) => b.date.localeCompare(a.date));
+  const toplamBorc = txs.reduce((s, t) => s + t.borc, 0);
+  const toplamAlacak = txs.reduce((s, t) => s + t.alacak, 0);
+  const filteredCustomers = CUSTOMERS.filter(c => q ? c.name.toLowerCase().includes(q) : true);
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 18 }}>
+      <div className="card" style={{ alignSelf: 'start', position: 'sticky', top: 92 }}>
+        <div className="card-hd" style={{ padding: '12px 16px' }}>
+          <div className="card-ttl" style={{ fontSize: 13 }}>Cariler</div>
+          <div className="grow" />
+          <span className="muted" style={{ fontSize: 11 }}>{filteredCustomers.length}</span>
+        </div>
+        <div style={{ maxHeight: 'calc(100vh - 220px)', overflowY: 'auto' }}>
+          {filteredCustomers.map(c => (
+            <button key={c.id} onClick={() => setSelected(c.id)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                padding: '11px 16px', textAlign: 'left',
+                borderBottom: '1px solid var(--border)',
+                background: selected === c.id ? 'var(--panel-soft)' : 'transparent',
+                borderLeft: selected === c.id ? '3px solid var(--navy)' : '3px solid transparent',
+              }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</div>
+                <div className="num" style={{ fontSize: 10.5, color: 'var(--ink-dim)', marginTop: 2 }}>{c.code}</div>
+              </div>
+              <div className="num" style={{ fontSize: 11.5, fontWeight: 600, color: c.balance < 0 ? 'var(--danger)' : c.balance > 0 ? 'var(--accent-ink)' : 'var(--ink-dim)', whiteSpace: 'nowrap' }}>
+                {fmtTLShort(c.balance)}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <div className="card" style={{ marginBottom: 18 }}>
+          <div style={{ padding: '22px 24px', display: 'flex', alignItems: 'center', gap: 18 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="hstack" style={{ gap: 12 }}>
+                <div className="serif" style={{ fontSize: 22, letterSpacing: '-0.015em', lineHeight: 1.15 }}>{customer.name}</div>
+                <Chip kind={customer.status === 'active' ? 'green' : 'neutral'}>{customer.status === 'active' ? 'Aktif' : 'Pasif'}</Chip>
+              </div>
+              <div className="hstack" style={{ gap: 16, marginTop: 8, fontSize: 12, color: 'var(--ink-soft)' }}>
+                <span className="num">{customer.code}</span><span>·</span>
+                <span className="hstack" style={{ gap: 4 }}><IconMap size={12} />{customer.city} / {customer.district}</span><span>·</span>
+                <span className="hstack" style={{ gap: 4 }}><IconPhone size={12} />{customer.phone}</span>
+              </div>
+            </div>
+            <BalanceChip value={customer.balance} size="lg" />
+            <button className="btn btn-sm" onClick={() => onOpenCustomer(customer.id)}>Cari Kart <IconChevRight size={13} /></button>
+          </div>
+        </div>
+
+        <div className="filterbar">
+          <div className="seg">
+            {[{ id: '30', l: '30 gün' }, { id: '90', l: '90 gün' }, { id: '180', l: '6 ay' }, { id: 'all', l: 'Tümü' }].map(r => (
+              <button key={r.id} className={range === r.id ? 'active' : ''} onClick={() => setRange(r.id)}>{r.l}</button>
+            ))}
+          </div>
+          <button className={`flt ${typeFilter !== 'all' ? 'active' : ''}`}>
+            <IconTag size={14} />
+            <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
+              <option value="all">Tüm Belgeler</option>
+              {DOC_TYPES.map(t => <option key={t} value={t}>{DOC_LABEL[t]}</option>)}
+            </select>
+            <IconChevDown size={13} />
+          </button>
+          <div className="flt" style={{ cursor: 'default' }}>
+            <IconCal size={14} />
+            <span className="num" style={{ fontSize: 12 }}>01.01.2026 — 19.04.2026</span>
+          </div>
+          <div className="tb-search" style={{ width: 260, marginLeft: 'auto', boxShadow: 'var(--shadow-xs)' }}>
+            <IconSearch size={14} />
+            <input placeholder="Belge/açıklamada ara…" value={localSearch} onChange={e => setLocalSearch(e.target.value)} />
+          </div>
+          <button className="btn btn-sm"><IconPdf size={14} /> PDF</button>
+          <button className="btn btn-sm"><IconXls size={14} /> Excel</button>
+          <button className="btn btn-sm btn-primary" onClick={() => window.__openModal?.('collection', customer.id)}><IconPlus size={14} /> Tahsilat</button>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 18 }}>
+          <div className="card" style={{ padding: '16px 20px' }}>
+            <div className="kpi-label">Dönem Borç (Fatura)</div>
+            <div className="serif" style={{ fontSize: 24, marginTop: 6, letterSpacing: '-0.015em' }}>{fmtTL(toplamBorc)}</div>
+          </div>
+          <div className="card" style={{ padding: '16px 20px' }}>
+            <div className="kpi-label">Dönem Alacak (Tahsilat)</div>
+            <div className="serif pos" style={{ fontSize: 24, marginTop: 6, letterSpacing: '-0.015em' }}>{fmtTL(toplamAlacak)}</div>
+          </div>
+          <div className="card" style={{ padding: '16px 20px' }}>
+            <div className="kpi-label">Net Bakiye</div>
+            <div className={`serif ${customer.balance < 0 ? 'neg' : ''}`} style={{ fontSize: 24, marginTop: 6, letterSpacing: '-0.015em' }}>{fmtTL(customer.balance)}</div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-hd">
+            <div className="card-ttl">Hareketler</div>
+            <span className="muted" style={{ fontSize: 12 }}>{txs.length} kayıt</span>
+            <div className="grow" />
+            <button className="btn btn-ghost btn-sm"><IconSort size={13} /> Sırala</button>
+          </div>
+          <div className="tbl-wrap">
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th style={{ width: 100 }}>Tarih</th><th style={{ width: 140 }}>Belge No</th>
+                  <th>Açıklama</th><th style={{ width: 140 }}>Tip</th>
+                  <th className="td-right" style={{ width: 130 }}>Borç</th>
+                  <th className="td-right" style={{ width: 130 }}>Alacak</th>
+                  <th className="td-right" style={{ width: 140 }}>Bakiye</th>
+                </tr>
+              </thead>
+              <tbody>
+                {txs.length === 0 && <tr><td colSpan={7} style={{ padding: 48, textAlign: 'center', color: 'var(--ink-dim)' }}>Bu filtre için hareket bulunamadı.</td></tr>}
+                {txs.map(t => (
+                  <tr key={t.id}>
+                    <td className="td-date">{fmtDate(t.date)}</td>
+                    <td className="td-ref">{t.ref}</td>
+                    <td>{t.description}</td>
+                    <td><DocTypeBadge type={t.type} /></td>
+                    <td className="td-num">{t.borc ? fmtTL(t.borc) : <span className="muted">—</span>}</td>
+                    <td className="td-num pos">{t.alacak ? fmtTL(t.alacak) : <span className="muted">—</span>}</td>
+                    <td className="td-num" style={{ fontWeight: 600, color: t.running < 0 ? 'var(--danger)' : 'var(--ink)' }}>{fmtTL(t.running)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              {txs.length > 0 && (
+                <tfoot>
+                  <tr style={{ background: 'var(--bg-elev)', fontWeight: 600 }}>
+                    <td colSpan={4} style={{ padding: '13px 16px', fontSize: 10.5, color: 'var(--ink-dim)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Dönem Toplamı</td>
+                    <td className="td-num" style={{ padding: '13px 16px' }}>{fmtTL(toplamBorc)}</td>
+                    <td className="td-num pos" style={{ padding: '13px 16px' }}>{fmtTL(toplamAlacak)}</td>
+                    <td className="td-num" style={{ padding: '13px 16px', color: customer.balance < 0 ? 'var(--danger)' : 'var(--ink)' }}>{fmtTL(customer.balance)}</td>
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ========== CUSTOMER DETAIL ==========
+function CustomerDetail({ customerId, onOpenEkstre, onBack }) {
+  const c = CUSTOMERS.find(c => c.id === customerId);
+  const txs = TRANSACTIONS.filter(t => t.customerId === customerId).sort((a, b) => b.date.localeCompare(a.date));
+  const series = React.useMemo(() => {
+    const sorted = [...TRANSACTIONS.filter(t => t.customerId === customerId)].sort((a, b) => a.date.localeCompare(b.date));
+    let r = 0; return sorted.map(t => { r += t.borc - t.alacak; return r; }).length > 1 ? sorted.map((t, i) => { let rr = 0; for (let j = 0; j <= i; j++) rr += sorted[j].borc - sorted[j].alacak; return rr; }) : [0, 0];
+  }, [customerId]);
+  const totalFatura = txs.filter(t => t.type === 'fatura').reduce((s, t) => s + t.borc, 0);
+  const totalTahsilat = txs.filter(t => t.type === 'tahsilat' || t.type === 'cek').reduce((s, t) => s + t.alacak, 0);
+  const openCek = txs.filter(t => t.type === 'cek').reduce((s, t) => s + t.alacak, 0);
+
+  return (
+    <div>
+      <div className="hstack" style={{ marginBottom: 16, gap: 10 }}>
+        <button className="btn btn-sm btn-ghost" onClick={onBack}><IconChevRight size={13} style={{ transform: 'rotate(180deg)' }} /> Geri</button>
+        <span className="muted" style={{ fontSize: 12 }}>Cariler / {c.name}</span>
+      </div>
+
+      <div className="card" style={{ marginBottom: 18 }}>
+        <div className="cd-hero">
+          <div className="cd-avatar">{c.name.split(' ').slice(0, 2).map(w => w[0]).join('')}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="hstack" style={{ gap: 10 }}>
+              <div className="cd-name">{c.name}</div>
+              <Chip kind={c.status === 'active' ? 'green' : 'neutral'}>{c.status === 'active' ? 'Aktif' : 'Pasif'}</Chip>
+            </div>
+            <div className="cd-meta">
+              <span className="num">{c.code}</span>
+              <span className="hstack" style={{ gap: 5 }}><IconMap size={12} />{c.city} / {c.district}</span>
+              <span className="hstack" style={{ gap: 5 }}><IconPhone size={12} />{c.phone}</span>
+              <span className="hstack" style={{ gap: 5 }}><IconMail size={12} />{c.email}</span>
+              <span>VKN: <span className="num">{c.tax}</span> · {c.taxOffice}</span>
+            </div>
+          </div>
+          <div className="hstack" style={{ gap: 8 }}>
+            <BalanceChip value={c.balance} size="lg" />
+            <button className="btn btn-sm" onClick={() => onOpenEkstre(c.id)}><IconEkstre size={14} /> Ekstre</button>
+            <button className="btn btn-sm btn-primary" onClick={() => window.__openModal?.('collection', c.id)}><IconPlus size={14} /> Tahsilat</button>
+            <button className="btn btn-icon btn-ghost"><IconMore size={16} /></button>
+          </div>
+        </div>
+        <div className="cd-stats">
+          <div className="cd-stat">
+            <div className="cd-stat-lbl">Kredi Limiti</div>
+            <div className="cd-stat-val">{fmtTL(c.credit)}</div>
+            <div className="cd-stat-sub">Kullanım: %{((Math.max(0, c.balance) / c.credit) * 100).toFixed(0)}</div>
+          </div>
+          <div className="cd-stat">
+            <div className="cd-stat-lbl">Vade</div>
+            <div className="cd-stat-val">{c.paymentTerm} <span style={{ fontSize: 13, fontFamily: 'Geist, sans-serif', color: 'var(--ink-dim)' }}>gün</span></div>
+            <div className="cd-stat-sub">Fatura tarihinden itibaren</div>
+          </div>
+          <div className="cd-stat">
+            <div className="cd-stat-lbl">Açık Çek/Senet</div>
+            <div className="cd-stat-val">{fmtTL(openCek)}</div>
+            <div className="cd-stat-sub">{txs.filter(t => t.type === 'cek').length} adet</div>
+          </div>
+          <div className="cd-stat">
+            <div className="cd-stat-lbl">Son İşlem</div>
+            <div className="cd-stat-val">{fmtDate(c.lastActivity)}</div>
+            <div className="cd-stat-sub">{Math.floor((new Date('2026-04-19') - new Date(c.lastActivity)) / 86400000)} gün önce</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="two-col">
+        <div className="card">
+          <div className="card-hd"><div><div className="card-ttl">Bakiye Gelişimi</div><div className="card-sub">Son {txs.length} hareket boyunca</div></div></div>
+          <div style={{ padding: '20px 22px' }}>
+            <Sparkline data={series} height={160} color={c.balance < 0 ? 'var(--danger)' : 'var(--navy)'} />
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-hd"><div className="card-ttl">Dönem Özeti</div></div>
+          <div style={{ padding: '6px 0' }}>
+            <div style={{ padding: '13px 22px', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)' }}>
+              <span style={{ color: 'var(--ink-soft)', fontSize: 13 }}>Toplam Fatura</span>
+              <span className="num" style={{ fontWeight: 600 }}>{fmtTL(totalFatura)}</span>
+            </div>
+            <div style={{ padding: '13px 22px', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)' }}>
+              <span style={{ color: 'var(--ink-soft)', fontSize: 13 }}>Toplam Tahsilat</span>
+              <span className="num pos" style={{ fontWeight: 600 }}>{fmtTL(totalTahsilat)}</span>
+            </div>
+            <div style={{ padding: '13px 22px', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)' }}>
+              <span style={{ color: 'var(--ink-soft)', fontSize: 13 }}>Ortalama Tahsilat Süresi</span>
+              <span className="num" style={{ fontWeight: 600 }}>32 gün</span>
+            </div>
+            <div style={{ padding: '13px 22px', display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--ink-soft)', fontSize: 13 }}>Risk Skoru</span>
+              <Chip kind={c.balance > c.credit * 0.8 ? 'warn' : 'green'}>{c.balance > c.credit * 0.8 ? 'Orta' : 'Düşük'}</Chip>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginTop: 18 }}>
+        <div className="card-hd">
+          <div className="card-ttl">Son Hareketler</div>
+          <div className="grow" />
+          <button className="btn btn-sm" onClick={() => onOpenEkstre(c.id)}>Tüm Ekstreyi Aç <IconChevRight size={13} /></button>
+        </div>
+        <div className="tbl-wrap">
+          <table className="tbl">
+            <thead><tr><th>Tarih</th><th>Belge No</th><th>Açıklama</th><th>Tip</th><th className="td-right">Borç</th><th className="td-right">Alacak</th></tr></thead>
+            <tbody>
+              {txs.slice(0, 8).map(t => (
+                <tr key={t.id}>
+                  <td className="td-date">{fmtDate(t.date)}</td>
+                  <td className="td-ref">{t.ref}</td>
+                  <td>{t.description}</td>
+                  <td><DocTypeBadge type={t.type} /></td>
+                  <td className="td-num">{t.borc ? fmtTL(t.borc) : '—'}</td>
+                  <td className="td-num pos">{t.alacak ? fmtTL(t.alacak) : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ========== CARI LIST ==========
+function CariList({ onOpen, search }) {
+  const q = (search || '').toLowerCase().trim();
+  const [sort, setSort] = React.useState('name');
+  let list = CUSTOMERS;
+  if (q) list = list.filter(c => (c.name + ' ' + c.code + ' ' + c.city).toLowerCase().includes(q));
+  list = [...list].sort((a, b) => {
+    if (sort === 'balance') return b.balance - a.balance;
+    if (sort === 'city') return a.city.localeCompare(b.city);
+    return a.name.localeCompare(b.name);
+  });
+
+  return (
+    <div>
+      <div className="filterbar">
+        <div className="seg">
+          <button className={sort === 'name' ? 'active' : ''} onClick={() => setSort('name')}>İsim</button>
+          <button className={sort === 'balance' ? 'active' : ''} onClick={() => setSort('balance')}>Bakiye</button>
+          <button className={sort === 'city' ? 'active' : ''} onClick={() => setSort('city')}>Şehir</button>
+        </div>
+        <div className="flt"><IconFilter size={14} /><span>Tüm Durumlar</span><IconChevDown size={13} /></div>
+        <div className="grow" />
+        <button className="btn btn-sm"><IconXls size={14} /> Excel</button>
+        <button className="btn btn-sm btn-primary"><IconPlus size={14} /> Yeni Cari</button>
+      </div>
+      <div className="card">
+        <div className="tbl-wrap">
+          <table className="tbl">
+            <thead><tr>
+              <th>Cari Kodu</th><th>Ünvan</th><th>Şehir</th><th>Son İşlem</th>
+              <th>Durum</th><th>Kredi Kullanımı</th>
+              <th className="td-right">Bakiye</th><th style={{ width: 1 }}></th>
+            </tr></thead>
+            <tbody>
+              {list.map(c => {
+                const usage = Math.max(0, c.balance) / c.credit;
+                return (
+                  <tr key={c.id} onClick={() => onOpen(c.id)}>
+                    <td className="num" style={{ color: 'var(--ink-dim)' }}>{c.code}</td>
+                    <td style={{ fontWeight: 500 }}>{c.name}</td>
+                    <td style={{ color: 'var(--ink-soft)' }}>{c.city}</td>
+                    <td className="td-date">{fmtDate(c.lastActivity)}</td>
+                    <td><Chip kind={c.status === 'active' ? 'green' : 'neutral'}>{c.status === 'active' ? 'Aktif' : 'Pasif'}</Chip></td>
+                    <td>
+                      <div className="hstack" style={{ gap: 8, minWidth: 150 }}>
+                        <div style={{ flex: 1, height: 4, background: 'var(--panel-soft)', borderRadius: 999, overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${Math.min(100, usage * 100)}%`, background: usage > 0.8 ? 'var(--danger)' : usage > 0.5 ? 'var(--warn)' : 'var(--accent)' }} />
+                        </div>
+                        <span className="num muted" style={{ fontSize: 11.5, width: 36 }}>%{(usage * 100).toFixed(0)}</span>
+                      </div>
+                    </td>
+                    <td className="td-num" style={{ fontWeight: 600, color: c.balance < 0 ? 'var(--danger)' : 'var(--ink)' }}>{fmtTL(c.balance)}</td>
+                    <td><IconChevRight size={14} style={{ color: 'var(--ink-dim)' }} /></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ========== REPORT ==========
+function Report() {
+  const [period, setPeriod] = React.useState('month');
+  const byCity = {};
+  CUSTOMERS.forEach(c => { byCity[c.city] = (byCity[c.city] || 0) + Math.max(0, c.balance); });
+  const cities = Object.entries(byCity).sort((a, b) => b[1] - a[1]);
+  const maxCity = cities[0]?.[1] || 1;
+  const typeTotals = {};
+  TRANSACTIONS.forEach(t => { typeTotals[t.type] = (typeTotals[t.type] || 0) + (t.borc || t.alacak); });
+  const typeArr = Object.entries(typeTotals).map(([k, v]) => ({ k, v }));
+  const maxType = Math.max(...typeArr.map(t => t.v));
+  const aging = [
+    { label: '0–30 gün', value: 412500, color: 'var(--accent)' },
+    { label: '31–60 gün', value: 284300, color: '#7bc29f' },
+    { label: '61–90 gün', value: 128400, color: 'var(--warn)' },
+    { label: '90+ gün', value: 62800, color: 'var(--danger)' },
+  ];
+  const totalAging = aging.reduce((s, a) => s + a.value, 0);
+
+  return (
+    <div>
+      <div className="card" style={{ marginBottom: 18, padding: '14px 18px' }}>
+        <div className="hstack" style={{ gap: 12, flexWrap: 'wrap' }}>
+          <div className="seg">
+            {[['week', 'Bu Hafta'], ['month', 'Bu Ay'], ['quarter', 'Çeyrek'], ['year', '2026']].map(([k, l]) => (
+              <button key={k} className={period === k ? 'active' : ''} onClick={() => setPeriod(k)}>{l}</button>
+            ))}
+          </div>
+          <div className="flt"><IconCal size={14} /><span className="num" style={{ fontSize: 12 }}>01.04.2026 — 30.04.2026</span></div>
+          <div className="flt"><IconTag size={14} /><span>Tüm Belgeler</span><IconChevDown size={13} /></div>
+          <div className="grow" />
+          <button className="btn btn-sm"><IconPdf size={14} /> PDF Rapor</button>
+          <button className="btn btn-sm"><IconXls size={14} /> Excel</button>
+        </div>
+      </div>
+
+      <div className="kpi-grid">
+        <div className="kpi"><div className="kpi-label">Cari Sayısı</div><div className="kpi-val serif">{CUSTOMERS.length}</div><div className="kpi-delta">+2 bu ay</div></div>
+        <div className="kpi"><div className="kpi-label">Dönem Faturası</div><div className="kpi-val serif">{fmtTL(TRANSACTIONS.filter(t => t.type === 'fatura').reduce((s, t) => s + t.borc, 0)).replace(' ₺', '')}<span className="kpi-suffix">₺</span></div><div className="kpi-delta up"><IconArrowUp size={12} /> %12 artış</div></div>
+        <div className="kpi"><div className="kpi-label">Tahsil Edilen</div><div className="kpi-val serif">{fmtTL(TRANSACTIONS.filter(t => t.type === 'tahsilat').reduce((s, t) => s + t.alacak, 0)).replace(' ₺', '')}<span className="kpi-suffix">₺</span></div><div className="kpi-delta up"><IconArrowUp size={12} /> %8 artış</div></div>
+        <div className="kpi"><div className="kpi-label">Tahsilat Oranı</div><div className="kpi-val serif">%68,4</div><div className="kpi-delta">Hedef: %75</div></div>
+      </div>
+
+      <div className="rp-grid">
+        <div className="card">
+          <div className="card-hd"><div><div className="card-ttl">Yaşlandırma Analizi</div><div className="card-sub">Vade tarihine göre açık alacaklar</div></div></div>
+          <div style={{ padding: '20px 22px' }}>
+            <div style={{ display: 'flex', height: 14, borderRadius: 7, overflow: 'hidden', marginBottom: 16 }}>
+              {aging.map(a => <div key={a.label} style={{ width: `${(a.value / totalAging) * 100}%`, background: a.color }} />)}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+              {aging.map(a => (
+                <div key={a.label} className="hstack">
+                  <span style={{ width: 10, height: 10, borderRadius: 3, background: a.color }} />
+                  <span style={{ flex: 1, fontSize: 13 }}>{a.label}</span>
+                  <span className="num muted" style={{ fontSize: 12, width: 50, textAlign: 'right' }}>%{((a.value / totalAging) * 100).toFixed(0)}</span>
+                  <span className="num" style={{ fontWeight: 600, width: 140, textAlign: 'right' }}>{fmtTL(a.value)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-hd"><div><div className="card-ttl">Şehir Bazlı Alacak</div><div className="card-sub">Toplam açık alacak dağılımı</div></div></div>
+          <div style={{ padding: '12px 0' }}>
+            {cities.map(([city, val]) => (
+              <div key={city} style={{ padding: '11px 22px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid var(--border)' }}>
+                <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{city}</span>
+                <div style={{ width: 120, height: 4, background: 'var(--panel-soft)', borderRadius: 999, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', background: 'var(--navy)', width: `${(val / maxCity) * 100}%` }} />
+                </div>
+                <span className="num" style={{ width: 110, textAlign: 'right', fontWeight: 600, fontSize: 12.5 }}>{fmtTL(val)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="card" style={{ gridColumn: 'span 2' }}>
+          <div className="card-hd"><div><div className="card-ttl">Belge Tipi Dağılımı</div><div className="card-sub">Tüm hareketler · Nisan 2026</div></div></div>
+          <div className="tbl-wrap">
+            <table className="tbl">
+              <thead><tr><th>Belge Tipi</th><th>Adet</th><th>Toplam Tutar</th><th>Ortalama</th><th style={{ width: '40%' }}>Oran</th></tr></thead>
+              <tbody>
+                {typeArr.map(({ k, v }) => {
+                  const count = TRANSACTIONS.filter(t => t.type === k).length;
+                  return (
+                    <tr key={k}>
+                      <td><DocTypeBadge type={k} /></td>
+                      <td className="num">{count}</td>
+                      <td className="td-num" style={{ fontWeight: 600 }}>{fmtTL(v)}</td>
+                      <td className="td-num">{fmtTL(v / count)}</td>
+                      <td>
+                        <div className="hstack" style={{ gap: 8 }}>
+                          <div style={{ flex: 1, height: 6, background: 'var(--panel-soft)', borderRadius: 999, overflow: 'hidden' }}>
+                            <div style={{ height: '100%', background: 'var(--navy)', width: `${(v / maxType) * 100}%` }} />
+                          </div>
+                          <span className="num muted" style={{ fontSize: 11.5, width: 50, textAlign: 'right' }}>%{((v / typeArr.reduce((s, t) => s + t.v, 0)) * 100).toFixed(0)}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ========== MODAL ==========
+function TxModal({ kind, customerId, onClose, onSaved }) {
+  const [type, setType] = React.useState(kind === 'payment' ? 'payment' : 'collection');
+  const [cust, setCust] = React.useState(customerId || CUSTOMERS[0].id);
+  const [amount, setAmount] = React.useState('');
+  const [method, setMethod] = React.useState('havale');
+  const [date, setDate] = React.useState('2026-04-19');
+  const [note, setNote] = React.useState('');
+  const customer = CUSTOMERS.find(c => c.id === cust);
+  const isCollection = type === 'collection';
+  const submit = (e) => { e.preventDefault(); onSaved?.(isCollection ? 'Tahsilat kaydedildi' : 'Ödeme kaydedildi'); };
+
+  return (
+    <div className="modal-scrim" onClick={onClose}>
+      <form className="modal" onClick={e => e.stopPropagation()} onSubmit={submit}>
+        <div className="modal-hd">
+          <div style={{ width: 38, height: 38, borderRadius: 10, background: isCollection ? 'var(--accent-soft)' : 'var(--danger-soft)', color: isCollection ? 'var(--accent-ink)' : 'var(--danger)', display: 'grid', placeItems: 'center' }}>
+            {isCollection ? <IconArrowUp size={17} /> : <IconArrowDown size={17} />}
+          </div>
+          <div style={{ flex: 1 }}>
+            <div className="modal-ttl">Yeni {isCollection ? 'Tahsilat' : 'Ödeme'}</div>
+            <div className="modal-sub">Cari hesaba kayıt oluştur</div>
+          </div>
+          <button type="button" className="btn btn-icon btn-ghost" onClick={onClose}><IconX size={16} /></button>
+        </div>
+        <div className="modal-bd">
+          <div className="field">
+            <label>İşlem Tipi</label>
+            <div className="type-pick">
+              <label>
+                <input type="radio" name="type" value="collection" checked={type === 'collection'} onChange={() => setType('collection')} />
+                <div className="tp-icon"><IconArrowUp size={15} /></div>
+                <div className="tp-body">
+                  <div className="tp-ttl">Tahsilat</div>
+                  <div className="tp-sub">Cariden para giriş</div>
+                </div>
+              </label>
+              <label>
+                <input type="radio" name="type" value="payment" checked={type === 'payment'} onChange={() => setType('payment')} />
+                <div className="tp-icon"><IconArrowDown size={15} /></div>
+                <div className="tp-body">
+                  <div className="tp-ttl">Ödeme</div>
+                  <div className="tp-sub">Cariye para çıkış</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div className="field">
+            <label>Cari Hesap</label>
+            <select value={cust} onChange={e => setCust(e.target.value)}>
+              {CUSTOMERS.map(c => <option key={c.id} value={c.id}>{c.name} · {c.code}</option>)}
+            </select>
+            {customer && (
+              <div style={{ marginTop: 10, padding: '10px 14px', background: 'var(--bg-elev)', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 12, fontSize: 12, border: '1px solid var(--border)' }}>
+                <span className="muted">Mevcut bakiye:</span>
+                <BalanceChip value={customer.balance} />
+                <span className="grow" />
+                <span className="muted">Limit: <span className="num">{fmtTL(customer.credit)}</span></span>
+              </div>
+            )}
+          </div>
+
+          <div className="field-row">
+            <div className="field">
+              <label>Tutar (₺)</label>
+              <input type="text" placeholder="0,00" value={amount} onChange={e => setAmount(e.target.value)} style={{ fontFamily: 'Geist Mono, monospace', fontSize: 17, fontWeight: 600, textAlign: 'right' }} autoFocus />
+            </div>
+            <div className="field">
+              <label>Tarih</label>
+              <input type="date" value={date} onChange={e => setDate(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="field">
+            <label>Tahsilat Şekli</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+              {[{ k: 'nakit', l: 'Nakit' }, { k: 'havale', l: 'Havale/EFT' }, { k: 'kredi', l: 'Kredi Kartı' }, { k: 'cek', l: 'Çek/Senet' }].map(m => (
+                <button key={m.k} type="button" className={`flt ${method === m.k ? 'active' : ''}`} onClick={() => setMethod(m.k)} style={{ justifyContent: 'center', padding: '9px 6px', fontSize: 12 }}>
+                  {m.l}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="field">
+            <label>Açıklama (opsiyonel)</label>
+            <textarea rows="2" value={note} onChange={e => setNote(e.target.value)} placeholder="Örn: Nisan faturası kapatıldı" />
+          </div>
+        </div>
+        <div className="modal-ft">
+          <button type="button" className="btn" onClick={onClose}>İptal</button>
+          <button type="submit" className={isCollection ? 'btn btn-success' : 'btn btn-danger'}><IconCheck size={14} /> Kaydet</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+// ========== APP ==========
+function App() {
+  const [page, setPage] = React.useState(() => localStorage.getItem('page_v2') || 'dashboard');
+  const [focusCustomer, setFocusCustomer] = React.useState(null);
+  const [modal, setModal] = React.useState(null);
+  const [toast, setToast] = React.useState(null);
+  const [globalSearch, setGlobalSearch] = React.useState('');
+  const [tweaksVisible, setTweaksVisible] = React.useState(false);
+  const [theme, setTheme] = React.useState(() => {
+    try { return JSON.parse(document.getElementById('tweak-defaults').textContent.match(/\{.*\}/s)[0]).theme || 'light'; } catch { return 'light'; }
+  });
+
+  React.useEffect(() => { localStorage.setItem('page_v2', page); }, [page]);
+  React.useEffect(() => { document.documentElement.setAttribute('data-theme', theme); }, [theme]);
+
+  window.__nav = setPage;
+  window.__openModal = (kind, customerId) => setModal({ kind, customerId });
+
+  React.useEffect(() => {
+    const onMsg = (e) => {
+      const d = e.data || {};
+      if (d.type === '__activate_edit_mode') setTweaksVisible(true);
+      if (d.type === '__deactivate_edit_mode') setTweaksVisible(false);
+    };
+    window.addEventListener('message', onMsg);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+
+  const setKey = (k, v) => {
+    if (k === 'theme') setTheme(v);
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [k]: v } }, '*');
+  };
+
+  const nav = (p) => { setPage(p); setFocusCustomer(null); };
+  const openCustomer = (id) => { setFocusCustomer(id); setPage('cari'); };
+  const openEkstre = (id) => { setFocusCustomer(id); setPage('ekstre'); };
+
+  const pageMeta = {
+    dashboard: { title: 'Bilgi Ekranı', eyebrow: 'Genel Bakış' },
+    cariler: { title: 'Cari Hesaplar', eyebrow: 'Operasyon' },
+    cari: { title: 'Cari Kart Detayı', eyebrow: 'Cariler' },
+    ekstre: { title: 'Hesap Ekstresi', eyebrow: 'Cariler' },
+    rapor: { title: 'Raporlar', eyebrow: 'Finans Analiz' },
+    hareketler: { title: 'Stok Hareketler', eyebrow: 'Operasyon' },
+    firmalar: { title: 'Firmalar', eyebrow: 'Operasyon' },
+    stok: { title: 'Stok', eyebrow: 'Operasyon' },
+    kasa: { title: 'Kasa', eyebrow: 'Operasyon' },
+    gelirgider: { title: 'Gelir / Gider', eyebrow: 'Operasyon' },
+    personel: { title: 'Personel', eyebrow: 'Operasyon' },
+    cekler: { title: 'Çek / Senet', eyebrow: 'Operasyon' },
+    uretim: { title: 'Üretim', eyebrow: 'Operasyon' },
+    cektakvim: { title: 'Çek Takvimi', eyebrow: 'Finans Analiz' },
+    mutabakat: { title: 'Mutabakat', eyebrow: 'Finans Analiz' },
+    tahsilatoneri: { title: 'Tahsilat Önerileri', eyebrow: 'Finans Analiz' },
+    karlilik: { title: 'Kârlılık', eyebrow: 'Finans Analiz' },
+    ayarlar: { title: 'Ayarlar', eyebrow: 'Yönetim' },
+  };
+  const meta = pageMeta[page] || pageMeta.dashboard;
+
+  const renderPage = () => {
+    if (page === 'dashboard') return <Dashboard onOpenCustomer={openCustomer} />;
+    if (page === 'ekstre') return <Ekstre initialCustomerId={focusCustomer} search={globalSearch} onOpenCustomer={openCustomer} />;
+    if (page === 'cariler') return <CariList onOpen={openCustomer} search={globalSearch} />;
+    if (page === 'cari') return <CustomerDetail customerId={focusCustomer || CUSTOMERS[0].id} onOpenEkstre={openEkstre} onBack={() => nav('cariler')} />;
+    if (page === 'rapor') return <Report />;
+    // Placeholder for other pages (from repo menu)
+    return (
+      <div className="card" style={{ padding: '80px 40px', textAlign: 'center' }}>
+        <div className="serif" style={{ fontSize: 28, letterSpacing: '-0.015em', marginBottom: 8 }}>{meta.title}</div>
+        <div style={{ color: 'var(--ink-dim)', fontSize: 14, maxWidth: 480, margin: '0 auto' }}>Bu sayfa modülü henüz tasarıma eklenmedi. Repo'daki <span className="mono" style={{ color: 'var(--ink-soft)' }}>pages/{page}.py</span> tabanlı olarak eklenebilir.</div>
+        <div style={{ marginTop: 24 }}>
+          <button className="btn" onClick={() => nav('dashboard')}>← Bilgi Ekranına Dön</button>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div id="root" data-screen-label={page}>
+      <Sidebar page={page === 'cari' || page === 'ekstre' ? 'cariler' : page} onNav={nav} />
+      <div className="main">
+        <Topbar title={meta.title} eyebrow={meta.eyebrow} onSearch={setGlobalSearch} searchValue={globalSearch} />
+        <div className="content">
+          <div className="content-wrap">
+            {renderPage()}
+          </div>
+        </div>
+      </div>
+
+      {modal && <TxModal kind={modal.kind} customerId={modal.customerId} onClose={() => setModal(null)} onSaved={(m) => { setModal(null); setToast(m); }} />}
+      {toast && <Toast message={toast} onDone={() => setToast(null)} />}
+
+      {tweaksVisible && (
+        <div className="tweaks">
+          <div>
+            <div className="tweak-ttl">Tweaks</div>
+            <div style={{ fontSize: 13, fontWeight: 500, marginTop: 3 }}>Tema</div>
+          </div>
+          <div className="hstack" style={{ gap: 8 }}>
+            <IconSun size={15} style={{ color: theme === 'light' ? 'var(--ink)' : 'var(--ink-dim)' }} />
+            <button className={`toggle ${theme === 'dark' ? 'on' : ''}`} onClick={() => setKey('theme', theme === 'dark' ? 'light' : 'dark')} aria-label="Tema değiştir" />
+            <IconMoon size={15} style={{ color: theme === 'dark' ? 'var(--ink)' : 'var(--ink-dim)' }} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('app')).render(<App />);
+</script>
+</body>
+</html>

@@ -1,0 +1,1561 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<title>ŞENOL ÇELİK — Cari Takip</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --bg: oklch(0.992 0.003 240);
+  --panel: #ffffff;
+  --panel-soft: oklch(0.975 0.004 240);
+  --border: oklch(0.92 0.005 240);
+  --border-strong: oklch(0.86 0.006 240);
+  --text: oklch(0.22 0.01 250);
+  --text-soft: oklch(0.45 0.01 250);
+  --text-dim: oklch(0.58 0.008 250);
+  --accent: oklch(0.62 0.14 150);
+  --accent-soft: oklch(0.95 0.04 150);
+  --accent-ink: oklch(0.38 0.12 150);
+  --danger: oklch(0.58 0.17 28);
+  --danger-soft: oklch(0.96 0.03 28);
+  --warn: oklch(0.72 0.14 75);
+  --warn-soft: oklch(0.96 0.04 75);
+  --shadow-sm: 0 1px 2px oklch(0.2 0.02 250 / 0.05);
+  --shadow-md: 0 4px 16px oklch(0.2 0.02 250 / 0.07), 0 1px 3px oklch(0.2 0.02 250 / 0.04);
+  --shadow-lg: 0 20px 40px oklch(0.2 0.02 250 / 0.12), 0 2px 6px oklch(0.2 0.02 250 / 0.05);
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-lg: 14px;
+  color-scheme: light;
+}
+[data-theme="dark"] {
+  --bg: oklch(0.18 0.01 250);
+  --panel: oklch(0.22 0.012 250);
+  --panel-soft: oklch(0.20 0.012 250);
+  --border: oklch(0.30 0.012 250);
+  --border-strong: oklch(0.36 0.012 250);
+  --text: oklch(0.96 0.005 250);
+  --text-soft: oklch(0.75 0.008 250);
+  --text-dim: oklch(0.60 0.008 250);
+  --accent: oklch(0.72 0.16 150);
+  --accent-soft: oklch(0.30 0.05 150);
+  --accent-ink: oklch(0.85 0.14 150);
+  --danger: oklch(0.70 0.18 28);
+  --danger-soft: oklch(0.32 0.06 28);
+  --warn: oklch(0.78 0.14 75);
+  --warn-soft: oklch(0.32 0.06 75);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.35);
+  --shadow-lg: 0 20px 40px rgba(0,0,0,0.45);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: 'Figtree', system-ui, sans-serif; font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+body { min-height: 100vh; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; font-size: inherit; }
+input, select, textarea { font-family: inherit; font-size: inherit; color: inherit; }
+.num, .tabular { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+svg { display: block; }
+
+#root { display: flex; min-height: 100vh; }
+
+/* ============ SIDEBAR ============ */
+.sidebar {
+  width: 244px; flex-shrink: 0;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  position: sticky; top: 0; height: 100vh;
+}
+.sb-brand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 18px 18px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.sb-logo {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--text); color: var(--bg);
+  display: grid; place-items: center;
+  font-weight: 700; font-size: 14px; letter-spacing: -0.02em;
+}
+.sb-brand-name { font-weight: 600; font-size: 14px; letter-spacing: -0.01em; }
+.sb-brand-sub { font-size: 11px; color: var(--text-dim); margin-top: -2px; }
+
+.sb-section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); padding: 14px 18px 6px; font-weight: 600; }
+.sb-nav { padding: 6px 10px; display: flex; flex-direction: column; gap: 1px; }
+.sb-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: 8px;
+  color: var(--text-soft); font-size: 13.5px; font-weight: 500;
+  width: 100%; text-align: left;
+}
+.sb-item:hover { background: var(--panel-soft); color: var(--text); }
+.sb-item.active { background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
+.sb-item.active svg { color: var(--accent); }
+.sb-item svg { color: var(--text-dim); flex-shrink: 0; }
+.sb-item.active svg { color: var(--accent-ink); }
+.sb-badge { margin-left: auto; font-size: 11px; color: var(--text-dim); font-family: 'IBM Plex Mono', monospace; }
+.sb-item.active .sb-badge { color: var(--accent-ink); }
+
+.sb-foot { margin-top: auto; padding: 14px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+.avatar { width: 30px; height: 30px; border-radius: 50%; background: oklch(0.85 0.03 150); color: var(--accent-ink); display: grid; place-items: center; font-weight: 600; font-size: 12px; flex-shrink: 0; }
+.sb-user-name { font-size: 13px; font-weight: 500; }
+.sb-user-role { font-size: 11px; color: var(--text-dim); }
+
+/* ============ MAIN ============ */
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.topbar {
+  display: flex; align-items: center; gap: 16px;
+  padding: 14px 28px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 20;
+}
+.tb-title { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+.tb-crumb { font-size: 12px; color: var(--text-dim); }
+.tb-spacer { flex: 1; }
+.tb-search {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 12px; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--panel-soft); width: 300px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.tb-search:focus-within { border-color: var(--accent); background: var(--panel); }
+.tb-search input { flex: 1; border: none; background: none; outline: none; font-size: 13px; }
+.tb-search kbd { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-dim); border: 1px solid var(--border-strong); padding: 1px 5px; border-radius: 4px; background: var(--panel); }
+
+.content { flex: 1; padding: 24px 28px 48px; overflow-x: auto; }
+
+/* ============ BUTTONS ============ */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 12px; border-radius: 8px;
+  font-size: 13px; font-weight: 500;
+  border: 1px solid var(--border-strong); background: var(--panel); color: var(--text);
+  transition: all 0.12s;
+}
+.btn:hover { background: var(--panel-soft); border-color: var(--text-dim); }
+.btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+.btn-primary:hover { background: var(--accent-ink); border-color: var(--accent-ink); color: white; }
+.btn-ghost { border-color: transparent; background: transparent; color: var(--text-soft); }
+.btn-ghost:hover { background: var(--panel-soft); color: var(--text); }
+.btn-sm { padding: 5px 9px; font-size: 12px; }
+.btn-icon { padding: 7px; }
+
+/* ============ CARDS ============ */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.card-hd { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+.card-ttl { font-size: 14px; font-weight: 600; }
+.card-sub { font-size: 12px; color: var(--text-dim); }
+
+/* ============ KPI ============ */
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+.kpi {
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px 18px;
+  position: relative; overflow: hidden;
+}
+.kpi-label { font-size: 12px; color: var(--text-soft); font-weight: 500; display: flex; align-items: center; gap: 6px; }
+.kpi-val { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; margin-top: 6px; }
+.kpi-delta { font-size: 12px; color: var(--text-dim); margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+.kpi-delta.up { color: var(--accent-ink); }
+.kpi-delta.down { color: var(--danger); }
+
+/* ============ TABLE ============ */
+.tbl-wrap { overflow-x: auto; }
+table.tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.tbl thead th {
+  text-align: left; padding: 10px 14px;
+  font-size: 11.5px; font-weight: 600; color: var(--text-soft);
+  text-transform: uppercase; letter-spacing: 0.06em;
+  background: var(--panel-soft);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+table.tbl tbody td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+table.tbl tbody tr { transition: background 0.1s; }
+table.tbl tbody tr:hover { background: var(--panel-soft); cursor: pointer; }
+table.tbl tbody tr:last-child td { border-bottom: none; }
+.td-right { text-align: right; }
+.td-center { text-align: center; }
+.td-num { font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; text-align: right; }
+.td-date { font-family: 'IBM Plex Mono', monospace; color: var(--text-soft); font-size: 12.5px; }
+.td-ref { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim); }
+
+/* Badges */
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 500; white-space: nowrap; }
+.chip-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.chip-green { background: var(--accent-soft); color: var(--accent-ink); }
+.chip-green .chip-dot { background: var(--accent); }
+.chip-red { background: var(--danger-soft); color: var(--danger); }
+.chip-red .chip-dot { background: var(--danger); }
+.chip-warn { background: var(--warn-soft); color: oklch(0.45 0.13 75); }
+.chip-warn .chip-dot { background: var(--warn); }
+.chip-neutral { background: var(--panel-soft); color: var(--text-soft); border: 1px solid var(--border); }
+.chip-neutral .chip-dot { background: var(--text-dim); }
+
+.balance-chip {
+  display: inline-flex; align-items: baseline; gap: 8px;
+  padding: 5px 12px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent-ink);
+  font-weight: 600;
+}
+.balance-chip.neg { background: var(--danger-soft); color: var(--danger); }
+.balance-chip .bc-label { font-size: 10.5px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.75; }
+.balance-chip .bc-val { font-family: 'IBM Plex Mono', monospace; font-size: 14px; font-weight: 600; }
+
+/* Filter bar */
+.filterbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.flt {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 11px; border-radius: 8px;
+  border: 1px solid var(--border-strong); background: var(--panel);
+  font-size: 13px; font-weight: 500; color: var(--text);
+  transition: all 0.12s;
+}
+.flt:hover { border-color: var(--text-dim); }
+.flt.active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); }
+.flt svg { color: var(--text-dim); }
+.flt.active svg { color: var(--accent-ink); }
+.flt select { border: none; background: transparent; outline: none; cursor: pointer; color: inherit; font-weight: 500; font-size: 13px; appearance: none; padding-right: 16px; }
+
+.seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 8px; overflow: hidden; background: var(--panel); }
+.seg button { padding: 6px 12px; font-size: 12.5px; font-weight: 500; color: var(--text-soft); border-right: 1px solid var(--border); transition: all 0.1s; }
+.seg button:last-child { border-right: none; }
+.seg button:hover { background: var(--panel-soft); color: var(--text); }
+.seg button.active { background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
+
+/* Modal */
+.modal-scrim { position: fixed; inset: 0; background: oklch(0.2 0.01 250 / 0.42); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 100; animation: fadeIn 0.15s; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.modal {
+  background: var(--panel); border-radius: 14px; border: 1px solid var(--border);
+  width: 520px; max-width: calc(100vw - 40px); max-height: calc(100vh - 40px);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden; display: flex; flex-direction: column;
+  animation: slideUp 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.modal-hd { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+.modal-ttl { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+.modal-bd { padding: 20px 22px; overflow-y: auto; }
+.modal-ft { padding: 14px 22px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; background: var(--panel-soft); }
+
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.field label { font-size: 12px; font-weight: 500; color: var(--text-soft); }
+.field input, .field select, .field textarea {
+  padding: 9px 11px; border: 1px solid var(--border-strong); border-radius: 7px;
+  background: var(--panel); font-size: 13.5px; outline: none;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.type-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.type-pick label {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; border: 1px solid var(--border-strong); border-radius: 10px;
+  cursor: pointer; transition: all 0.12s;
+}
+.type-pick label:hover { border-color: var(--text-dim); }
+.type-pick input { display: none; }
+.type-pick input:checked + .tp-body { color: var(--accent-ink); }
+.type-pick label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.tp-icon { width: 30px; height: 30px; border-radius: 8px; background: var(--panel-soft); display: grid; place-items: center; color: var(--text-soft); flex-shrink: 0; }
+.type-pick label:has(input:checked) .tp-icon { background: var(--accent); color: white; }
+.type-pick label:has(input[value="payment"]:checked) { border-color: var(--danger); background: var(--danger-soft); }
+.type-pick label:has(input[value="payment"]:checked) .tp-icon { background: var(--danger); color: white; }
+.type-pick label:has(input[value="payment"]:checked) .tp-body { color: var(--danger); }
+.tp-ttl { font-size: 13.5px; font-weight: 600; }
+.tp-sub { font-size: 11.5px; color: var(--text-dim); }
+
+/* Tweaks panel */
+.tweaks {
+  position: fixed; bottom: 20px; right: 20px;
+  background: var(--panel); border: 1px solid var(--border-strong); border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  padding: 14px 16px;
+  display: flex; align-items: center; gap: 14px;
+  z-index: 90;
+  animation: slideUp 0.2s;
+}
+.tweak-ttl { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); }
+.toggle { position: relative; width: 36px; height: 20px; background: var(--border-strong); border-radius: 999px; cursor: pointer; transition: background 0.2s; }
+.toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: white; box-shadow: var(--shadow-sm); transition: transform 0.2s; }
+.toggle.on { background: var(--accent); }
+.toggle.on::after { transform: translateX(16px); }
+
+/* Dashboard specifics */
+.two-col { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; }
+.top-customers .row { display: flex; align-items: center; gap: 12px; padding: 11px 16px; border-bottom: 1px solid var(--border); }
+.top-customers .row:last-child { border-bottom: none; }
+.tc-rank { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim); width: 20px; }
+.tc-name { flex: 1; font-weight: 500; font-size: 13.5px; }
+.tc-bar { width: 100px; height: 4px; background: var(--panel-soft); border-radius: 999px; overflow: hidden; }
+.tc-bar-fill { height: 100%; background: var(--accent); }
+.tc-val { font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; color: var(--text-soft); width: 110px; text-align: right; }
+
+/* Customer detail specifics */
+.cd-hero { display: flex; align-items: flex-start; gap: 20px; padding: 20px 22px; border-bottom: 1px solid var(--border); }
+.cd-avatar { width: 54px; height: 54px; border-radius: 12px; background: linear-gradient(135deg, var(--accent-soft), oklch(0.9 0.05 150)); color: var(--accent-ink); display: grid; place-items: center; font-weight: 700; font-size: 20px; flex-shrink: 0; }
+.cd-name { font-size: 20px; font-weight: 600; letter-spacing: -0.015em; }
+.cd-meta { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 6px; font-size: 12.5px; color: var(--text-soft); }
+.cd-meta span { display: flex; align-items: center; gap: 5px; }
+.cd-stats { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--border); }
+.cd-stat { padding: 14px 20px; border-right: 1px solid var(--border); }
+.cd-stat:last-child { border-right: none; }
+.cd-stat-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); font-weight: 600; }
+.cd-stat-val { font-size: 18px; font-weight: 600; margin-top: 4px; letter-spacing: -0.015em; }
+.cd-stat-sub { font-size: 11.5px; color: var(--text-dim); margin-top: 2px; }
+
+/* Simple chart */
+.spark { width: 100%; height: 140px; }
+
+/* Report page */
+.rp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* Empty / toasts */
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 500; box-shadow: var(--shadow-lg); z-index: 200; animation: slideUp 0.2s; }
+
+/* utility */
+.muted { color: var(--text-dim); }
+.hstack { display: flex; align-items: center; gap: 8px; }
+.vstack { display: flex; flex-direction: column; gap: 4px; }
+.grow { flex: 1; }
+.pos { color: var(--accent-ink); }
+.neg { color: var(--danger); }
+
+/* Scrollbar polish */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 8px; border: 2px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+::-webkit-scrollbar-track { background: transparent; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script type="application/json" id="tweak-defaults">
+/*EDITMODE-BEGIN*/{
+  "theme": "light"
+}/*EDITMODE-END*/
+</script>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" data-presets="react">
+
+// ==== src/icons.jsx ====
+// Icon components — line icons at 18px default, following a neutral stroke style.
+const Icon = ({ d, size = 18, stroke = 1.6, children, ...rest }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" {...rest}>
+    {d ? <path d={d} /> : children}
+  </svg>
+);
+
+const IconDashboard = (p) => <Icon {...p}><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></Icon>;
+const IconCari = (p) => <Icon {...p}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></Icon>;
+const IconEkstre = (p) => <Icon {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5M8 9h2"/></Icon>;
+const IconReport = (p) => <Icon {...p}><path d="M3 3v18h18"/><path d="M7 15l4-4 4 4 5-6"/></Icon>;
+const IconSettings = (p) => <Icon {...p}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></Icon>;
+const IconInvoice = (p) => <Icon {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16l3-2 3 2 3-2 3 2V8z"/><path d="M14 2v6h6"/><path d="M9 12h6M9 16h4"/></Icon>;
+const IconCheck = (p) => <Icon {...p}><path d="M20 6 9 17l-5-5"/></Icon>;
+const IconSearch = (p) => <Icon {...p}><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></Icon>;
+const IconPlus = (p) => <Icon {...p}><path d="M12 5v14M5 12h14"/></Icon>;
+const IconDownload = (p) => <Icon {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></Icon>;
+const IconFilter = (p) => <Icon {...p}><path d="M3 5h18M6 12h12M10 19h4"/></Icon>;
+const IconCal = (p) => <Icon {...p}><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></Icon>;
+const IconChevDown = (p) => <Icon {...p}><path d="m6 9 6 6 6-6"/></Icon>;
+const IconChevRight = (p) => <Icon {...p}><path d="m9 18 6-6-6-6"/></Icon>;
+const IconX = (p) => <Icon {...p}><path d="M18 6 6 18M6 6l18 18"/></Icon>;
+const IconArrowUp = (p) => <Icon {...p}><path d="M12 19V5M5 12l7-7 7 7"/></Icon>;
+const IconArrowDown = (p) => <Icon {...p}><path d="M12 5v14M19 12l-7 7-7-7"/></Icon>;
+const IconPhone = (p) => <Icon {...p}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></Icon>;
+const IconMail = (p) => <Icon {...p}><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></Icon>;
+const IconMap = (p) => <Icon {...p}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></Icon>;
+const IconTag = (p) => <Icon {...p}><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></Icon>;
+const IconPrinter = (p) => <Icon {...p}><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></Icon>;
+const IconPdf = (p) => <Icon {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><text x="7" y="18" fontSize="6" fontFamily="monospace" fontWeight="700" stroke="none" fill="currentColor">PDF</text></Icon>;
+const IconXls = (p) => <Icon {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><text x="7" y="18" fontSize="6" fontFamily="monospace" fontWeight="700" stroke="none" fill="currentColor">XLS</text></Icon>;
+const IconMore = (p) => <Icon {...p}><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></Icon>;
+const IconUpload = (p) => <Icon {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></Icon>;
+const IconBell = (p) => <Icon {...p}><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></Icon>;
+const IconEdit = (p) => <Icon {...p}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></Icon>;
+const IconReceipt = (p) => <Icon {...p}><path d="M6 2h12a1 1 0 0 1 1 1v19l-3-2-3 2-3-2-3 2-3-2V3a1 1 0 0 1 1-1z"/><path d="M9 7h6M9 11h6M9 15h4"/></Icon>;
+const IconWallet = (p) => <Icon {...p}><path d="M20 12V8H6a2 2 0 0 1 0-4h12v4"/><path d="M4 6v12a2 2 0 0 0 2 2h14v-4"/><circle cx="16" cy="14" r="1.5"/></Icon>;
+const IconChart = (p) => <Icon {...p}><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="4" width="3" height="14"/></Icon>;
+const IconSun = (p) => <Icon {...p}><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></Icon>;
+const IconMoon = (p) => <Icon {...p}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></Icon>;
+const IconSort = (p) => <Icon {...p}><path d="M8 3v18M8 3l-3 3M8 3l3 3M16 21V3M16 21l-3-3M16 21l3-3"/></Icon>;
+
+Object.assign(window, {
+  Icon, IconDashboard, IconCari, IconEkstre, IconReport, IconSettings, IconInvoice, IconCheck,
+  IconSearch, IconPlus, IconDownload, IconFilter, IconCal, IconChevDown, IconChevRight, IconX,
+  IconArrowUp, IconArrowDown, IconPhone, IconMail, IconMap, IconTag, IconPrinter, IconPdf, IconXls,
+  IconMore, IconUpload, IconBell, IconEdit, IconReceipt, IconWallet, IconChart, IconSun, IconMoon, IconSort
+});
+
+
+// ==== src/data.jsx ====
+// Mock data. Turkish steel/metal industry — realistic customer names, invoice refs, amounts.
+
+const fmtTL = (n, opts = {}) => {
+  const sign = n < 0 ? '-' : '';
+  const abs = Math.abs(n);
+  const s = abs.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `${sign}${s} ${opts.noSuffix ? '' : '₺'}`.trim();
+};
+const fmtTLShort = (n) => {
+  const abs = Math.abs(n);
+  if (abs >= 1e6) return `${(n/1e6).toFixed(1).replace('.', ',')} M ₺`;
+  if (abs >= 1e3) return `${(n/1e3).toFixed(0)} B ₺`;
+  return fmtTL(n);
+};
+const fmtDate = (d) => {
+  const dt = d instanceof Date ? d : new Date(d);
+  return dt.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+};
+const fmtDateShort = (d) => {
+  const dt = d instanceof Date ? d : new Date(d);
+  return dt.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' });
+};
+
+// Customers
+const CUSTOMERS = [
+  { id: 'C-1042', code: '120.01.042', name: 'Yıldız İnşaat Malzemeleri A.Ş.', city: 'İstanbul', district: 'Pendik', phone: '0216 412 88 90', email: 'muhasebe@yildizinsaat.com.tr', tax: '9870012345', taxOffice: 'Pendik V.D.', balance: 284650.50, credit: 500000, lastActivity: '2026-04-16', paymentTerm: 45, status: 'active' },
+  { id: 'C-1019', code: '120.01.019', name: 'Demir Çelik Ticaret Ltd. Şti.', city: 'İstanbul', district: 'Tuzla', phone: '0216 395 11 22', email: 'info@demircelikltd.com', tax: '4320098765', taxOffice: 'Tuzla V.D.', balance: 142800.00, credit: 300000, lastActivity: '2026-04-18', paymentTerm: 30, status: 'active' },
+  { id: 'C-1078', code: '120.01.078', name: 'Karadeniz Metal Sanayi A.Ş.', city: 'Samsun', district: 'Atakum', phone: '0362 445 67 89', email: 'satinalma@kdzmetal.com.tr', tax: '6540087654', taxOffice: 'Atakum V.D.', balance: 98500.75, credit: 200000, lastActivity: '2026-04-15', paymentTerm: 60, status: 'active' },
+  { id: 'C-1055', code: '120.01.055', name: 'Bayraktar Yapı Market', city: 'Ankara', district: 'Sincan', phone: '0312 278 90 11', email: 'bayraktaryapi@gmail.com', tax: '1230087456', taxOffice: 'Sincan V.D.', balance: -18400.00, credit: 150000, lastActivity: '2026-04-17', paymentTerm: 30, status: 'active' },
+  { id: 'C-1033', code: '120.01.033', name: 'Ege Profil İnşaat Ltd.', city: 'İzmir', district: 'Çiğli', phone: '0232 376 55 44', email: 'info@egeprofil.com', tax: '8760054321', taxOffice: 'Çiğli V.D.', balance: 67200.00, credit: 150000, lastActivity: '2026-04-14', paymentTerm: 45, status: 'active' },
+  { id: 'C-1088', code: '120.01.088', name: 'Güney Hırdavat Kollektif Şti.', city: 'Antalya', district: 'Kepez', phone: '0242 344 12 77', email: 'guney.hrd@outlook.com', tax: '3210054678', taxOffice: 'Kepez V.D.', balance: 38950.25, credit: 80000, lastActivity: '2026-04-10', paymentTerm: 30, status: 'active' },
+  { id: 'C-1012', code: '120.01.012', name: 'Anadolu Yapı Kimyasalları', city: 'Konya', district: 'Selçuklu', phone: '0332 221 66 33', email: 'muhasebe@anadoluyapi.com', tax: '5670012890', taxOffice: 'Selçuklu V.D.', balance: 215400.00, credit: 400000, lastActivity: '2026-04-18', paymentTerm: 60, status: 'active' },
+  { id: 'C-1099', code: '120.01.099', name: 'Marmara Çelik Konstrüksiyon', city: 'Kocaeli', district: 'Gebze', phone: '0262 642 33 11', email: 'info@marmaracelik.com.tr', tax: '2340087120', taxOffice: 'Gebze V.D.', balance: 425800.00, credit: 600000, lastActivity: '2026-04-19', paymentTerm: 45, status: 'active' },
+  { id: 'C-1061', code: '120.01.061', name: 'Mete Hırdavat & Nalbur', city: 'Bursa', district: 'Nilüfer', phone: '0224 453 22 88', email: 'mete.hrd@hotmail.com', tax: '7890012345', taxOffice: 'Nilüfer V.D.', balance: 0, credit: 50000, lastActivity: '2026-04-02', paymentTerm: 15, status: 'passive' },
+  { id: 'C-1025', code: '120.01.025', name: 'Doğu Anadolu Demir Tic.', city: 'Erzurum', district: 'Yakutiye', phone: '0442 233 11 66', email: 'doga.demir@gmail.com', tax: '6540012987', taxOffice: 'Yakutiye V.D.', balance: 52300.00, credit: 100000, lastActivity: '2026-04-12', paymentTerm: 30, status: 'active' },
+];
+
+// Transaction generator
+const DOC_TYPES = ['fatura', 'tahsilat', 'cek', 'odeme', 'iade'];
+const DOC_LABEL = { fatura: 'Satış Faturası', tahsilat: 'Tahsilat', cek: 'Çek/Senet', odeme: 'Ödeme', iade: 'İade Faturası' };
+const DOC_CHIP = { fatura: 'neutral', tahsilat: 'green', cek: 'warn', odeme: 'red', iade: 'neutral' };
+
+// Deterministic pseudo-random
+function seeded(seed) {
+  let x = seed;
+  return () => { x = (x * 16807) % 2147483647; return (x - 1) / 2147483646; };
+}
+
+function genTransactions() {
+  const rnd = seeded(42);
+  const tx = [];
+  let id = 10000;
+  const today = new Date('2026-04-19');
+  CUSTOMERS.forEach(c => {
+    const count = Math.floor(rnd() * 18) + 8;
+    let running = 0;
+    const entries = [];
+    for (let i = 0; i < count; i++) {
+      const daysAgo = Math.floor(rnd() * 180);
+      const d = new Date(today); d.setDate(d.getDate() - daysAgo);
+      let type;
+      const r = rnd();
+      if (r < 0.55) type = 'fatura';
+      else if (r < 0.85) type = 'tahsilat';
+      else if (r < 0.93) type = 'cek';
+      else if (r < 0.98) type = 'odeme';
+      else type = 'iade';
+      let amount;
+      if (type === 'fatura') amount = +(rnd() * 45000 + 3500).toFixed(2);
+      else if (type === 'tahsilat') amount = +(rnd() * 30000 + 5000).toFixed(2);
+      else if (type === 'cek') amount = +(rnd() * 25000 + 5000).toFixed(2);
+      else if (type === 'odeme') amount = +(rnd() * 8000 + 1000).toFixed(2);
+      else amount = +(rnd() * 6000 + 500).toFixed(2);
+
+      const borc = (type === 'fatura') ? amount : 0;
+      const alacak = (type === 'tahsilat' || type === 'cek' || type === 'odeme' || type === 'iade') ? amount : 0;
+      running += borc - alacak;
+
+      entries.push({
+        id: `T-${++id}`,
+        customerId: c.id,
+        date: d.toISOString().slice(0, 10),
+        type,
+        ref: refFor(type, id, rnd),
+        description: descFor(type, c, rnd),
+        borc, alacak,
+        running: 0, // computed below
+      });
+    }
+    entries.sort((a, b) => a.date.localeCompare(b.date));
+    let run = 0;
+    entries.forEach(e => { run += e.borc - e.alacak; e.running = run; });
+    tx.push(...entries);
+  });
+  return tx;
+}
+
+function refFor(type, n, rnd) {
+  const ys = '2026';
+  if (type === 'fatura') return `FT${ys}-${String(n).padStart(5, '0')}`;
+  if (type === 'iade') return `IF${ys}-${String(n).padStart(5, '0')}`;
+  if (type === 'tahsilat') return `TH${ys}-${String(n).padStart(5, '0')}`;
+  if (type === 'cek') return `CK${ys}-${String(n).padStart(5, '0')}`;
+  if (type === 'odeme') return `OD${ys}-${String(n).padStart(5, '0')}`;
+  return String(n);
+}
+function descFor(type, c, rnd) {
+  const products = ['Ø12 İnşaat demiri', 'Ø16 nervürlü demir', 'HEA 120 profil', 'Kare profil 40x40', 'Sac levha 2mm', 'L köşebent 50x50', 'U demir', 'IPE 200', 'Galvaniz tel', 'Hasır çelik Q188'];
+  const p = products[Math.floor(rnd() * products.length)];
+  const tonaj = +(rnd() * 8 + 0.5).toFixed(1);
+  if (type === 'fatura') return `${p} — ${tonaj} ton`;
+  if (type === 'iade') return `${p} — iade`;
+  if (type === 'tahsilat') return ['Havale', 'EFT', 'Nakit tahsilat', 'Kredi kartı'][Math.floor(rnd() * 4)];
+  if (type === 'cek') {
+    const d = new Date('2026-04-19'); d.setDate(d.getDate() + Math.floor(rnd() * 90) + 30);
+    return `Vadeli çek — ${fmtDate(d)}`;
+  }
+  if (type === 'odeme') return 'Banka masrafı / komisyon';
+  return '';
+}
+
+const TRANSACTIONS = genTransactions();
+
+Object.assign(window, { CUSTOMERS, TRANSACTIONS, DOC_TYPES, DOC_LABEL, DOC_CHIP, fmtTL, fmtTLShort, fmtDate, fmtDateShort });
+
+
+// ==== src/shared.jsx ====
+// Shared UI: Sidebar, Topbar, BalanceChip, Sparkline.
+
+function Sidebar({ page, onNav }) {
+  const items = [
+    { id: 'dashboard', label: 'Panel', icon: <IconDashboard /> },
+    { id: 'cariler', label: 'Cari Kartlar', icon: <IconCari />, badge: String(CUSTOMERS.length) },
+    { id: 'ekstre', label: 'Ekstre', icon: <IconEkstre /> },
+    { id: 'rapor', label: 'Raporlar', icon: <IconReport /> },
+  ];
+  return (
+    <aside className="sidebar">
+      <div className="sb-brand">
+        <div className="sb-logo">ŞÇ</div>
+        <div>
+          <div className="sb-brand-name">ŞENOL ÇELİK</div>
+          <div className="sb-brand-sub">Cari Takip · v2.4</div>
+        </div>
+      </div>
+
+      <div className="sb-section-title">Ana Menü</div>
+      <nav className="sb-nav">
+        {items.map(it => (
+          <button key={it.id} className={`sb-item ${page === it.id ? 'active' : ''}`} onClick={() => onNav(it.id)}>
+            {it.icon}
+            <span>{it.label}</span>
+            {it.badge && <span className="sb-badge">{it.badge}</span>}
+          </button>
+        ))}
+      </nav>
+
+      <div className="sb-section-title">Hızlı</div>
+      <nav className="sb-nav">
+        <button className="sb-item" onClick={() => window.__openModal?.('collection')}>
+          <IconPlus /><span>Tahsilat</span>
+        </button>
+        <button className="sb-item" onClick={() => window.__openModal?.('payment')}>
+          <IconArrowDown /><span>Ödeme</span>
+        </button>
+        <button className="sb-item" onClick={() => window.__openModal?.('invoice')}>
+          <IconInvoice /><span>Fatura Kes</span>
+        </button>
+      </nav>
+
+      <div className="sb-foot">
+        <div className="avatar">MY</div>
+        <div>
+          <div className="sb-user-name">Mustafa Yıldırım</div>
+          <div className="sb-user-role">Muhasebe</div>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function Topbar({ title, crumb, onSearch, searchValue }) {
+  return (
+    <div className="topbar">
+      <div>
+        {crumb && <div className="tb-crumb">{crumb}</div>}
+        <div className="tb-title">{title}</div>
+      </div>
+      <div className="tb-spacer" />
+      <div className="tb-search">
+        <IconSearch size={16} />
+        <input placeholder="Cari, belge no veya açıklama ara…" value={searchValue || ''} onChange={e => onSearch?.(e.target.value)} />
+        <kbd>⌘K</kbd>
+      </div>
+      <button className="btn btn-icon btn-ghost" title="Bildirimler"><IconBell size={17} /></button>
+    </div>
+  );
+}
+
+function BalanceChip({ value, size = 'md' }) {
+  const neg = value < 0;
+  const label = neg ? 'Alacak' : 'Borç';
+  return (
+    <span className={`balance-chip ${neg ? 'neg' : ''}`} style={size === 'lg' ? { padding: '7px 16px' } : {}}>
+      <span className="bc-label">{label}</span>
+      <span className="bc-val" style={size === 'lg' ? { fontSize: '16px' } : {}}>{fmtTL(Math.abs(value))}</span>
+    </span>
+  );
+}
+
+function Chip({ kind = 'neutral', children, dot = true }) {
+  return <span className={`chip chip-${kind}`}>{dot && <span className="chip-dot" />}{children}</span>;
+}
+
+function Sparkline({ data, color = 'var(--accent)', height = 50, fill = true }) {
+  if (!data || !data.length) return null;
+  const w = 280, h = height, pad = 4;
+  const max = Math.max(...data), min = Math.min(...data);
+  const range = max - min || 1;
+  const pts = data.map((v, i) => [
+    pad + (i / (data.length - 1)) * (w - pad * 2),
+    h - pad - ((v - min) / range) * (h - pad * 2)
+  ]);
+  const path = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+  const area = path + ` L${w - pad},${h - pad} L${pad},${h - pad} Z`;
+  return (
+    <svg className="spark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ width: '100%', height }}>
+      {fill && <path d={area} fill={color} opacity="0.12" />}
+      <path d={path} fill="none" stroke={color} strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function BarChart({ data, labels, height = 160, color = 'var(--accent)' }) {
+  const max = Math.max(...data) || 1;
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height, padding: '0 4px' }}>
+      {data.map((v, i) => (
+        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+          <div style={{ flex: 1, width: '100%', display: 'flex', alignItems: 'flex-end' }}>
+            <div style={{ width: '100%', height: `${(v / max) * 100}%`, background: color, borderRadius: '4px 4px 0 0', opacity: i === data.length - 1 ? 1 : 0.75, transition: 'height 0.3s' }} />
+          </div>
+          <div style={{ fontSize: 10.5, color: 'var(--text-dim)', fontFamily: 'IBM Plex Mono, monospace' }}>{labels[i]}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DocTypeBadge({ type }) {
+  return <Chip kind={DOC_CHIP[type]}>{DOC_LABEL[type]}</Chip>;
+}
+
+function Toast({ message, onDone }) {
+  React.useEffect(() => {
+    const t = setTimeout(onDone, 2200);
+    return () => clearTimeout(t);
+  }, []);
+  return <div className="toast">{message}</div>;
+}
+
+Object.assign(window, { Sidebar, Topbar, BalanceChip, Chip, Sparkline, BarChart, DocTypeBadge, Toast });
+
+
+// ==== src/dashboard.jsx ====
+function Dashboard({ onOpenCustomer }) {
+  const totalAlacak = CUSTOMERS.reduce((s, c) => s + Math.max(0, c.balance), 0);
+  const totalBorc = Math.abs(CUSTOMERS.reduce((s, c) => s + Math.min(0, c.balance), 0));
+  const activeCount = CUSTOMERS.filter(c => c.status === 'active').length;
+
+  // Month series
+  const monthlyTahsilat = [285, 312, 278, 340, 395, 420, 388, 445, 510, 478, 522, 612];
+  const monthlyFatura = [320, 345, 310, 378, 410, 455, 420, 480, 540, 520, 568, 640];
+  const months = ['May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara', 'Oca', 'Şub', 'Mar', 'Nis'];
+
+  // Top customers by balance
+  const top = [...CUSTOMERS].filter(c => c.balance > 0).sort((a, b) => b.balance - a.balance).slice(0, 6);
+  const maxTop = top[0]?.balance || 1;
+
+  // Recent activity (last 6 tx across all)
+  const recent = [...TRANSACTIONS].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6);
+
+  return (
+    <div>
+      <div className="kpi-grid">
+        <div className="kpi">
+          <div className="kpi-label"><IconWallet size={14} /> Toplam Alacak</div>
+          <div className="kpi-val num">{fmtTL(totalAlacak)}</div>
+          <div className="kpi-delta up"><IconArrowUp size={12} /> %8,4 geçen aya göre</div>
+        </div>
+        <div className="kpi">
+          <div className="kpi-label"><IconArrowDown size={14} /> Toplam Borç</div>
+          <div className="kpi-val num">{fmtTL(totalBorc)}</div>
+          <div className="kpi-delta down"><IconArrowDown size={12} /> %3,2 geçen aya göre</div>
+        </div>
+        <div className="kpi">
+          <div className="kpi-label"><IconReceipt size={14} /> Bu Ay Tahsilat</div>
+          <div className="kpi-val num">{fmtTL(612400)}</div>
+          <div className="kpi-delta up"><IconArrowUp size={12} /> %17,2 artış</div>
+        </div>
+        <div className="kpi">
+          <div className="kpi-label"><IconCari size={14} /> Aktif Cari</div>
+          <div className="kpi-val num">{activeCount}</div>
+          <div className="kpi-delta">{CUSTOMERS.length - activeCount} pasif cari</div>
+        </div>
+      </div>
+
+      <div className="two-col">
+        <div className="card">
+          <div className="card-hd">
+            <div>
+              <div className="card-ttl">Aylık Hareket Özeti</div>
+              <div className="card-sub">Son 12 ay · Fatura vs Tahsilat (bin ₺)</div>
+            </div>
+            <div className="grow" />
+            <div className="hstack" style={{ fontSize: 12, color: 'var(--text-soft)' }}>
+              <span className="hstack" style={{ gap: 6 }}><span style={{ width: 10, height: 10, background: 'var(--accent)', borderRadius: 2 }} /> Tahsilat</span>
+              <span className="hstack" style={{ gap: 6 }}><span style={{ width: 10, height: 10, background: 'var(--border-strong)', borderRadius: 2 }} /> Fatura</span>
+            </div>
+          </div>
+          <div style={{ padding: '18px 18px 14px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 180 }}>
+              {months.map((m, i) => {
+                const max = Math.max(...monthlyFatura);
+                return (
+                  <div key={m} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                    <div style={{ flex: 1, width: '100%', display: 'flex', alignItems: 'flex-end', gap: 3 }}>
+                      <div style={{ flex: 1, height: `${(monthlyTahsilat[i] / max) * 100}%`, background: 'var(--accent)', borderRadius: '3px 3px 0 0', opacity: i === months.length - 1 ? 1 : 0.85 }} />
+                      <div style={{ flex: 1, height: `${(monthlyFatura[i] / max) * 100}%`, background: 'var(--border-strong)', borderRadius: '3px 3px 0 0' }} />
+                    </div>
+                    <div style={{ fontSize: 10.5, color: 'var(--text-dim)', fontFamily: 'IBM Plex Mono, monospace' }}>{m}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div className="card top-customers">
+          <div className="card-hd">
+            <div>
+              <div className="card-ttl">En Yüksek Bakiyeler</div>
+              <div className="card-sub">Alacak tutarına göre</div>
+            </div>
+          </div>
+          {top.map((c, i) => (
+            <div key={c.id} className="row" onClick={() => onOpenCustomer(c.id)} style={{ cursor: 'pointer' }}>
+              <span className="tc-rank">{String(i + 1).padStart(2, '0')}</span>
+              <span className="tc-name" title={c.name}>{c.name.length > 28 ? c.name.slice(0, 28) + '…' : c.name}</span>
+              <div className="tc-bar"><div className="tc-bar-fill" style={{ width: `${(c.balance / maxTop) * 100}%` }} /></div>
+              <span className="tc-val num">{fmtTL(c.balance)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-hd">
+          <div>
+            <div className="card-ttl">Son Hareketler</div>
+            <div className="card-sub">Tüm carilerden son 6 kayıt</div>
+          </div>
+          <div className="grow" />
+          <button className="btn btn-sm" onClick={() => window.__nav?.('ekstre')}>Tümünü Gör <IconChevRight size={14} /></button>
+        </div>
+        <div className="tbl-wrap">
+          <table className="tbl">
+            <thead><tr><th>Tarih</th><th>Cari</th><th>Belge No</th><th>Açıklama</th><th>Tip</th><th className="td-right">Borç</th><th className="td-right">Alacak</th></tr></thead>
+            <tbody>
+              {recent.map(t => {
+                const c = CUSTOMERS.find(c => c.id === t.customerId);
+                return (
+                  <tr key={t.id} onClick={() => onOpenCustomer(t.customerId)}>
+                    <td className="td-date">{fmtDate(t.date)}</td>
+                    <td style={{ fontWeight: 500 }}>{c?.name}</td>
+                    <td className="td-ref">{t.ref}</td>
+                    <td style={{ color: 'var(--text-soft)' }}>{t.description}</td>
+                    <td><DocTypeBadge type={t.type} /></td>
+                    <td className="td-num">{t.borc ? fmtTL(t.borc) : '—'}</td>
+                    <td className="td-num pos">{t.alacak ? fmtTL(t.alacak) : '—'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+window.Dashboard = Dashboard;
+
+
+// ==== src/ekstre.jsx ====
+function Ekstre({ initialCustomerId, search, onOpenCustomer }) {
+  const [selected, setSelected] = React.useState(initialCustomerId || CUSTOMERS[0].id);
+  const [typeFilter, setTypeFilter] = React.useState('all');
+  const [range, setRange] = React.useState('90');
+  const [localSearch, setLocalSearch] = React.useState('');
+
+  React.useEffect(() => { if (initialCustomerId) setSelected(initialCustomerId); }, [initialCustomerId]);
+
+  const customer = CUSTOMERS.find(c => c.id === selected);
+  const q = (search || localSearch || '').toLowerCase().trim();
+
+  let txs = TRANSACTIONS.filter(t => t.customerId === selected);
+  if (typeFilter !== 'all') txs = txs.filter(t => t.type === typeFilter);
+  if (range !== 'all') {
+    const days = parseInt(range, 10);
+    const cutoff = new Date('2026-04-19'); cutoff.setDate(cutoff.getDate() - days);
+    txs = txs.filter(t => new Date(t.date) >= cutoff);
+  }
+  if (q) txs = txs.filter(t => (t.ref + ' ' + t.description).toLowerCase().includes(q));
+  txs = [...txs].sort((a, b) => b.date.localeCompare(a.date));
+
+  const toplamBorc = txs.reduce((s, t) => s + t.borc, 0);
+  const toplamAlacak = txs.reduce((s, t) => s + t.alacak, 0);
+
+  const filteredCustomers = CUSTOMERS.filter(c => q ? c.name.toLowerCase().includes(q) : true);
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 16 }}>
+      {/* Customer list */}
+      <div className="card" style={{ alignSelf: 'start', position: 'sticky', top: 76 }}>
+        <div className="card-hd" style={{ padding: '10px 14px' }}>
+          <div className="card-ttl" style={{ fontSize: 13 }}>Cariler</div>
+          <div className="grow" />
+          <span className="muted" style={{ fontSize: 11 }}>{filteredCustomers.length}</span>
+        </div>
+        <div style={{ maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' }}>
+          {filteredCustomers.map(c => (
+            <button
+              key={c.id}
+              onClick={() => setSelected(c.id)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                width: '100%', padding: '10px 14px', textAlign: 'left',
+                borderBottom: '1px solid var(--border)',
+                background: selected === c.id ? 'var(--accent-soft)' : 'transparent',
+                borderLeft: selected === c.id ? '3px solid var(--accent)' : '3px solid transparent',
+                transition: 'background 0.1s'
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 500, color: selected === c.id ? 'var(--accent-ink)' : 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</div>
+                <div className="num" style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 2 }}>{c.code}</div>
+              </div>
+              <div className="num" style={{ fontSize: 12, fontWeight: 600, color: c.balance < 0 ? 'var(--danger)' : 'var(--accent-ink)', whiteSpace: 'nowrap' }}>
+                {fmtTLShort(c.balance)}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Ekstre content */}
+      <div>
+        {/* Header strip */}
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="hstack" style={{ gap: 10 }}>
+                <div style={{ fontSize: 17, fontWeight: 600, letterSpacing: '-0.01em' }}>{customer.name}</div>
+                <Chip kind={customer.status === 'active' ? 'green' : 'neutral'}>{customer.status === 'active' ? 'Aktif' : 'Pasif'}</Chip>
+              </div>
+              <div className="hstack" style={{ gap: 14, marginTop: 4, fontSize: 12, color: 'var(--text-soft)' }}>
+                <span className="num">{customer.code}</span>
+                <span>·</span>
+                <span className="hstack" style={{ gap: 4 }}><IconMap size={12} />{customer.city} / {customer.district}</span>
+                <span>·</span>
+                <span className="hstack" style={{ gap: 4 }}><IconPhone size={12} />{customer.phone}</span>
+              </div>
+            </div>
+            <BalanceChip value={customer.balance} size="lg" />
+            <button className="btn btn-sm" onClick={() => onOpenCustomer(customer.id)}>Cari Kart <IconChevRight size={13} /></button>
+          </div>
+        </div>
+
+        {/* Filter bar */}
+        <div className="filterbar">
+          <div className="seg">
+            {[
+              { id: '30', l: '30 gün' },
+              { id: '90', l: '90 gün' },
+              { id: '180', l: '6 ay' },
+              { id: 'all', l: 'Tümü' },
+            ].map(r => (
+              <button key={r.id} className={range === r.id ? 'active' : ''} onClick={() => setRange(r.id)}>{r.l}</button>
+            ))}
+          </div>
+          <button className={`flt ${typeFilter !== 'all' ? 'active' : ''}`}>
+            <IconTag size={14} />
+            <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
+              <option value="all">Tüm Belgeler</option>
+              {DOC_TYPES.map(t => <option key={t} value={t}>{DOC_LABEL[t]}</option>)}
+            </select>
+            <IconChevDown size={13} />
+          </button>
+          <div className="flt" style={{ cursor: 'default' }}>
+            <IconCal size={14} />
+            <span className="num" style={{ fontSize: 12.5 }}>01.01.2026 — 19.04.2026</span>
+          </div>
+          <div className="tb-search" style={{ width: 260, marginLeft: 'auto' }}>
+            <IconSearch size={14} />
+            <input placeholder="Belge/açıklamada ara…" value={localSearch} onChange={e => setLocalSearch(e.target.value)} />
+          </div>
+          <button className="btn btn-sm"><IconPdf size={14} /> PDF</button>
+          <button className="btn btn-sm"><IconXls size={14} /> Excel</button>
+          <button className="btn btn-sm btn-primary" onClick={() => window.__openModal?.('collection', customer.id)}><IconPlus size={14} /> Tahsilat</button>
+        </div>
+
+        {/* Summary strip */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
+          <div className="card" style={{ padding: '14px 18px' }}>
+            <div className="kpi-label">Dönem Borç (Fatura)</div>
+            <div className="num" style={{ fontSize: 20, fontWeight: 600, marginTop: 4 }}>{fmtTL(toplamBorc)}</div>
+          </div>
+          <div className="card" style={{ padding: '14px 18px' }}>
+            <div className="kpi-label">Dönem Alacak (Tahsilat)</div>
+            <div className="num pos" style={{ fontSize: 20, fontWeight: 600, marginTop: 4 }}>{fmtTL(toplamAlacak)}</div>
+          </div>
+          <div className="card" style={{ padding: '14px 18px' }}>
+            <div className="kpi-label">Net Bakiye</div>
+            <div className={`num ${customer.balance < 0 ? 'neg' : ''}`} style={{ fontSize: 20, fontWeight: 600, marginTop: 4 }}>{fmtTL(customer.balance)}</div>
+          </div>
+        </div>
+
+        {/* Transactions */}
+        <div className="card">
+          <div className="card-hd">
+            <div className="card-ttl">Hareketler</div>
+            <span className="muted" style={{ fontSize: 12 }}>{txs.length} kayıt</span>
+            <div className="grow" />
+            <button className="btn-ghost btn btn-sm"><IconSort size={13} /> Sırala</button>
+          </div>
+          <div className="tbl-wrap">
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th style={{ width: 100 }}>Tarih</th>
+                  <th style={{ width: 140 }}>Belge No</th>
+                  <th>Açıklama</th>
+                  <th style={{ width: 130 }}>Tip</th>
+                  <th className="td-right" style={{ width: 130 }}>Borç</th>
+                  <th className="td-right" style={{ width: 130 }}>Alacak</th>
+                  <th className="td-right" style={{ width: 140 }}>Bakiye</th>
+                </tr>
+              </thead>
+              <tbody>
+                {txs.length === 0 && <tr><td colSpan={7} style={{ padding: 40, textAlign: 'center', color: 'var(--text-dim)' }}>Bu filtre için hareket bulunamadı.</td></tr>}
+                {txs.map(t => (
+                  <tr key={t.id}>
+                    <td className="td-date">{fmtDate(t.date)}</td>
+                    <td className="td-ref">{t.ref}</td>
+                    <td style={{ color: 'var(--text)' }}>{t.description}</td>
+                    <td><DocTypeBadge type={t.type} /></td>
+                    <td className="td-num">{t.borc ? fmtTL(t.borc) : <span className="muted">—</span>}</td>
+                    <td className="td-num pos">{t.alacak ? fmtTL(t.alacak) : <span className="muted">—</span>}</td>
+                    <td className="td-num" style={{ fontWeight: 600, color: t.running < 0 ? 'var(--danger)' : 'var(--text)' }}>{fmtTL(t.running)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              {txs.length > 0 && (
+                <tfoot>
+                  <tr style={{ background: 'var(--panel-soft)', fontWeight: 600 }}>
+                    <td colSpan={4} style={{ padding: '12px 14px', fontSize: 12, color: 'var(--text-soft)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Dönem Toplamı</td>
+                    <td className="td-num" style={{ padding: '12px 14px' }}>{fmtTL(toplamBorc)}</td>
+                    <td className="td-num pos" style={{ padding: '12px 14px' }}>{fmtTL(toplamAlacak)}</td>
+                    <td className="td-num" style={{ padding: '12px 14px', color: customer.balance < 0 ? 'var(--danger)' : 'var(--text)' }}>{fmtTL(customer.balance)}</td>
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+window.Ekstre = Ekstre;
+
+
+// ==== src/detail.jsx ====
+function CustomerDetail({ customerId, onOpenEkstre, onBack }) {
+  const c = CUSTOMERS.find(c => c.id === customerId);
+  const txs = TRANSACTIONS.filter(t => t.customerId === customerId).sort((a, b) => b.date.localeCompare(a.date));
+
+  // 30-day balance series for sparkline
+  const series = React.useMemo(() => {
+    const sorted = [...TRANSACTIONS.filter(t => t.customerId === customerId)].sort((a, b) => a.date.localeCompare(b.date));
+    let r = 0;
+    const pts = sorted.map(t => { r += t.borc - t.alacak; return r; });
+    return pts.length > 1 ? pts : [0, 0];
+  }, [customerId]);
+
+  const totalFatura = txs.filter(t => t.type === 'fatura').reduce((s, t) => s + t.borc, 0);
+  const totalTahsilat = txs.filter(t => t.type === 'tahsilat' || t.type === 'cek').reduce((s, t) => s + t.alacak, 0);
+  const openCek = txs.filter(t => t.type === 'cek').reduce((s, t) => s + t.alacak, 0);
+
+  return (
+    <div>
+      <div className="hstack" style={{ marginBottom: 14, gap: 10 }}>
+        <button className="btn btn-sm btn-ghost" onClick={onBack}><IconChevRight size={13} style={{ transform: 'rotate(180deg)' }} /> Geri</button>
+        <span className="muted" style={{ fontSize: 12 }}>Cariler / {c.name}</span>
+      </div>
+
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="cd-hero">
+          <div className="cd-avatar">{c.name.split(' ').slice(0, 2).map(w => w[0]).join('')}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="hstack" style={{ gap: 10 }}>
+              <div className="cd-name">{c.name}</div>
+              <Chip kind={c.status === 'active' ? 'green' : 'neutral'}>{c.status === 'active' ? 'Aktif' : 'Pasif'}</Chip>
+            </div>
+            <div className="cd-meta">
+              <span className="num">{c.code}</span>
+              <span className="hstack" style={{ gap: 5 }}><IconMap size={12} />{c.city} / {c.district}</span>
+              <span className="hstack" style={{ gap: 5 }}><IconPhone size={12} />{c.phone}</span>
+              <span className="hstack" style={{ gap: 5 }}><IconMail size={12} />{c.email}</span>
+              <span>VKN: <span className="num">{c.tax}</span> · {c.taxOffice}</span>
+            </div>
+          </div>
+          <div className="hstack" style={{ gap: 8 }}>
+            <BalanceChip value={c.balance} size="lg" />
+            <button className="btn btn-sm" onClick={() => onOpenEkstre(c.id)}><IconEkstre size={14} /> Ekstre</button>
+            <button className="btn btn-sm btn-primary" onClick={() => window.__openModal?.('collection', c.id)}><IconPlus size={14} /> Tahsilat</button>
+            <button className="btn btn-icon btn-ghost"><IconMore size={16} /></button>
+          </div>
+        </div>
+        <div className="cd-stats">
+          <div className="cd-stat">
+            <div className="cd-stat-lbl">Kredi Limiti</div>
+            <div className="cd-stat-val num">{fmtTL(c.credit)}</div>
+            <div className="cd-stat-sub">Kullanım: %{((Math.max(0, c.balance) / c.credit) * 100).toFixed(0)}</div>
+          </div>
+          <div className="cd-stat">
+            <div className="cd-stat-lbl">Vade</div>
+            <div className="cd-stat-val num">{c.paymentTerm} gün</div>
+            <div className="cd-stat-sub">Fatura tarihinden itibaren</div>
+          </div>
+          <div className="cd-stat">
+            <div className="cd-stat-lbl">Açık Çek/Senet</div>
+            <div className="cd-stat-val num">{fmtTL(openCek)}</div>
+            <div className="cd-stat-sub">{txs.filter(t => t.type === 'cek').length} adet</div>
+          </div>
+          <div className="cd-stat">
+            <div className="cd-stat-lbl">Son İşlem</div>
+            <div className="cd-stat-val">{fmtDate(c.lastActivity)}</div>
+            <div className="cd-stat-sub">{Math.floor((new Date('2026-04-19') - new Date(c.lastActivity)) / 86400000)} gün önce</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="two-col">
+        <div className="card">
+          <div className="card-hd">
+            <div>
+              <div className="card-ttl">Bakiye Gelişimi</div>
+              <div className="card-sub">Son {txs.length} hareket boyunca</div>
+            </div>
+          </div>
+          <div style={{ padding: '16px 20px' }}>
+            <Sparkline data={series} height={140} color={c.balance < 0 ? 'var(--danger)' : 'var(--accent)'} />
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-hd"><div className="card-ttl">Dönem Özeti</div></div>
+          <div style={{ padding: '6px 0' }}>
+            <div style={{ padding: '12px 20px', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)' }}>
+              <span style={{ color: 'var(--text-soft)', fontSize: 13 }}>Toplam Fatura</span>
+              <span className="num" style={{ fontWeight: 600 }}>{fmtTL(totalFatura)}</span>
+            </div>
+            <div style={{ padding: '12px 20px', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)' }}>
+              <span style={{ color: 'var(--text-soft)', fontSize: 13 }}>Toplam Tahsilat</span>
+              <span className="num pos" style={{ fontWeight: 600 }}>{fmtTL(totalTahsilat)}</span>
+            </div>
+            <div style={{ padding: '12px 20px', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)' }}>
+              <span style={{ color: 'var(--text-soft)', fontSize: 13 }}>Ortalama Tahsilat Süresi</span>
+              <span className="num" style={{ fontWeight: 600 }}>32 gün</span>
+            </div>
+            <div style={{ padding: '12px 20px', display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--text-soft)', fontSize: 13 }}>Risk Skoru</span>
+              <Chip kind={c.balance > c.credit * 0.8 ? 'warn' : 'green'}>{c.balance > c.credit * 0.8 ? 'Orta' : 'Düşük'}</Chip>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginTop: 16 }}>
+        <div className="card-hd">
+          <div className="card-ttl">Son Hareketler</div>
+          <div className="grow" />
+          <button className="btn btn-sm" onClick={() => onOpenEkstre(c.id)}>Tüm Ekstreyi Aç <IconChevRight size={13} /></button>
+        </div>
+        <div className="tbl-wrap">
+          <table className="tbl">
+            <thead><tr><th>Tarih</th><th>Belge No</th><th>Açıklama</th><th>Tip</th><th className="td-right">Borç</th><th className="td-right">Alacak</th></tr></thead>
+            <tbody>
+              {txs.slice(0, 8).map(t => (
+                <tr key={t.id}>
+                  <td className="td-date">{fmtDate(t.date)}</td>
+                  <td className="td-ref">{t.ref}</td>
+                  <td>{t.description}</td>
+                  <td><DocTypeBadge type={t.type} /></td>
+                  <td className="td-num">{t.borc ? fmtTL(t.borc) : '—'}</td>
+                  <td className="td-num pos">{t.alacak ? fmtTL(t.alacak) : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+window.CustomerDetail = CustomerDetail;
+
+
+// ==== src/report.jsx ====
+function Report() {
+  const [period, setPeriod] = React.useState('month');
+
+  const byCity = {};
+  CUSTOMERS.forEach(c => { byCity[c.city] = (byCity[c.city] || 0) + Math.max(0, c.balance); });
+  const cities = Object.entries(byCity).sort((a, b) => b[1] - a[1]);
+  const maxCity = cities[0]?.[1] || 1;
+
+  const typeTotals = {};
+  TRANSACTIONS.forEach(t => {
+    typeTotals[t.type] = (typeTotals[t.type] || 0) + (t.borc || t.alacak);
+  });
+  const typeArr = Object.entries(typeTotals).map(([k, v]) => ({ k, v }));
+  const maxType = Math.max(...typeArr.map(t => t.v));
+
+  const aging = [
+    { label: '0–30 gün', value: 412500, color: 'var(--accent)' },
+    { label: '31–60 gün', value: 284300, color: 'oklch(0.72 0.12 130)' },
+    { label: '61–90 gün', value: 128400, color: 'var(--warn)' },
+    { label: '90+ gün', value: 62800, color: 'var(--danger)' },
+  ];
+  const totalAging = aging.reduce((s, a) => s + a.value, 0);
+
+  return (
+    <div>
+      {/* Filter strip */}
+      <div className="card" style={{ marginBottom: 16, padding: '14px 18px' }}>
+        <div className="hstack" style={{ gap: 12, flexWrap: 'wrap' }}>
+          <div className="seg">
+            {[['week', 'Bu Hafta'], ['month', 'Bu Ay'], ['quarter', 'Çeyrek'], ['year', '2026']].map(([k, l]) => (
+              <button key={k} className={period === k ? 'active' : ''} onClick={() => setPeriod(k)}>{l}</button>
+            ))}
+          </div>
+          <div className="flt"><IconCal size={14} /><span className="num" style={{ fontSize: 12.5 }}>01.04.2026 — 30.04.2026</span></div>
+          <div className="flt"><IconTag size={14} /><span>Tüm Belgeler</span><IconChevDown size={13} /></div>
+          <div className="flt"><IconFilter size={14} /><span>Tüm Şubeler</span><IconChevDown size={13} /></div>
+          <div className="grow" />
+          <button className="btn btn-sm"><IconPdf size={14} /> PDF Rapor</button>
+          <button className="btn btn-sm"><IconXls size={14} /> Excel</button>
+        </div>
+      </div>
+
+      {/* KPIs */}
+      <div className="kpi-grid">
+        <div className="kpi"><div className="kpi-label">Cari Hesap Sayısı</div><div className="kpi-val num">{CUSTOMERS.length}</div><div className="kpi-delta">+2 bu ay</div></div>
+        <div className="kpi"><div className="kpi-label">Dönem Faturası</div><div className="kpi-val num">{fmtTL(TRANSACTIONS.filter(t => t.type === 'fatura').reduce((s, t) => s + t.borc, 0))}</div><div className="kpi-delta up"><IconArrowUp size={12} /> %12 artış</div></div>
+        <div className="kpi"><div className="kpi-label">Tahsil Edilen</div><div className="kpi-val num">{fmtTL(TRANSACTIONS.filter(t => t.type === 'tahsilat').reduce((s, t) => s + t.alacak, 0))}</div><div className="kpi-delta up"><IconArrowUp size={12} /> %8 artış</div></div>
+        <div className="kpi"><div className="kpi-label">Tahsilat Oranı</div><div className="kpi-val num">%68,4</div><div className="kpi-delta">Hedef: %75</div></div>
+      </div>
+
+      <div className="rp-grid">
+        {/* Aging */}
+        <div className="card">
+          <div className="card-hd">
+            <div>
+              <div className="card-ttl">Yaşlandırma Analizi</div>
+              <div className="card-sub">Vade tarihine göre açık alacaklar</div>
+            </div>
+          </div>
+          <div style={{ padding: '18px 20px' }}>
+            <div style={{ display: 'flex', height: 14, borderRadius: 7, overflow: 'hidden', marginBottom: 14 }}>
+              {aging.map(a => (
+                <div key={a.label} style={{ width: `${(a.value / totalAging) * 100}%`, background: a.color }} />
+              ))}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {aging.map(a => (
+                <div key={a.label} className="hstack">
+                  <span style={{ width: 10, height: 10, borderRadius: 3, background: a.color }} />
+                  <span style={{ flex: 1, fontSize: 13 }}>{a.label}</span>
+                  <span className="num" style={{ fontSize: 12.5, color: 'var(--text-dim)', width: 50, textAlign: 'right' }}>%{((a.value / totalAging) * 100).toFixed(0)}</span>
+                  <span className="num" style={{ fontWeight: 600, width: 140, textAlign: 'right' }}>{fmtTL(a.value)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* City breakdown */}
+        <div className="card">
+          <div className="card-hd">
+            <div>
+              <div className="card-ttl">Şehir Bazlı Alacak</div>
+              <div className="card-sub">Toplam açık alacak dağılımı</div>
+            </div>
+          </div>
+          <div style={{ padding: '12px 0' }}>
+            {cities.map(([city, val]) => (
+              <div key={city} style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid var(--border)' }}>
+                <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{city}</span>
+                <div style={{ width: 120, height: 4, background: 'var(--panel-soft)', borderRadius: 999, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', background: 'var(--accent)', width: `${(val / maxCity) * 100}%` }} />
+                </div>
+                <span className="num" style={{ width: 110, textAlign: 'right', fontWeight: 600, fontSize: 12.5 }}>{fmtTL(val)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Doc type breakdown */}
+        <div className="card" style={{ gridColumn: 'span 2' }}>
+          <div className="card-hd">
+            <div>
+              <div className="card-ttl">Belge Tipi Dağılımı</div>
+              <div className="card-sub">Tüm hareketler · Nisan 2026</div>
+            </div>
+          </div>
+          <div className="tbl-wrap">
+            <table className="tbl">
+              <thead><tr><th>Belge Tipi</th><th>Adet</th><th>Toplam Tutar</th><th>Ortalama</th><th style={{ width: '40%' }}>Oran</th></tr></thead>
+              <tbody>
+                {typeArr.map(({ k, v }) => {
+                  const count = TRANSACTIONS.filter(t => t.type === k).length;
+                  return (
+                    <tr key={k}>
+                      <td><DocTypeBadge type={k} /></td>
+                      <td className="num">{count}</td>
+                      <td className="td-num" style={{ fontWeight: 600 }}>{fmtTL(v)}</td>
+                      <td className="td-num">{fmtTL(v / count)}</td>
+                      <td>
+                        <div className="hstack" style={{ gap: 8 }}>
+                          <div style={{ flex: 1, height: 6, background: 'var(--panel-soft)', borderRadius: 999, overflow: 'hidden' }}>
+                            <div style={{ height: '100%', background: 'var(--accent)', width: `${(v / maxType) * 100}%` }} />
+                          </div>
+                          <span className="num muted" style={{ fontSize: 12, width: 46, textAlign: 'right' }}>%{((v / typeArr.reduce((s, t) => s + t.v, 0)) * 100).toFixed(0)}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+window.Report = Report;
+
+
+// ==== src/modal.jsx ====
+function TxModal({ kind, customerId, onClose, onSaved }) {
+  const [type, setType] = React.useState(kind === 'payment' ? 'payment' : 'collection');
+  const [cust, setCust] = React.useState(customerId || CUSTOMERS[0].id);
+  const [amount, setAmount] = React.useState('');
+  const [method, setMethod] = React.useState('havale');
+  const [date, setDate] = React.useState('2026-04-19');
+  const [note, setNote] = React.useState('');
+
+  const customer = CUSTOMERS.find(c => c.id === cust);
+
+  const submit = (e) => {
+    e.preventDefault();
+    onSaved?.(type === 'collection' ? 'Tahsilat kaydedildi.' : 'Ödeme kaydedildi.');
+  };
+
+  const isCollection = type === 'collection';
+
+  return (
+    <div className="modal-scrim" onClick={onClose}>
+      <form className="modal" onClick={e => e.stopPropagation()} onSubmit={submit}>
+        <div className="modal-hd">
+          <div style={{ width: 34, height: 34, borderRadius: 9, background: isCollection ? 'var(--accent-soft)' : 'var(--danger-soft)', color: isCollection ? 'var(--accent-ink)' : 'var(--danger)', display: 'grid', placeItems: 'center' }}>
+            {isCollection ? <IconArrowUp size={16} /> : <IconArrowDown size={16} />}
+          </div>
+          <div style={{ flex: 1 }}>
+            <div className="modal-ttl">Yeni {isCollection ? 'Tahsilat' : 'Ödeme'}</div>
+            <div className="muted" style={{ fontSize: 12 }}>Cari hesaba kayıt oluştur</div>
+          </div>
+          <button type="button" className="btn btn-icon btn-ghost" onClick={onClose}><IconX size={16} /></button>
+        </div>
+        <div className="modal-bd">
+          <div className="field">
+            <label>İşlem Tipi</label>
+            <div className="type-pick">
+              <label>
+                <input type="radio" name="type" value="collection" checked={type === 'collection'} onChange={() => setType('collection')} />
+                <div className="tp-icon"><IconArrowUp size={14} /></div>
+                <div className="tp-body">
+                  <div className="tp-ttl">Tahsilat</div>
+                  <div className="tp-sub">Cariden para giriş</div>
+                </div>
+              </label>
+              <label>
+                <input type="radio" name="type" value="payment" checked={type === 'payment'} onChange={() => setType('payment')} />
+                <div className="tp-icon"><IconArrowDown size={14} /></div>
+                <div className="tp-body">
+                  <div className="tp-ttl">Ödeme</div>
+                  <div className="tp-sub">Cariye para çıkış</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div className="field">
+            <label>Cari Hesap</label>
+            <select value={cust} onChange={e => setCust(e.target.value)}>
+              {CUSTOMERS.map(c => <option key={c.id} value={c.id}>{c.name}  ·  {c.code}</option>)}
+            </select>
+            {customer && (
+              <div style={{ marginTop: 8, padding: '8px 12px', background: 'var(--panel-soft)', borderRadius: 7, display: 'flex', alignItems: 'center', gap: 10, fontSize: 12 }}>
+                <span className="muted">Mevcut bakiye:</span>
+                <BalanceChip value={customer.balance} />
+                <span className="grow" />
+                <span className="muted">Limit: <span className="num">{fmtTL(customer.credit)}</span></span>
+              </div>
+            )}
+          </div>
+
+          <div className="field-row">
+            <div className="field">
+              <label>Tutar (₺)</label>
+              <input type="text" placeholder="0,00" value={amount} onChange={e => setAmount(e.target.value)} style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 16, fontWeight: 600, textAlign: 'right' }} autoFocus />
+            </div>
+            <div className="field">
+              <label>Tarih</label>
+              <input type="date" value={date} onChange={e => setDate(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="field">
+            <label>Tahsilat Şekli</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+              {[
+                { k: 'nakit', l: 'Nakit' },
+                { k: 'havale', l: 'Havale/EFT' },
+                { k: 'kredi', l: 'Kredi Kartı' },
+                { k: 'cek', l: 'Çek/Senet' },
+              ].map(m => (
+                <button key={m.k} type="button" className={`flt ${method === m.k ? 'active' : ''}`} onClick={() => setMethod(m.k)} style={{ justifyContent: 'center', padding: '9px 6px', fontSize: 12.5 }}>
+                  {m.l}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="field">
+            <label>Açıklama (opsiyonel)</label>
+            <textarea rows="2" value={note} onChange={e => setNote(e.target.value)} placeholder="Örn: Nisan faturası kapatıldı" />
+          </div>
+        </div>
+        <div className="modal-ft">
+          <button type="button" className="btn" onClick={onClose}>İptal</button>
+          <button type="submit" className="btn btn-primary"><IconCheck size={14} /> Kaydet</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+window.TxModal = TxModal;
+
+
+// ==== src/app.jsx ====
+// App shell — routing, modal state, tweaks, theme persistence.
+
+function App() {
+  const [page, setPage] = React.useState(() => localStorage.getItem('page') || 'dashboard');
+  const [focusCustomer, setFocusCustomer] = React.useState(null);
+  const [modal, setModal] = React.useState(null); // { kind, customerId }
+  const [toast, setToast] = React.useState(null);
+  const [globalSearch, setGlobalSearch] = React.useState('');
+  const [tweaksVisible, setTweaksVisible] = React.useState(false);
+  const [theme, setTheme] = React.useState(() => {
+    try { return JSON.parse(document.getElementById('tweak-defaults').textContent.match(/\{.*\}/s)[0]).theme || 'light'; } catch { return 'light'; }
+  });
+
+  React.useEffect(() => { localStorage.setItem('page', page); }, [page]);
+  React.useEffect(() => { document.documentElement.setAttribute('data-theme', theme); }, [theme]);
+
+  // Globals used by Sidebar quick actions and cross-component hooks
+  window.__nav = setPage;
+  window.__openModal = (kind, customerId) => setModal({ kind, customerId });
+
+  // Edit-mode protocol
+  React.useEffect(() => {
+    const onMsg = (e) => {
+      const d = e.data || {};
+      if (d.type === '__activate_edit_mode') setTweaksVisible(true);
+      if (d.type === '__deactivate_edit_mode') setTweaksVisible(false);
+    };
+    window.addEventListener('message', onMsg);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+
+  const setKey = (k, v) => {
+    if (k === 'theme') setTheme(v);
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [k]: v } }, '*');
+  };
+
+  const nav = (p) => { setPage(p); setFocusCustomer(null); };
+  const openCustomer = (id) => { setFocusCustomer(id); setPage('cari'); };
+  const openEkstre = (id) => { setFocusCustomer(id); setPage('ekstre'); };
+
+  const pageMeta = {
+    dashboard: { title: 'Panel', crumb: 'Genel Bakış' },
+    cariler: { title: 'Cari Kartlar', crumb: 'Cariler' },
+    cari: { title: 'Cari Kart Detayı', crumb: 'Cariler / Detay' },
+    ekstre: { title: 'Hesap Ekstresi', crumb: 'Cariler / Ekstre' },
+    rapor: { title: 'Raporlar', crumb: 'Raporlama' },
+  };
+  const meta = pageMeta[page] || pageMeta.dashboard;
+
+  return (
+    <div id="root" data-screen-label={page}>
+      <Sidebar page={page === 'cari' ? 'cariler' : page} onNav={nav} />
+      <div className="main">
+        <Topbar title={meta.title} crumb={meta.crumb} onSearch={setGlobalSearch} searchValue={globalSearch} />
+        <div className="content">
+          {page === 'dashboard' && <Dashboard onOpenCustomer={openCustomer} />}
+          {page === 'ekstre' && <Ekstre initialCustomerId={focusCustomer} search={globalSearch} onOpenCustomer={openCustomer} />}
+          {page === 'cariler' && <CariListPage onOpen={openCustomer} search={globalSearch} />}
+          {page === 'cari' && <CustomerDetail customerId={focusCustomer || CUSTOMERS[0].id} onOpenEkstre={openEkstre} onBack={() => nav('cariler')} />}
+          {page === 'rapor' && <Report />}
+        </div>
+      </div>
+
+      {modal && <TxModal kind={modal.kind} customerId={modal.customerId} onClose={() => setModal(null)} onSaved={(m) => { setModal(null); setToast(m); }} />}
+      {toast && <Toast message={toast} onDone={() => setToast(null)} />}
+
+      {tweaksVisible && (
+        <div className="tweaks">
+          <div>
+            <div className="tweak-ttl">Tweaks</div>
+            <div style={{ fontSize: 13, fontWeight: 500, marginTop: 2 }}>Tema</div>
+          </div>
+          <div className="hstack" style={{ gap: 8 }}>
+            <IconSun size={15} style={{ color: theme === 'light' ? 'var(--text)' : 'var(--text-dim)' }} />
+            <button className={`toggle ${theme === 'dark' ? 'on' : ''}`} onClick={() => setKey('theme', theme === 'dark' ? 'light' : 'dark')} aria-label="Tema değiştir" />
+            <IconMoon size={15} style={{ color: theme === 'dark' ? 'var(--text)' : 'var(--text-dim)' }} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Simple list page for "Cariler"
+function CariListPage({ onOpen, search }) {
+  const q = (search || '').toLowerCase().trim();
+  let list = CUSTOMERS;
+  if (q) list = list.filter(c => (c.name + ' ' + c.code + ' ' + c.city).toLowerCase().includes(q));
+  const [sort, setSort] = React.useState('name');
+  list = [...list].sort((a, b) => {
+    if (sort === 'balance') return b.balance - a.balance;
+    if (sort === 'city') return a.city.localeCompare(b.city);
+    return a.name.localeCompare(b.name);
+  });
+
+  return (
+    <div>
+      <div className="filterbar">
+        <div className="seg">
+          <button className={sort === 'name' ? 'active' : ''} onClick={() => setSort('name')}>İsim</button>
+          <button className={sort === 'balance' ? 'active' : ''} onClick={() => setSort('balance')}>Bakiye</button>
+          <button className={sort === 'city' ? 'active' : ''} onClick={() => setSort('city')}>Şehir</button>
+        </div>
+        <div className="flt"><IconFilter size={14} /><span>Tüm Durumlar</span><IconChevDown size={13} /></div>
+        <div className="grow" />
+        <button className="btn btn-sm"><IconXls size={14} /> Excel</button>
+        <button className="btn btn-sm btn-primary"><IconPlus size={14} /> Yeni Cari</button>
+      </div>
+      <div className="card">
+        <div className="tbl-wrap">
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th>Cari Kodu</th>
+                <th>Ünvan</th>
+                <th>Şehir</th>
+                <th>Son İşlem</th>
+                <th>Durum</th>
+                <th>Kredi Kullanımı</th>
+                <th className="td-right">Bakiye</th>
+                <th style={{ width: 1 }}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {list.map(c => {
+                const usage = Math.max(0, c.balance) / c.credit;
+                return (
+                  <tr key={c.id} onClick={() => onOpen(c.id)}>
+                    <td className="num" style={{ color: 'var(--text-dim)' }}>{c.code}</td>
+                    <td style={{ fontWeight: 500 }}>{c.name}</td>
+                    <td style={{ color: 'var(--text-soft)' }}>{c.city}</td>
+                    <td className="td-date">{fmtDate(c.lastActivity)}</td>
+                    <td><Chip kind={c.status === 'active' ? 'green' : 'neutral'}>{c.status === 'active' ? 'Aktif' : 'Pasif'}</Chip></td>
+                    <td>
+                      <div className="hstack" style={{ gap: 8, minWidth: 140 }}>
+                        <div style={{ flex: 1, height: 5, background: 'var(--panel-soft)', borderRadius: 999, overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${Math.min(100, usage * 100)}%`, background: usage > 0.8 ? 'var(--danger)' : usage > 0.5 ? 'var(--warn)' : 'var(--accent)' }} />
+                        </div>
+                        <span className="num muted" style={{ fontSize: 11.5, width: 36 }}>%{(usage * 100).toFixed(0)}</span>
+                      </div>
+                    </td>
+                    <td className="td-num" style={{ fontWeight: 600, color: c.balance < 0 ? 'var(--danger)' : 'var(--text)' }}>{fmtTL(c.balance)}</td>
+                    <td><IconChevRight size={14} style={{ color: 'var(--text-dim)' }} /></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+window.App = App;
+window.CariListPage = CariListPage;
+
+ReactDOM.createRoot(document.getElementById('app')).render(<App />);
+
+
+</script>
+</body>
+</html>
