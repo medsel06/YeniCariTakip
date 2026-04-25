@@ -564,14 +564,10 @@ function Dashboard({onOpenCustomer}){
   const passive = CUSTOMERS.length - active;
   const alacaklı = CUSTOMERS.filter(c=>c.balance>0).length;
   const borçlu = CUSTOMERS.filter(c=>c.balance<0).length;
-  const limitUstu = CUSTOMERS.filter(c=>c.credit>0 && c.balance>c.credit*0.8).length;
-  const ortBakiye = CUSTOMERS.length>0 ? totalA/Math.max(1,alacaklı) : 0;
   // Bu ay tahsilat = TX'te bu aya ait tahsilat tipindeki kayıtların alacak toplamı
   const cm = new Date(); const ym = `${cm.getFullYear()}-${String(cm.getMonth()+1).padStart(2,'0')}`;
   const buAyTahsilat = TX.filter(t=>t.type==='tahsilat' && (t.date||'').startsWith(ym)).reduce((s,t)=>s+(t.alacak||0),0);
   const buAyTahsilatCnt = TX.filter(t=>t.type==='tahsilat' && (t.date||'').startsWith(ym)).length;
-  const top=[...CUSTOMERS].filter(c=>c.balance>0).sort((a,b)=>b.balance-a.balance).slice(0,6);
-  const maxTop=top[0]?.balance||1;
   const recent=[...TX].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,7);
 
   return <div>
@@ -580,41 +576,6 @@ function Dashboard({onOpenCustomer}){
       <div className="kpi"><div className="kpi-icon-wrap"><IDn size={14}/></div><div className="kpi-label">Toplam Borç</div><div className="kpi-val num">{fmtShort(totalB)}<span className="suf">₺</span></div><div className="kpi-delta">{borçlu} cari</div></div>
       <div className="kpi"><div className="kpi-icon-wrap"><IRcpt size={14}/></div><div className="kpi-label">Bu Ay Tahsilat</div><div className="kpi-val num">{fmtShort(buAyTahsilat)}<span className="suf">₺</span></div><div className="kpi-delta">{buAyTahsilatCnt} işlem</div></div>
       <div className="kpi"><div className="kpi-icon-wrap"><ICari size={14}/></div><div className="kpi-label">Aktif Cari</div><div className="kpi-val num">{active}<span className="suf">/{CUSTOMERS.length}</span></div><div className="kpi-delta">{passive} pasif cari</div></div>
-    </div>
-
-    <div className="two-col">
-      <div className="card">
-        <div className="card-hd"><div><div className="card-ttl">Hızlı Özet</div><div className="card-sub">Cari portföy durumu</div></div></div>
-        <div style={{padding:'4px 0'}}>
-          <div style={{display:'flex',alignItems:'center',gap:12,padding:'13px 18px',borderBottom:'1px solid var(--border)'}}>
-            <div style={{width:32,height:32,borderRadius:7,background:'var(--accent-soft)',color:'var(--accent)',display:'grid',placeItems:'center'}}><ICari size={15}/></div>
-            <div style={{flex:1}}><div style={{fontSize:12.5,color:'var(--text-2)'}}>Aktif Cari</div><div className="num" style={{fontSize:15,fontWeight:600,marginTop:1}}>{active} <span style={{fontSize:11.5,color:'var(--text-3)',fontWeight:500}}>/ toplam {CUSTOMERS.length}</span></div></div>
-          </div>
-          <div style={{display:'flex',alignItems:'center',gap:12,padding:'13px 18px',borderBottom:'1px solid var(--border)'}}>
-            <div style={{width:32,height:32,borderRadius:7,background:'var(--info-soft)',color:'var(--info)',display:'grid',placeItems:'center'}}><IWal size={15}/></div>
-            <div style={{flex:1}}><div style={{fontSize:12.5,color:'var(--text-2)'}}>Ortalama Açık Bakiye</div><div className="num" style={{fontSize:15,fontWeight:600,marginTop:1}}>{fmt(ortBakiye)}</div></div>
-          </div>
-          <div style={{display:'flex',alignItems:'center',gap:12,padding:'13px 18px',borderBottom:'1px solid var(--border)'}}>
-            <div style={{width:32,height:32,borderRadius:7,background:limitUstu>0?'var(--warn-soft)':'var(--bg-2)',color:limitUstu>0?'var(--warn)':'var(--text-3)',display:'grid',placeItems:'center'}}><ITrend size={15}/></div>
-            <div style={{flex:1}}><div style={{fontSize:12.5,color:'var(--text-2)'}}>Limit Üstü Risk</div><div className="num" style={{fontSize:15,fontWeight:600,marginTop:1,color:limitUstu>0?'var(--warn)':'var(--text)'}}>{limitUstu} cari</div></div>
-          </div>
-          <div style={{display:'flex',alignItems:'center',gap:12,padding:'13px 18px'}}>
-            <div style={{width:32,height:32,borderRadius:7,background:'var(--bg-2)',color:'var(--text-3)',display:'grid',placeItems:'center'}}><IRcpt size={15}/></div>
-            <div style={{flex:1}}><div style={{fontSize:12.5,color:'var(--text-2)'}}>Pasif Cari</div><div className="num" style={{fontSize:15,fontWeight:600,marginTop:1}}>{passive} cari</div></div>
-          </div>
-        </div>
-      </div>
-
-      <div className="card">
-        <div className="card-hd"><div><div className="card-ttl">En Yüksek Bakiyeler</div><div className="card-sub">Açık alacağa göre</div></div></div>
-        {top.length===0&&<div style={{padding:36,textAlign:'center',color:'var(--text-3)',fontSize:12.5}}>Henüz alacaklı cari yok.</div>}
-        {top.map((c,i)=><div key={c.id} className="tc-row" onClick={()=>onOpenCustomer(c.id)}>
-          <span className="tc-rank">#{String(i+1).padStart(2,'0')}</span>
-          <span className="tc-name" title={c.name}>{c.name.length>24?c.name.slice(0,24)+'…':c.name}</span>
-          <div className="tc-bar"><div className="tc-fill" style={{width:`${(c.balance/maxTop)*100}%`}}/></div>
-          <span className="tc-val">{fmt(c.balance).replace(' ₺','₺')}</span>
-        </div>)}
-      </div>
     </div>
 
     <div className="card">
