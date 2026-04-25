@@ -1,0 +1,1716 @@
+<!doctype html>
+<html lang="tr" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<title>Cari Takip — Trend</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root[data-theme="dark"] {
+  --bg: #0a0a0b;
+  --bg-2: #101012;
+  --panel: #131316;
+  --panel-2: #18181c;
+  --panel-hover: #1c1c20;
+  --border: #25252a;
+  --border-2: #2e2e34;
+  --text: #f4f4f5;
+  --text-2: #a1a1a6;
+  --text-3: #6e6e76;
+  --accent: #a3e635;
+  --accent-soft: rgba(163,230,53,0.12);
+  --accent-ink: #d9f99d;
+  --accent-glow: rgba(163,230,53,0.25);
+  --good: #4ade80;
+  --good-soft: rgba(74,222,128,0.12);
+  --bad: #f87171;
+  --bad-soft: rgba(248,113,113,0.12);
+  --warn: #fbbf24;
+  --warn-soft: rgba(251,191,36,0.12);
+  --info: #60a5fa;
+  --info-soft: rgba(96,165,250,0.12);
+  --shadow-md: 0 8px 24px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.3);
+  --shadow-lg: 0 24px 48px rgba(0,0,0,0.5), 0 8px 16px rgba(0,0,0,0.3);
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --bg: #fafafa;
+  --bg-2: #f4f4f5;
+  --panel: #ffffff;
+  --panel-2: #fafafa;
+  --panel-hover: #f4f4f5;
+  --border: #e4e4e7;
+  --border-2: #d4d4d8;
+  --text: #18181b;
+  --text-2: #52525b;
+  --text-3: #a1a1aa;
+  --accent: #65a30d;
+  --accent-soft: rgba(101,163,13,0.08);
+  --accent-ink: #4d7c0f;
+  --accent-glow: rgba(101,163,13,0.15);
+  --good: #16a34a;
+  --good-soft: rgba(22,163,74,0.08);
+  --bad: #dc2626;
+  --bad-soft: rgba(220,38,38,0.08);
+  --warn: #ca8a04;
+  --warn-soft: rgba(202,138,4,0.08);
+  --info: #2563eb;
+  --info-soft: rgba(37,99,235,0.08);
+  --shadow-md: 0 4px 14px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-lg: 0 24px 48px rgba(0,0,0,0.1), 0 4px 10px rgba(0,0,0,0.05);
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  background: var(--bg); color: var(--text);
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  font-size: 13.5px; line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.01em;
+  font-feature-settings: 'cv11', 'ss01', 'ss03';
+}
+button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+input, select, textarea { font: inherit; color: inherit; }
+.num { font-family: 'Inter', sans-serif; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; letter-spacing: -0.03em; }
+svg { display: block; }
+::selection { background: var(--accent-soft); color: var(--accent-ink); }
+
+#root { display: flex; min-height: 100vh; position: relative; }
+
+/* Subtle ambient gradient */
+body::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, var(--accent-soft), transparent 70%),
+    radial-gradient(ellipse 50% 30% at 90% 110%, var(--info-soft), transparent 70%);
+  opacity: 0.6;
+}
+#root > * { position: relative; z-index: 1; }
+
+/* ============= SIDEBAR ============= */
+.sb {
+  width: 232px; flex-shrink: 0;
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  position: sticky; top: 0; height: 100vh;
+  padding: 12px 10px;
+}
+.sb-brand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px 16px;
+}
+.sb-logo {
+  width: 30px; height: 30px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent) 0%, #84cc16 100%);
+  color: #0a0a0b; display: grid; place-items: center;
+  font-weight: 700; font-size: 13px; letter-spacing: -0.02em;
+  box-shadow: 0 0 0 1px rgba(163,230,53,0.3), 0 4px 12px var(--accent-glow);
+}
+.sb-brand-name { font-size: 14px; font-weight: 600; letter-spacing: -0.02em; }
+.sb-brand-sub { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+.sb-search {
+  margin: 0 6px 12px;
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px; border-radius: 7px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  font-size: 12.5px; color: var(--text-3);
+  cursor: pointer; transition: all 0.15s;
+}
+.sb-search:hover { background: var(--panel-2); color: var(--text-2); border-color: var(--border-2); }
+.sb-search kbd {
+  margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  padding: 1px 5px; background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: 4px; color: var(--text-3);
+}
+.sb-group { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-3); padding: 14px 12px 6px; font-weight: 500; }
+.sb-nav { display: flex; flex-direction: column; gap: 1px; }
+.sb-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 7px 10px; border-radius: 7px;
+  color: var(--text-2); font-size: 13px; font-weight: 450;
+  width: 100%; text-align: left;
+  transition: all 0.1s;
+}
+.sb-item:hover { background: var(--panel); color: var(--text); }
+.sb-item.active { background: var(--panel); color: var(--text); font-weight: 500; box-shadow: inset 0 0 0 1px var(--border); }
+.sb-item svg { color: var(--text-3); flex-shrink: 0; }
+.sb-item.active svg { color: var(--accent); }
+.sb-item .badge {
+  margin-left: auto; font-size: 10.5px; color: var(--text-3);
+  font-family: 'JetBrains Mono', monospace; padding: 1px 5px;
+  background: var(--bg-2); border: 1px solid var(--border); border-radius: 4px;
+}
+
+.sb-foot { margin-top: auto; padding: 10px 8px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 9px; }
+.av {
+  width: 28px; height: 28px; border-radius: 7px;
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  color: #fff; display: grid; place-items: center;
+  font-weight: 600; font-size: 11px; flex-shrink: 0;
+}
+.sb-user { font-size: 12.5px; font-weight: 500; }
+.sb-role { font-size: 10.5px; color: var(--text-3); margin-top: 1px; }
+
+/* ============= MAIN ============= */
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.tb {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 28px;
+  background: rgba(10,10,11,0.7);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  position: sticky; top: 0; z-index: 20;
+}
+:root[data-theme="light"] .tb { background: rgba(250,250,250,0.7); }
+.tb-crumb { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-3); }
+.tb-crumb b { color: var(--text); font-weight: 500; }
+.tb-spacer { flex: 1; }
+
+.content { flex: 1; padding: 24px 28px 56px; overflow-x: auto; }
+.wrap { max-width: 1480px; margin: 0 auto; }
+
+/* ============= BUTTONS ============= */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 11px; border-radius: 7px;
+  font-size: 12.5px; font-weight: 500;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  transition: all 0.12s;
+  height: 30px;
+}
+.btn:hover { background: var(--panel-hover); border-color: var(--border-2); }
+.btn-primary {
+  background: var(--accent); color: #0a0a0b; border-color: var(--accent);
+  font-weight: 600;
+}
+.btn-primary:hover { filter: brightness(1.1); border-color: var(--accent); color: #0a0a0b; }
+.btn-good { background: var(--good); color: #0a0a0b; border-color: var(--good); font-weight: 600; }
+.btn-bad { background: var(--bad); color: #fff; border-color: var(--bad); font-weight: 600; }
+.btn-bad:hover { filter: brightness(1.1); color: #fff; }
+.btn-ghost { background: transparent; border-color: transparent; color: var(--text-2); }
+.btn-ghost:hover { background: var(--panel); color: var(--text); border-color: transparent; }
+.btn-icon { padding: 0; width: 30px; justify-content: center; }
+.btn-sm { height: 26px; padding: 4px 9px; font-size: 12px; }
+
+/* ============= CARDS ============= */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.card-hd { padding: 13px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+.card-ttl { font-size: 13.5px; font-weight: 600; letter-spacing: -0.015em; }
+.card-sub { font-size: 11.5px; color: var(--text-3); margin-top: 2px; font-weight: 400; }
+
+/* ============= KPI ============= */
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+.kpi {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+  position: relative; overflow: hidden;
+}
+.kpi-icon-wrap {
+  width: 30px; height: 30px; border-radius: 7px;
+  display: grid; place-items: center;
+  background: var(--bg-2); border: 1px solid var(--border);
+  color: var(--text-2);
+  position: absolute; top: 14px; right: 14px;
+}
+.kpi-label { font-size: 12px; color: var(--text-2); font-weight: 500; }
+.kpi-val {
+  font-family: 'Inter', sans-serif;
+  font-size: 26px; font-weight: 600;
+  margin-top: 8px; line-height: 1.1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.kpi-val .suf { font-size: 14px; color: var(--text-3); font-weight: 500; margin-left: 2px; }
+.kpi-delta { font-size: 11.5px; color: var(--text-3); margin-top: 8px; display: flex; align-items: center; gap: 4px; }
+.kpi-delta.up { color: var(--good); }
+.kpi-delta.dn { color: var(--bad); }
+.kpi-pill {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 1px 6px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 600;
+  background: var(--good-soft); color: var(--good);
+}
+.kpi-pill.dn { background: var(--bad-soft); color: var(--bad); }
+
+/* ============= TABLE ============= */
+.tbl-wrap { overflow-x: auto; }
+table.tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+table.tbl thead th {
+  text-align: left; padding: 9px 14px;
+  font-size: 11px; font-weight: 500; color: var(--text-3);
+  background: var(--panel-2);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+:root[data-theme="dark"] table.tbl thead th { background: rgba(255,255,255,0.015); }
+table.tbl tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+table.tbl tbody tr { transition: background 0.08s; }
+table.tbl tbody tr:hover { background: var(--panel-hover); cursor: pointer; }
+table.tbl tbody tr:last-child td { border-bottom: none; }
+.r { text-align: right; }
+.tnum { font-variant-numeric: tabular-nums; text-align: right; letter-spacing: -0.02em; }
+.tdate { font-variant-numeric: tabular-nums; color: var(--text-2); font-size: 12px; letter-spacing: -0.02em; }
+.tref { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-3); }
+
+/* ============= CHIPS ============= */
+.chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 8px; border-radius: 5px;
+  font-size: 11px; font-weight: 500;
+  white-space: nowrap;
+  border: 1px solid;
+}
+.chip-dot { width: 5px; height: 5px; border-radius: 50%; }
+.c-good { background: var(--good-soft); color: var(--good); border-color: rgba(74,222,128,0.2); }
+.c-good .chip-dot { background: var(--good); }
+.c-bad { background: var(--bad-soft); color: var(--bad); border-color: rgba(248,113,113,0.2); }
+.c-bad .chip-dot { background: var(--bad); }
+.c-warn { background: var(--warn-soft); color: var(--warn); border-color: rgba(251,191,36,0.2); }
+.c-warn .chip-dot { background: var(--warn); }
+.c-info { background: var(--info-soft); color: var(--info); border-color: rgba(96,165,250,0.2); }
+.c-info .chip-dot { background: var(--info); }
+.c-accent { background: var(--accent-soft); color: var(--accent); border-color: rgba(163,230,53,0.2); }
+.c-accent .chip-dot { background: var(--accent); }
+.c-mute { background: var(--bg-2); color: var(--text-2); border-color: var(--border); }
+.c-mute .chip-dot { background: var(--text-3); }
+
+.balance {
+  display: inline-flex; align-items: baseline; gap: 8px;
+  padding: 6px 12px; border-radius: 8px;
+  background: var(--accent-soft);
+  border: 1px solid rgba(163,230,53,0.2);
+}
+.balance .bl { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); opacity: 0.85; }
+.balance .bv { font-size: 14px; font-weight: 600; color: var(--accent); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.balance.neg { background: var(--bad-soft); border-color: rgba(248,113,113,0.2); }
+.balance.neg .bl, .balance.neg .bv { color: var(--bad); }
+.balance.zero { background: var(--bg-2); border-color: var(--border); }
+.balance.zero .bl, .balance.zero .bv { color: var(--text-2); }
+
+/* ============= FILTERBAR ============= */
+.fbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.flt {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 10px; border-radius: 7px; height: 30px;
+  border: 1px solid var(--border); background: var(--panel);
+  font-size: 12.5px; font-weight: 500; color: var(--text);
+}
+.flt:hover { border-color: var(--border-2); }
+.flt.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.flt.on svg { color: var(--accent); }
+.flt svg { color: var(--text-3); }
+.flt select { border: none; background: transparent; outline: none; cursor: pointer; color: inherit; font-weight: 500; appearance: none; padding-right: 12px; }
+
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 7px; overflow: hidden; background: var(--panel); height: 30px; }
+.seg button { padding: 5px 11px; font-size: 12px; font-weight: 500; color: var(--text-2); border-right: 1px solid var(--border); transition: all 0.1s; }
+.seg button:last-child { border-right: none; }
+.seg button:hover { background: var(--panel-hover); color: var(--text); }
+.seg button.on { background: var(--accent); color: #0a0a0b; font-weight: 600; }
+
+.input-search {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px; border-radius: 7px; height: 30px;
+  border: 1px solid var(--border); background: var(--panel);
+  width: 240px;
+}
+.input-search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.input-search input { flex: 1; border: none; background: none; outline: none; font-size: 12.5px; }
+.input-search input::placeholder { color: var(--text-3); }
+
+/* ============= MODAL ============= */
+.scrim {
+  position: fixed !important; inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(8px);
+  display: grid; place-items: center;
+  z-index: 100;
+  animation: fade 0.18s;
+}
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slide { from { opacity: 0; transform: translateY(8px) scale(0.99); } to { opacity: 1; transform: none; } }
+.modal {
+  background: var(--panel); border-radius: 12px; border: 1px solid var(--border);
+  width: 520px; max-width: calc(100vw - 32px); max-height: calc(100vh - 32px);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden; display: flex; flex-direction: column;
+  animation: slide 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.m-hd { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+.m-ttl { font-size: 15px; font-weight: 600; letter-spacing: -0.015em; }
+.m-sub { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
+.m-bd { padding: 18px 20px; overflow-y: auto; }
+.m-ft { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; background: var(--panel-2); }
+
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.field label { font-size: 11px; font-weight: 500; color: var(--text-2); }
+.field input, .field select, .field textarea {
+  padding: 8px 11px; border: 1px solid var(--border); border-radius: 7px;
+  background: var(--panel-2); font-size: 13px; outline: none;
+  transition: all 0.12s;
+}
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.tp { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tp label {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 13px; border: 1px solid var(--border); border-radius: 8px;
+  cursor: pointer; transition: all 0.12s;
+  background: var(--panel-2);
+}
+.tp label:hover { border-color: var(--border-2); }
+.tp input { display: none; }
+.tp label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.tp-ic { width: 28px; height: 28px; border-radius: 7px; background: var(--bg-2); display: grid; place-items: center; color: var(--text-2); flex-shrink: 0; border: 1px solid var(--border); }
+.tp label:has(input:checked) .tp-ic { background: var(--accent); color: #0a0a0b; border-color: var(--accent); }
+.tp label:has(input[value="payment"]:checked) { border-color: var(--bad); background: var(--bad-soft); }
+.tp label:has(input[value="payment"]:checked) .tp-ic { background: var(--bad); color: #fff; border-color: var(--bad); }
+.tp-ttl { font-size: 13px; font-weight: 600; }
+.tp-sub { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+
+/* ============= TWEAKS ============= */
+.tw { position: fixed !important; bottom: 18px; right: 18px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow-lg); padding: 12px 14px; display: flex; align-items: center; gap: 14px; z-index: 90; animation: slide 0.2s; }
+.tw-ttl { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-3); }
+.tg { position: relative; width: 32px; height: 18px; background: var(--border-2); border-radius: 999px; cursor: pointer; transition: background 0.2s; }
+.tg::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: transform 0.2s; }
+.tg.on { background: var(--accent); }
+.tg.on::after { transform: translateX(14px); }
+
+/* ============= LAYOUT ============= */
+.two-col { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 14px; }
+.rp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+/* Top customers */
+.tc-row { display: flex; align-items: center; gap: 12px; padding: 11px 16px; border-bottom: 1px solid var(--border); transition: background 0.1s; }
+.tc-row:hover { background: var(--panel-hover); cursor: pointer; }
+.tc-row:last-child { border-bottom: none; }
+.tc-rank { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-3); width: 22px; }
+.tc-name { flex: 1; font-weight: 500; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tc-bar { width: 90px; height: 3px; background: var(--bg-2); border-radius: 999px; overflow: hidden; }
+.tc-fill { height: 100%; background: var(--accent); }
+.tc-val { font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600; width: 100px; text-align: right; letter-spacing: -0.02em; }
+
+/* Detail hero */
+.hero { padding: 22px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; gap: 18px; }
+.hero-av {
+  width: 50px; height: 50px; border-radius: 11px;
+  background: linear-gradient(135deg, var(--accent), #84cc16);
+  color: #0a0a0b; display: grid; place-items: center;
+  font-weight: 700; font-size: 16px; flex-shrink: 0; letter-spacing: -0.02em;
+  box-shadow: 0 4px 12px var(--accent-glow);
+}
+.hero-name { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; }
+.hero-meta { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 7px; font-size: 12px; color: var(--text-2); }
+.hero-meta span { display: flex; align-items: center; gap: 5px; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--border); }
+.stat { padding: 14px 20px; border-right: 1px solid var(--border); }
+.stat:last-child { border-right: none; }
+.stat-l { font-size: 11px; color: var(--text-3); font-weight: 500; }
+.stat-v { font-size: 18px; font-weight: 600; margin-top: 5px; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.stat-s { font-size: 11px; color: var(--text-3); margin-top: 3px; }
+
+.muted { color: var(--text-3); }
+.hstack { display: flex; align-items: center; gap: 8px; }
+.grow { flex: 1; }
+.pos { color: var(--good); }
+.neg { color: var(--bad); }
+
+.toast { position: fixed !important; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 9px 16px; border-radius: 8px; font-size: 12.5px; font-weight: 500; box-shadow: var(--shadow-lg); z-index: 200; animation: slide 0.2s; display: flex; align-items: center; gap: 8px; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 8px; border: 2px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+::-webkit-scrollbar-track { background: transparent; }
+
+.spark { width: 100%; }
+.bar-chart { display: flex; align-items: flex-end; gap: 8px; height: 200px; }
+.bar-col { flex: 1; height: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.bar-stack { width: 100%; flex: 1; min-height: 0; display: flex; align-items: flex-end; gap: 2px; }
+.bar { flex: 1; border-radius: 3px 3px 0 0; min-height: 2px; }
+.bar-lbl { font-size: 10.5px; color: var(--text-3); font-family: 'JetBrains Mono', monospace; }
+
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script type="application/json" id="tweak-defaults">
+/*EDITMODE-BEGIN*/{
+  "theme": "light"
+}/*EDITMODE-END*/
+</script>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" data-presets="react">
+// ICONS
+const I = ({ d, size = 16, sw = 1.6, ch, ...rest }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" {...rest}>{d ? <path d={d} /> : ch}</svg>
+);
+const IDash = (p) => <I {...p} ch={<><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></>}/>;
+const ICari = (p) => <I {...p} ch={<><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>}/>;
+const IDoc = (p) => <I {...p} ch={<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></>}/>;
+const IRep = (p) => <I {...p} ch={<><path d="M3 3v18h18"/><path d="M7 15l4-4 4 4 5-6"/></>}/>;
+const IStok = (p) => <I {...p} ch={<><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></>}/>;
+const IKasa = (p) => <I {...p} ch={<><path d="M20 12V8H6a2 2 0 0 1 0-4h12v4"/><path d="M4 6v12a2 2 0 0 0 2 2h14v-4"/><circle cx="16" cy="14" r="1.5"/></>}/>;
+const ICek = (p) => <I {...p} ch={<><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></>}/>;
+const IGel = (p) => <I {...p} ch={<><path d="M12 2v20M5 9l7-7 7 7"/></>}/>;
+const IFct = (p) => <I {...p} ch={<><path d="M2 20V8l5 3V8l5 3V8l5 3V3h3v17a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/></>}/>;
+const ICal = (p) => <I {...p} ch={<><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></>}/>;
+const ICk = (p) => <I {...p} d="M20 6 9 17l-5-5"/>;
+const IIns = (p) => <I {...p} ch={<><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></>}/>;
+const ISet = (p) => <I {...p} ch={<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></>}/>;
+const ISearch = (p) => <I {...p} ch={<><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></>}/>;
+const IPlus = (p) => <I {...p} d="M12 5v14M5 12h14"/>;
+const IFlt = (p) => <I {...p} d="M3 5h18M6 12h12M10 19h4"/>;
+const IDown = (p) => <I {...p} d="m6 9 6 6 6-6"/>;
+const IRight = (p) => <I {...p} d="m9 18 6-6-6-6"/>;
+const IX = (p) => <I {...p} d="M18 6 6 18M6 6l18 18"/>;
+const IUp = (p) => <I {...p} d="M12 19V5M5 12l7-7 7 7"/>;
+const IDn = (p) => <I {...p} d="M12 5v14M19 12l-7 7-7-7"/>;
+const IPh = (p) => <I {...p} d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>;
+const IMail = (p) => <I {...p} ch={<><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></>}/>;
+const IMap = (p) => <I {...p} ch={<><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></>}/>;
+const IPdf = (p) => <I {...p} ch={<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></>}/>;
+const IXls = IPdf;
+const IBell = (p) => <I {...p} ch={<><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></>}/>;
+const IRcpt = (p) => <I {...p} ch={<><path d="M6 2h12a1 1 0 0 1 1 1v19l-3-2-3 2-3-2-3 2-3-2V3a1 1 0 0 1 1-1z"/><path d="M9 7h6M9 11h6"/></>}/>;
+const IWal = IKasa;
+const ISun = (p) => <I {...p} ch={<><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></>}/>;
+const IMoon = (p) => <I {...p} d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>;
+const ITag = (p) => <I {...p} ch={<><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></>}/>;
+const IBdg = (p) => <I {...p} ch={<><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></>}/>;
+const IApt = (p) => <I {...p} ch={<><rect x="4" y="2" width="16" height="20" rx="1"/><path d="M9 22v-4h6v4"/></>}/>;
+const ITrend = (p) => <I {...p} d="M22 7L13.5 15.5l-5-5L2 17"/>;
+const ISwap = (p) => <I {...p} ch={<><path d="M7 16V4M3 8l4-4 4 4M17 8v12M21 16l-4 4-4-4"/></>}/>;
+const IBilanco = (p) => <I {...p} ch={<><path d="M3 3v18h18"/><rect x="6" y="12" width="3" height="6"/><rect x="11" y="8" width="3" height="10"/><rect x="16" y="5" width="3" height="13"/></>}/>;
+
+// HELPERS
+const fmt = (n) => { const s = n < 0 ? '-' : ''; return s + Math.abs(n).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' ₺'; };
+const fmtShort = (n) => { const a = Math.abs(n); if (a >= 1e6) return (n/1e6).toFixed(1).replace('.', ',') + ' M'; if (a >= 1e3) return (n/1e3).toFixed(0) + 'B'; return n.toFixed(0); };
+const fmtD = (d) => new Date(d).toLocaleDateString('tr-TR', {day:'2-digit', month:'2-digit', year:'numeric'});
+
+// DATA — Faz 2/3'te API'dan doldurulacak
+let CUSTOMERS = [];
+let TX = [];
+// TODO Faz 2/3: API'dan veri çek
+//   const r1 = await fetch('/api/cariler'); CUSTOMERS = await r1.json();
+//   const r2 = await fetch('/api/hareketler'); TX = await r2.json();
+
+const DOC_LBL = { fatura:'Fatura', tahsilat:'Tahsilat', cek:'Çek/Senet', odeme:'Ödeme', iade:'İade' };
+const DOC_CHIP = { fatura:'info', tahsilat:'good', cek:'warn', odeme:'bad', iade:'mute' };
+
+// ============= COMPONENTS =============
+function Sidebar({page,onNav}){
+  const op=[{id:'dashboard',l:'Bilgi Ekranı',i:<IDash/>},{id:'cariler',l:'Cari Hesaplar',i:<ICari/>,b:String(CUSTOMERS.length)},{id:'hareketler',l:'Stok Hareketler',i:<ISwap/>},{id:'firmalar',l:'Firmalar',i:<IApt/>},{id:'stok',l:'Stok',i:<IStok/>},{id:'kasa',l:'Kasa',i:<IKasa/>},{id:'gelirgider',l:'Gelir / Gider',i:<IGel/>},{id:'personel',l:'Personel',i:<IBdg/>},{id:'cekler',l:'Çek / Senet',i:<ICek/>},{id:'uretim',l:'Üretim',i:<IFct/>},{id:'bilanco',l:'Haftalık Bilanço',i:<IBilanco/>}];
+  const fn=[{id:'cektakvim',l:'Çek Takvimi',i:<ICal/>},{id:'mutabakat',l:'Mutabakat',i:<ICk/>},{id:'tahsilatoneri',l:'Tahsilat Önerisi',i:<IIns/>},{id:'rapor',l:'Raporlar',i:<IRep/>},{id:'pdfdokum',l:'PDF Dökümleri',i:<IPdf/>,ext:true}];
+  const yn=[{id:'ayarlar',l:'Ayarlar',i:<ISet/>}];
+  const eff = (page==='cari'||page==='ekstre')?'cariler':page;
+  const r=(items)=>items.map(it=><button key={it.id} className={`sb-item ${eff===it.id?'active':''}`} onClick={()=>onNav(it.id)}>{it.i}<span>{it.l}</span>{it.ext&&<span style={{marginLeft:'auto',fontSize:10,color:'var(--text-3)'}}>↗</span>}{it.b&&<span className="badge">{it.b}</span>}</button>);
+  return <aside className="sb">
+    <div className="sb-brand"><div className="sb-logo">ŞÇ</div><div><div className="sb-brand-name">Şenol Çelik</div><div className="sb-brand-sub">Cari Takip · v3</div></div></div>
+    <button className="sb-search"><ISearch size={13}/><span>Hızlı arama…</span><kbd>⌘K</kbd></button>
+    <div className="sb-group">Operasyon</div><nav className="sb-nav">{r(op)}</nav>
+    <div className="sb-group">Finans Analiz</div><nav className="sb-nav">{r(fn)}</nav>
+    <div className="sb-group">Yönetim</div><nav className="sb-nav">{r(yn)}</nav>
+    <div className="sb-foot"><div className="av">MY</div><div style={{flex:1,minWidth:0}}><div className="sb-user">Mustafa Yıldırım</div><div className="sb-role">Muhasebe</div></div></div>
+  </aside>;
+}
+
+function Topbar({crumbs}){
+  return <div className="tb">
+    <div className="tb-crumb">{crumbs.map((c,i)=><React.Fragment key={i}>{i>0&&<IRight size={12}/>}{i===crumbs.length-1?<b>{c}</b>:<span>{c}</span>}</React.Fragment>)}</div>
+    <div className="tb-spacer"/>
+    <button className="btn btn-ghost btn-icon"><IBell size={15}/></button>
+    <button className="btn btn-primary btn-sm"><IPlus size={13}/>Yeni İşlem</button>
+  </div>;
+}
+
+function Bal({v,sz}){
+  const z=v===0,n=v<0;const lbl=z?'Sıfır':(n?'Alacak':'Borç');
+  return <span className={`balance ${n?'neg':''} ${z?'zero':''}`} style={sz==='lg'?{padding:'8px 14px'}:{}}>
+    <span className="bl">{lbl}</span><span className="bv" style={sz==='lg'?{fontSize:15}:{}}>{fmt(Math.abs(v))}</span>
+  </span>;
+}
+function Chip({k,children,dot=true}){return <span className={`chip c-${k}`}>{dot&&<span className="chip-dot"/>}{children}</span>;}
+function DocChip({type}){return <Chip k={DOC_CHIP[type]}>{DOC_LBL[type]}</Chip>;}
+
+function Spark({data,color='var(--accent)',h=140}){if(!data?.length)return null;const w=400,p=8;const mx=Math.max(...data),mn=Math.min(...data);const rg=mx-mn||1;const pts=data.map((v,i)=>[p+(i/(data.length-1))*(w-p*2),h-p-((v-mn)/rg)*(h-p*2)]);const path=pts.map((q,i)=>(i?'L':'M')+q[0].toFixed(1)+','+q[1].toFixed(1)).join(' ');const area=path+` L${w-p},${h-p} L${p},${h-p} Z`;return <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{width:'100%',height:h}}><defs><linearGradient id="sp" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={color} stopOpacity="0.3"/><stop offset="100%" stopColor={color} stopOpacity="0"/></linearGradient></defs><path d={area} fill="url(#sp)"/><path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"/></svg>;}
+
+function Toast({m,onDone}){React.useEffect(()=>{const t=setTimeout(onDone,2200);return()=>clearTimeout(t);},[]);return <div className="toast"><ICk size={14}/>{m}</div>;}
+
+// ============= DASHBOARD =============
+function Dashboard({onOpenCustomer}){
+  const totalA = CUSTOMERS.reduce((s,c)=>s+Math.max(0,c.balance),0);
+  const totalB = Math.abs(CUSTOMERS.reduce((s,c)=>s+Math.min(0,c.balance),0));
+  const active = CUSTOMERS.filter(c=>c.status==='active').length;
+  const passive = CUSTOMERS.length - active;
+  const alacaklı = CUSTOMERS.filter(c=>c.balance>0).length;
+  const borçlu = CUSTOMERS.filter(c=>c.balance<0).length;
+  const limitUstu = CUSTOMERS.filter(c=>c.credit>0 && c.balance>c.credit*0.8).length;
+  const ortBakiye = CUSTOMERS.length>0 ? totalA/Math.max(1,alacaklı) : 0;
+  // Bu ay tahsilat = TX'te bu aya ait tahsilat tipindeki kayıtların alacak toplamı
+  const cm = new Date(); const ym = `${cm.getFullYear()}-${String(cm.getMonth()+1).padStart(2,'0')}`;
+  const buAyTahsilat = TX.filter(t=>t.type==='tahsilat' && (t.date||'').startsWith(ym)).reduce((s,t)=>s+(t.alacak||0),0);
+  const buAyTahsilatCnt = TX.filter(t=>t.type==='tahsilat' && (t.date||'').startsWith(ym)).length;
+  const top=[...CUSTOMERS].filter(c=>c.balance>0).sort((a,b)=>b.balance-a.balance).slice(0,6);
+  const maxTop=top[0]?.balance||1;
+  const recent=[...TX].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,7);
+
+  return <div>
+    <div className="kpi-grid">
+      <div className="kpi"><div className="kpi-icon-wrap"><IWal size={14}/></div><div className="kpi-label">Toplam Alacak</div><div className="kpi-val num">{fmtShort(totalA)}<span className="suf">₺</span></div><div className="kpi-delta">{alacaklı} cari</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap"><IDn size={14}/></div><div className="kpi-label">Toplam Borç</div><div className="kpi-val num">{fmtShort(totalB)}<span className="suf">₺</span></div><div className="kpi-delta">{borçlu} cari</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap"><IRcpt size={14}/></div><div className="kpi-label">Bu Ay Tahsilat</div><div className="kpi-val num">{fmtShort(buAyTahsilat)}<span className="suf">₺</span></div><div className="kpi-delta">{buAyTahsilatCnt} işlem</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap"><ICari size={14}/></div><div className="kpi-label">Aktif Cari</div><div className="kpi-val num">{active}<span className="suf">/{CUSTOMERS.length}</span></div><div className="kpi-delta">{passive} pasif cari</div></div>
+    </div>
+
+    <div className="two-col">
+      <div className="card">
+        <div className="card-hd"><div><div className="card-ttl">Hızlı Özet</div><div className="card-sub">Cari portföy durumu</div></div></div>
+        <div style={{padding:'4px 0'}}>
+          <div style={{display:'flex',alignItems:'center',gap:12,padding:'13px 18px',borderBottom:'1px solid var(--border)'}}>
+            <div style={{width:32,height:32,borderRadius:7,background:'var(--accent-soft)',color:'var(--accent)',display:'grid',placeItems:'center'}}><ICari size={15}/></div>
+            <div style={{flex:1}}><div style={{fontSize:12.5,color:'var(--text-2)'}}>Aktif Cari</div><div className="num" style={{fontSize:15,fontWeight:600,marginTop:1}}>{active} <span style={{fontSize:11.5,color:'var(--text-3)',fontWeight:500}}>/ toplam {CUSTOMERS.length}</span></div></div>
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:12,padding:'13px 18px',borderBottom:'1px solid var(--border)'}}>
+            <div style={{width:32,height:32,borderRadius:7,background:'var(--info-soft)',color:'var(--info)',display:'grid',placeItems:'center'}}><IWal size={15}/></div>
+            <div style={{flex:1}}><div style={{fontSize:12.5,color:'var(--text-2)'}}>Ortalama Açık Bakiye</div><div className="num" style={{fontSize:15,fontWeight:600,marginTop:1}}>{fmt(ortBakiye)}</div></div>
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:12,padding:'13px 18px',borderBottom:'1px solid var(--border)'}}>
+            <div style={{width:32,height:32,borderRadius:7,background:limitUstu>0?'var(--warn-soft)':'var(--bg-2)',color:limitUstu>0?'var(--warn)':'var(--text-3)',display:'grid',placeItems:'center'}}><ITrend size={15}/></div>
+            <div style={{flex:1}}><div style={{fontSize:12.5,color:'var(--text-2)'}}>Limit Üstü Risk</div><div className="num" style={{fontSize:15,fontWeight:600,marginTop:1,color:limitUstu>0?'var(--warn)':'var(--text)'}}>{limitUstu} cari</div></div>
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:12,padding:'13px 18px'}}>
+            <div style={{width:32,height:32,borderRadius:7,background:'var(--bg-2)',color:'var(--text-3)',display:'grid',placeItems:'center'}}><IRcpt size={15}/></div>
+            <div style={{flex:1}}><div style={{fontSize:12.5,color:'var(--text-2)'}}>Pasif Cari</div><div className="num" style={{fontSize:15,fontWeight:600,marginTop:1}}>{passive} cari</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-hd"><div><div className="card-ttl">En Yüksek Bakiyeler</div><div className="card-sub">Açık alacağa göre</div></div></div>
+        {top.length===0&&<div style={{padding:36,textAlign:'center',color:'var(--text-3)',fontSize:12.5}}>Henüz alacaklı cari yok.</div>}
+        {top.map((c,i)=><div key={c.id} className="tc-row" onClick={()=>onOpenCustomer(c.id)}>
+          <span className="tc-rank">#{String(i+1).padStart(2,'0')}</span>
+          <span className="tc-name" title={c.name}>{c.name.length>24?c.name.slice(0,24)+'…':c.name}</span>
+          <div className="tc-bar"><div className="tc-fill" style={{width:`${(c.balance/maxTop)*100}%`}}/></div>
+          <span className="tc-val">{fmt(c.balance).replace(' ₺','₺')}</span>
+        </div>)}
+      </div>
+    </div>
+
+    <div className="card">
+      <div className="card-hd">
+        <div><div className="card-ttl">Son Hareketler</div><div className="card-sub">Tüm carilerden son 7 kayıt</div></div>
+        <div className="grow"/>
+        <button className="btn btn-sm btn-ghost" onClick={()=>window.__nav?.('cariler')}>Tümünü Gör <IRight size={12}/></button>
+      </div>
+      <div className="tbl-wrap">
+        <table className="tbl">
+          <thead><tr><th>Tarih</th><th>Cari</th><th>Belge No</th><th>Açıklama</th><th>Tip</th><th className="r">Borç</th><th className="r">Alacak</th></tr></thead>
+          <tbody>
+            {recent.length===0&&<tr><td colSpan={7} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>Henüz hareket yok.</td></tr>}
+            {recent.map(t=>{const c=CUSTOMERS.find(x=>x.id===t.customerId);return <tr key={t.id} onClick={()=>onOpenCustomer(t.customerId)}>
+              <td className="tdate">{fmtD(t.date)}</td>
+              <td style={{fontWeight:500}}>{c?.name}</td>
+              <td className="tref">{t.ref}</td>
+              <td style={{color:'var(--text-2)'}}>{t.description}</td>
+              <td><DocChip type={t.type}/></td>
+              <td className="tnum">{t.borc?fmt(t.borc):<span className="muted">—</span>}</td>
+              <td className="tnum pos">{t.alacak?fmt(t.alacak):<span className="muted">—</span>}</td>
+            </tr>;})}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>;
+}
+
+// ============= EKSTRE =============
+function Ekstre({initialCustomerId,search,onOpenCustomer,onOpenModal}){
+  const [sel,setSel]=React.useState(initialCustomerId||CUSTOMERS[0]?.id||'');
+  const [tf,setTf]=React.useState('all');
+  const [rg,setRg]=React.useState('90');
+  const [ls,setLs]=React.useState('');
+  React.useEffect(()=>{if(initialCustomerId)setSel(initialCustomerId);},[initialCustomerId]);
+  const c=CUSTOMERS.find(x=>x.id===sel);
+  const q=(search||ls||'').toLowerCase().trim();
+  let txs=TX.filter(t=>t.customerId===sel);
+  if(tf!=='all')txs=txs.filter(t=>t.type===tf);
+  if(rg!=='all'){const days=parseInt(rg,10);const cu=new Date();cu.setDate(cu.getDate()-days);txs=txs.filter(t=>new Date(t.date)>=cu);}
+  if(q)txs=txs.filter(t=>((t.ref||'')+' '+(t.description||'')).toLowerCase().includes(q));
+  txs=[...txs].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const tB=txs.reduce((s,t)=>s+(t.borc||0),0),tA=txs.reduce((s,t)=>s+(t.alacak||0),0);
+  const fcL=CUSTOMERS.filter(x=>q?(x.name||'').toLowerCase().includes(q):true);
+  // Boş durum: cari yok veya seçili cari bulunamadı
+  if(!c) return <div className="card" style={{padding:48,textAlign:'center'}}>
+    <div style={{fontSize:18,fontWeight:600,marginBottom:6}}>Henüz cari yok</div>
+    <div style={{color:'var(--text-3)',fontSize:13}}>Ekstre görüntülemek için önce <strong style={{color:'var(--accent)',cursor:'pointer'}} onClick={()=>window.__nav?.('cariler')}>Cari Hesaplar</strong> sayfasından cari ekle.</div>
+  </div>;
+
+  return <div style={{display:'grid',gridTemplateColumns:'264px 1fr',gap:14}}>
+    <div className="card" style={{alignSelf:'start',position:'sticky',top:80}}>
+      <div className="card-hd" style={{padding:'10px 14px'}}><div className="card-ttl" style={{fontSize:12.5}}>Cariler</div><div className="grow"/><span className="muted" style={{fontSize:11}}>{fcL.length}</span></div>
+      <div style={{maxHeight:'calc(100vh - 200px)',overflowY:'auto'}}>
+        {fcL.map(x=><button key={x.id} onClick={()=>setSel(x.id)} style={{display:'flex',alignItems:'center',gap:8,width:'100%',padding:'10px 14px',textAlign:'left',borderBottom:'1px solid var(--border)',background:sel===x.id?'var(--panel-hover)':'transparent',borderLeft:sel===x.id?'2px solid var(--accent)':'2px solid transparent'}}>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:12.5,fontWeight:500,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{x.name}</div>
+            <div className="mono" style={{fontSize:10.5,color:'var(--text-3)',marginTop:1}}>{x.code}</div>
+          </div>
+          <div className="tnum" style={{fontSize:11.5,fontWeight:600,color:x.balance<0?'var(--bad)':x.balance>0?'var(--accent)':'var(--text-3)',whiteSpace:'nowrap'}}>{fmtShort(x.balance)}₺</div>
+        </button>)}
+      </div>
+    </div>
+
+    <div>
+      <div className="card" style={{marginBottom:14}}>
+        <div style={{padding:'18px 22px',display:'flex',alignItems:'center',gap:16}}>
+          <div style={{flex:1,minWidth:0}}>
+            <div className="hstack" style={{gap:10}}><div style={{fontSize:18,fontWeight:600,letterSpacing:'-0.02em',lineHeight:1.2}}>{c.name}</div><Chip k={c.status==='active'?'good':'mute'}>{c.status==='active'?'Aktif':'Pasif'}</Chip></div>
+            <div className="hstack" style={{gap:14,marginTop:6,fontSize:11.5,color:'var(--text-2)'}}>
+              <span className="mono">{c.code}</span><span>·</span>
+              <span className="hstack" style={{gap:4}}><IMap size={11}/>{c.city} / {c.district}</span><span>·</span>
+              <span className="hstack" style={{gap:4}}><IPh size={11}/>{c.phone}</span>
+            </div>
+          </div>
+          <Bal v={c.balance} sz="lg"/>
+          <button className="btn btn-sm" onClick={()=>onOpenCustomer(c.id)}>Cari Kart <IRight size={12}/></button>
+        </div>
+      </div>
+
+      <div className="fbar">
+        <div className="seg">{[{i:'30',l:'30 gün'},{i:'90',l:'90 gün'},{i:'180',l:'6 ay'},{i:'all',l:'Tümü'}].map(r=>(<button key={r.i} className={rg===r.i?'on':''} onClick={()=>setRg(r.i)}>{r.l}</button>))}</div>
+        <div className={`flt ${tf!=='all'?'on':''}`}><ITag size={13}/><select value={tf} onChange={e=>setTf(e.target.value)}>
+          <option value="all">Tüm Belgeler</option>{Object.keys(DOC_LBL).map(k=><option key={k} value={k}>{DOC_LBL[k]}</option>)}
+        </select><IDown size={12}/></div>
+        <div className="flt"><ICal size={13}/><span className="mono" style={{fontSize:11}}>01.01.2026 — 24.04.2026</span></div>
+        <div className="grow"/>
+        <div className="input-search"><ISearch size={13}/><input placeholder="Belge/açıklama…" value={ls} onChange={e=>setLs(e.target.value)}/></div>
+        <button className="btn btn-sm"><IPdf size={13}/>PDF</button>
+        <button className="btn btn-sm"><IXls size={13}/>Excel</button>
+        <button className="btn btn-sm btn-primary" onClick={()=>onOpenModal('collection',c.id)}><IPlus size={13}/>Tahsilat</button>
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginBottom:14}}>
+        <div className="card" style={{padding:'14px 18px'}}><div className="kpi-label">Dönem Borç</div><div className="num" style={{fontSize:22,fontWeight:600,marginTop:5,letterSpacing:'-0.02em'}}>{fmt(tB)}</div></div>
+        <div className="card" style={{padding:'14px 18px'}}><div className="kpi-label">Dönem Alacak</div><div className="num pos" style={{fontSize:22,fontWeight:600,marginTop:5,letterSpacing:'-0.02em'}}>{fmt(tA)}</div></div>
+        <div className="card" style={{padding:'14px 18px'}}><div className="kpi-label">Net Bakiye</div><div className={`num ${c.balance<0?'neg':''}`} style={{fontSize:22,fontWeight:600,marginTop:5,letterSpacing:'-0.02em'}}>{fmt(c.balance)}</div></div>
+      </div>
+
+      <div className="card">
+        <div className="card-hd"><div className="card-ttl">Hareketler</div><span className="muted" style={{fontSize:11.5}}>{txs.length} kayıt</span><div className="grow"/></div>
+        <div className="tbl-wrap">
+          <table className="tbl">
+            <thead><tr><th style={{width:90}}>Tarih</th><th style={{width:130}}>Belge No</th><th>Açıklama</th><th style={{width:120}}>Tip</th><th className="r" style={{width:130}}>Borç</th><th className="r" style={{width:130}}>Alacak</th><th className="r" style={{width:140}}>Bakiye</th></tr></thead>
+            <tbody>
+              {txs.length===0&&<tr><td colSpan={7} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>Bu filtre için hareket bulunamadı.</td></tr>}
+              {txs.map(t=><tr key={t.id}>
+                <td className="tdate">{fmtD(t.date)}</td>
+                <td className="tref">{t.ref}</td>
+                <td>{t.description}</td>
+                <td><DocChip type={t.type}/></td>
+                <td className="tnum">{t.borc?fmt(t.borc):<span className="muted">—</span>}</td>
+                <td className="tnum pos">{t.alacak?fmt(t.alacak):<span className="muted">—</span>}</td>
+                <td className="tnum" style={{fontWeight:600,color:t.running<0?'var(--bad)':'var(--text)'}}>{fmt(t.running)}</td>
+              </tr>)}
+            </tbody>
+            {txs.length>0&&<tfoot><tr style={{background:'var(--panel-2)',fontWeight:600}}>
+              <td colSpan={4} style={{padding:'12px 14px',fontSize:11,color:'var(--text-3)',fontWeight:500}}>DÖNEM TOPLAMI</td>
+              <td className="tnum" style={{padding:'12px 14px'}}>{fmt(tB)}</td>
+              <td className="tnum pos" style={{padding:'12px 14px'}}>{fmt(tA)}</td>
+              <td className="tnum" style={{padding:'12px 14px',color:c.balance<0?'var(--bad)':'var(--text)'}}>{fmt(c.balance)}</td>
+            </tr></tfoot>}
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+
+// ============= CUSTOMER DETAIL =============
+function CustomerDetail({customerId,onOpenEkstre,onBack,onOpenModal}){
+  const c=CUSTOMERS.find(x=>x.id===customerId);
+  if(!c) return <div className="card" style={{padding:48,textAlign:'center'}}>
+    <div style={{fontSize:18,fontWeight:600,marginBottom:6}}>Cari bulunamadı</div>
+    <div style={{color:'var(--text-3)',fontSize:13}}>Bu cari kaldırılmış olabilir veya henüz veri yüklenmedi.</div>
+    <div style={{marginTop:18}}><button className="btn" onClick={onBack}>← Cariler</button></div>
+  </div>;
+  const txs=TX.filter(t=>t.customerId===customerId).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const totFat=txs.filter(t=>t.type==='fatura').reduce((s,t)=>s+(t.borc||0),0);
+  const totTah=txs.filter(t=>t.type==='tahsilat'||t.type==='cek').reduce((s,t)=>s+(t.alacak||0),0);
+  const opCk=txs.filter(t=>t.type==='cek').reduce((s,t)=>s+(t.alacak||0),0);
+  const limitKullanim = c.credit>0 ? (Math.max(0,c.balance)/c.credit)*100 : 0;
+  const sonIslemGun = c.lastActivity ? Math.floor((Date.now()-new Date(c.lastActivity))/86400000) : null;
+
+  return <div>
+    <div className="hstack" style={{marginBottom:14,gap:8}}>
+      <button className="btn btn-sm btn-ghost" onClick={onBack}><IRight size={12} style={{transform:'rotate(180deg)'}}/>Cariler</button>
+    </div>
+    <div className="card" style={{marginBottom:14}}>
+      <div className="hero">
+        <div className="hero-av">{(c.name||'').split(' ').slice(0,2).map(w=>w[0]||'').join('')||'?'}</div>
+        <div style={{flex:1,minWidth:0}}>
+          <div className="hstack" style={{gap:10}}><div className="hero-name">{c.name}</div><Chip k={c.status==='active'?'good':'mute'}>{c.status==='active'?'Aktif':'Pasif'}</Chip></div>
+          <div className="hero-meta">
+            <span className="mono">{c.code}</span>
+            {c.city&&<span><IMap size={11}/>{c.city}{c.district?` / ${c.district}`:''}</span>}
+            {c.phone&&<span><IPh size={11}/>{c.phone}</span>}
+            {c.email&&<span><IMail size={11}/>{c.email}</span>}
+            {c.tax&&<span>VKN: <span className="mono">{c.tax}</span></span>}
+          </div>
+        </div>
+        <div className="hstack" style={{gap:8}}>
+          <Bal v={c.balance||0} sz="lg"/>
+          <button className="btn btn-sm" onClick={()=>onOpenEkstre(c.id)}><IDoc size={13}/>Ekstre</button>
+          <button className="btn btn-sm btn-primary" onClick={()=>onOpenModal('collection',c.id)}><IPlus size={13}/>Tahsilat</button>
+        </div>
+      </div>
+      <div className="stats">
+        <div className="stat"><div className="stat-l">Kredi Limiti</div><div className="stat-v">{fmt(c.credit||0)}</div><div className="stat-s">Kullanım: %{limitKullanim.toFixed(0)}</div></div>
+        <div className="stat"><div className="stat-l">Vade</div><div className="stat-v">{c.paymentTerm||0} <span style={{fontSize:13,color:'var(--text-3)',fontWeight:500}}>gün</span></div><div className="stat-s">Fatura tarihinden</div></div>
+        <div className="stat"><div className="stat-l">Açık Çek/Senet</div><div className="stat-v">{fmt(opCk)}</div><div className="stat-s">{txs.filter(t=>t.type==='cek').length} adet</div></div>
+        <div className="stat"><div className="stat-l">Son İşlem</div><div className="stat-v">{c.lastActivity?fmtD(c.lastActivity):'—'}</div><div className="stat-s">{sonIslemGun!==null?`${sonIslemGun} gün önce`:'Hareket yok'}</div></div>
+      </div>
+    </div>
+
+    <div className="card" style={{marginBottom:14}}>
+      <div className="card-hd"><div><div className="card-ttl">Dönem Özeti</div><div className="card-sub">Tüm hareketler boyunca</div></div></div>
+      <div className="stats">
+        <div className="stat"><div className="stat-l">Toplam Fatura</div><div className="stat-v">{fmt(totFat)}</div><div className="stat-s">{txs.filter(t=>t.type==='fatura').length} adet</div></div>
+        <div className="stat"><div className="stat-l">Toplam Tahsilat</div><div className="stat-v pos" style={{color:'var(--good)'}}>{fmt(totTah)}</div><div className="stat-s">{txs.filter(t=>t.type==='tahsilat'||t.type==='cek').length} adet</div></div>
+        <div className="stat"><div className="stat-l">Ort. Tahsilat Süresi</div><div className="stat-v">—</div><div className="stat-s">Hesaplanıyor</div></div>
+        <div className="stat"><div className="stat-l">Risk Skoru</div><div className="stat-v" style={{display:'flex',alignItems:'center',gap:8}}><Chip k={limitKullanim>80?'warn':'good'}>{limitKullanim>80?'Orta':'Düşük'}</Chip></div><div className="stat-s">Limit kullanımına göre</div></div>
+      </div>
+    </div>
+
+    <div className="card">
+      <div className="card-hd"><div className="card-ttl">Son Hareketler</div><div className="grow"/><button className="btn btn-sm btn-ghost" onClick={()=>onOpenEkstre(c.id)}>Ekstre <IRight size={12}/></button></div>
+      <div className="tbl-wrap"><table className="tbl">
+        <thead><tr><th>Tarih</th><th>Belge No</th><th>Açıklama</th><th>Tip</th><th className="r">Borç</th><th className="r">Alacak</th></tr></thead>
+        <tbody>
+          {txs.length===0&&<tr><td colSpan={6} style={{padding:36,textAlign:'center',color:'var(--text-3)'}}>Bu cari için hareket yok.</td></tr>}
+          {txs.slice(0,8).map(t=><tr key={t.id}>
+            <td className="tdate">{fmtD(t.date)}</td><td className="tref">{t.ref}</td><td>{t.description}</td><td><DocChip type={t.type}/></td>
+            <td className="tnum">{t.borc?fmt(t.borc):'—'}</td><td className="tnum pos">{t.alacak?fmt(t.alacak):'—'}</td>
+          </tr>)}
+        </tbody>
+      </table></div>
+    </div>
+  </div>;
+}
+
+// ============= CARI LIST =============
+function CariList({onOpen,onNew}){
+  const [sort,setSort]=React.useState('balance');
+  const [stat,setStat]=React.useState('all');
+  const [city,setCity]=React.useState('all');
+  const [bal,setBal]=React.useState('all');
+  const [ls,setLs]=React.useState('');
+  const cities=[...new Set(CUSTOMERS.map(c=>c.city))].sort();
+  const q=ls.toLowerCase().trim();
+  let list=CUSTOMERS;
+  if(q)list=list.filter(c=>(c.name+' '+c.code+' '+c.city).toLowerCase().includes(q));
+  if(stat!=='all')list=list.filter(c=>c.status===stat);
+  if(city!=='all')list=list.filter(c=>c.city===city);
+  if(bal==='pos')list=list.filter(c=>c.balance>0);
+  if(bal==='neg')list=list.filter(c=>c.balance<0);
+  if(bal==='zero')list=list.filter(c=>c.balance===0);
+  list=[...list].sort((a,b)=>sort==='balance'?b.balance-a.balance:sort==='city'?a.city.localeCompare(b.city):sort==='recent'?b.lastActivity.localeCompare(a.lastActivity):a.name.localeCompare(b.name));
+  const totA=list.reduce((s,c)=>s+Math.max(0,c.balance),0);
+  const totB=Math.abs(list.reduce((s,c)=>s+Math.min(0,c.balance),0));
+  const overLim=list.filter(c=>c.balance>c.credit*0.8).length;
+  return <div>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:14}}>
+      <div className="card" style={{padding:'13px 16px'}}><div className="kpi-label">Filtreli Cari</div><div className="num" style={{fontSize:22,fontWeight:600,marginTop:4,letterSpacing:'-0.02em'}}>{list.length}<span style={{fontSize:13,color:'var(--text-3)',fontWeight:500,marginLeft:4}}>/ {CUSTOMERS.length}</span></div></div>
+      <div className="card" style={{padding:'13px 16px'}}><div className="kpi-label">Açık Alacak</div><div className="num" style={{fontSize:22,fontWeight:600,marginTop:4,color:'var(--accent)',letterSpacing:'-0.02em'}}>{fmt(totA)}</div></div>
+      <div className="card" style={{padding:'13px 16px'}}><div className="kpi-label">Borçlu Bakiye</div><div className="num" style={{fontSize:22,fontWeight:600,marginTop:4,color:'var(--bad)',letterSpacing:'-0.02em'}}>{fmt(totB)}</div></div>
+      <div className="card" style={{padding:'13px 16px'}}><div className="kpi-label">Limit Üstü Risk</div><div className="num" style={{fontSize:22,fontWeight:600,marginTop:4,color:overLim>0?'var(--warn)':'var(--text)',letterSpacing:'-0.02em'}}>{overLim}<span style={{fontSize:13,color:'var(--text-3)',fontWeight:500,marginLeft:4}}>cari</span></div></div>
+    </div>
+    <div className="fbar">
+      <div className="seg">{[['name','İsim'],['balance','Bakiye'],['city','Şehir'],['recent','Son İşlem']].map(([k,l])=>(<button key={k} className={sort===k?'on':''} onClick={()=>setSort(k)}>{l}</button>))}</div>
+      <div className={`flt ${stat!=='all'?'on':''}`}><IFlt size={13}/><select value={stat} onChange={e=>setStat(e.target.value)}><option value="all">Tüm Durumlar</option><option value="active">Aktif</option><option value="passive">Pasif</option></select><IDown size={12}/></div>
+      <div className={`flt ${city!=='all'?'on':''}`}><IMap size={13}/><select value={city} onChange={e=>setCity(e.target.value)}><option value="all">Tüm Şehirler</option>{cities.map(c=><option key={c} value={c}>{c}</option>)}</select><IDown size={12}/></div>
+      <div className={`flt ${bal!=='all'?'on':''}`}><IWal size={13}/><select value={bal} onChange={e=>setBal(e.target.value)}><option value="all">Tüm Bakiyeler</option><option value="pos">Alacaklı</option><option value="neg">Borçlu</option><option value="zero">Sıfır</option></select><IDown size={12}/></div>
+      <div className="grow"/>
+      <div className="input-search"><ISearch size={13}/><input placeholder="Cari ara…" value={ls} onChange={e=>setLs(e.target.value)}/></div>
+      <button className="btn btn-sm"><IXls size={13}/>Excel</button>
+      <button className="btn btn-sm btn-primary" onClick={onNew}><IPlus size={13}/>Yeni Cari</button>
+    </div>
+    <div className="card"><div className="tbl-wrap"><table className="tbl">
+      <thead><tr><th>Cari Kodu</th><th>Ünvan</th><th>Şehir</th><th>Son İşlem</th><th>Vade</th><th>Durum</th><th style={{width:160}}>Kredi Kullanımı</th><th className="r">Bakiye</th><th style={{width:1}}></th></tr></thead>
+      <tbody>{list.length===0&&<tr><td colSpan={9} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>Bu filtre için cari bulunamadı.</td></tr>}
+      {list.map(c=>{const u=Math.max(0,c.balance)/c.credit;return <tr key={c.id} onClick={()=>onOpen(c.id)}>
+        <td className="mono" style={{color:'var(--text-3)'}}>{c.code}</td>
+        <td style={{fontWeight:500}}>{c.name}</td>
+        <td style={{color:'var(--text-2)'}}>{c.city}</td>
+        <td className="tdate">{fmtD(c.lastActivity)}</td>
+        <td className="num" style={{color:'var(--text-2)'}}>{c.paymentTerm} gün</td>
+        <td><Chip k={c.status==='active'?'good':'mute'}>{c.status==='active'?'Aktif':'Pasif'}</Chip></td>
+        <td><div className="hstack" style={{gap:8,minWidth:140}}><div style={{flex:1,height:4,background:'var(--bg-2)',borderRadius:999,overflow:'hidden'}}><div style={{height:'100%',width:`${Math.min(100,u*100)}%`,background:u>0.8?'var(--bad)':u>0.5?'var(--warn)':'var(--accent)'}}/></div><span className="num muted" style={{fontSize:11,width:34}}>%{(u*100).toFixed(0)}</span></div></td>
+        <td className="tnum" style={{fontWeight:600,color:c.balance<0?'var(--bad)':'var(--text)'}}>{fmt(c.balance)}</td>
+        <td><IRight size={13} style={{color:'var(--text-3)'}}/></td>
+      </tr>;})}</tbody>
+    </table></div></div>
+  </div>;
+}
+
+// ============= STOK DATA =============
+const STOK_CATEGORIES=['İnşaat Demiri','Profil','Sac','Köşebent','Boru','Hasır','Diğer'];
+let STOK = [];
+let STOK_HRK = [];
+// TODO Faz 2/3: API'dan veri çek
+//   const r1 = await fetch('/api/stok'); STOK = await r1.json();
+//   const r2 = await fetch('/api/stok-hareketler'); STOK_HRK = await r2.json();
+
+// ============= STOK PAGE =============
+function StokPage({onNew,onNewHrk}){
+  const [tab,setTab]=React.useState('list');
+  const [kat,setKat]=React.useState('all');
+  const [stat,setStat]=React.useState('all');
+  const [ls,setLs]=React.useState('');
+  const q=ls.toLowerCase().trim();
+  let items=STOK;
+  if(kat!=='all')items=items.filter(s=>s.kat===kat);
+  if(stat==='low')items=items.filter(s=>s.stok<s.min);
+  if(stat==='ok')items=items.filter(s=>s.stok>=s.min);
+  if(q)items=items.filter(s=>(s.ad+' '+s.kod).toLowerCase().includes(q));
+  const totalDeger=STOK.reduce((s,i)=>s+i.stok*i.alisFiyat,0);
+  const lowCount=STOK.filter(s=>s.stok<s.min).length;
+  const turCount=new Set(STOK.map(s=>s.kat)).size;
+
+  return <div>
+    <div className="kpi-grid">
+      <div className="kpi"><div className="kpi-icon-wrap"><IStok size={14}/></div><div className="kpi-label">Stok Çeşidi</div><div className="kpi-val num">{STOK.length}</div><div className="kpi-delta">{turCount} kategoride</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap"><IWal size={14}/></div><div className="kpi-label">Stok Değeri</div><div className="kpi-val num">{fmtShort(totalDeger)}<span className="suf">₺</span></div><div className="kpi-delta up"><span className="kpi-pill"><IUp size={10}/>%4.2</span> son 30 gün</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap" style={{color:lowCount>0?'var(--warn)':'var(--text-2)'}}><IBell size={14}/></div><div className="kpi-label">Kritik Stok</div><div className="kpi-val num" style={{color:lowCount>0?'var(--warn)':'var(--text)'}}>{lowCount}</div><div className="kpi-delta">Min seviye altında</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap"><ITrend size={14}/></div><div className="kpi-label">Aylık Devir</div><div className="kpi-val num">3.8<span className="suf">x</span></div><div className="kpi-delta">Hedef: 4.0x</div></div>
+    </div>
+
+    <div className="hstack" style={{marginBottom:12,gap:8}}>
+      <div className="seg"><button className={tab==='list'?'on':''} onClick={()=>setTab('list')}>Stok Listesi</button><button className={tab==='hrk'?'on':''} onClick={()=>setTab('hrk')}>Hareketler</button></div>
+    </div>
+
+    {tab==='list'&&<>
+      <div className="fbar">
+        <div className={`flt ${kat!=='all'?'on':''}`}><ITag size={13}/><select value={kat} onChange={e=>setKat(e.target.value)}><option value="all">Tüm Kategoriler</option>{STOK_CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}</select><IDown size={12}/></div>
+        <div className={`flt ${stat!=='all'?'on':''}`}><IFlt size={13}/><select value={stat} onChange={e=>setStat(e.target.value)}><option value="all">Tüm Stoklar</option><option value="low">Kritik Seviye</option><option value="ok">Yeterli</option></select><IDown size={12}/></div>
+        <div className="grow"/>
+        <div className="input-search"><ISearch size={13}/><input placeholder="Stok ara…" value={ls} onChange={e=>setLs(e.target.value)}/></div>
+        <button className="btn btn-sm"><IXls size={13}/>Excel</button>
+        <button className="btn btn-sm" onClick={onNewHrk}><IPlus size={13}/>Stok Hareketi</button>
+        <button className="btn btn-sm btn-primary" onClick={onNew}><IPlus size={13}/>Yeni Stok</button>
+      </div>
+      <div className="card"><div className="tbl-wrap"><table className="tbl">
+        <thead><tr><th style={{width:90}}>Kod</th><th>Ürün Adı</th><th>Kategori</th><th className="r">Stok</th><th>Birim</th><th className="r">Min. Stok</th><th style={{width:140}}>Doluluk</th><th className="r">Alış</th><th className="r">Satış</th><th className="r">Stok Değeri</th></tr></thead>
+        <tbody>{items.length===0&&<tr><td colSpan={10} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>Bu filtre için ürün bulunamadı.</td></tr>}
+        {items.map(s=>{const ratio=Math.min(2,s.stok/s.min);const low=s.stok<s.min;return <tr key={s.kod}>
+          <td className="mono" style={{color:'var(--text-3)'}}>{s.kod}</td>
+          <td style={{fontWeight:500}}>{s.ad}</td>
+          <td><Chip k="mute" dot={false}>{s.kat}</Chip></td>
+          <td className="tnum" style={{fontWeight:600,color:low?'var(--bad)':'var(--text)'}}>{s.stok.toLocaleString('tr-TR')}</td>
+          <td style={{color:'var(--text-2)',fontSize:11.5}}>{s.brm}</td>
+          <td className="tnum muted">{s.min.toLocaleString('tr-TR')}</td>
+          <td><div className="hstack" style={{gap:6}}><div style={{flex:1,height:4,background:'var(--bg-2)',borderRadius:999,overflow:'hidden'}}><div style={{height:'100%',width:`${Math.min(100,(ratio/2)*100)}%`,background:low?'var(--bad)':ratio<1.3?'var(--warn)':'var(--accent)'}}/></div>{low&&<Chip k="bad">Kritik</Chip>}</div></td>
+          <td className="tnum muted">{fmt(s.alisFiyat)}</td>
+          <td className="tnum">{fmt(s.satisFiyat)}</td>
+          <td className="tnum" style={{fontWeight:600}}>{fmt(s.stok*s.alisFiyat)}</td>
+        </tr>;})}</tbody>
+      </table></div></div>
+    </>}
+
+    {tab==='hrk'&&<>
+      <div className="fbar">
+        <div className="seg"><button className="on">Tümü</button><button>Giriş</button><button>Çıkış</button></div>
+        <div className="flt"><ICal size={13}/><span className="mono" style={{fontSize:11}}>Son 60 gün</span></div>
+        <div className="grow"/>
+        <button className="btn btn-sm" onClick={onNewHrk}><IPlus size={13}/>Stok Hareketi</button>
+      </div>
+      <div className="card"><div className="tbl-wrap"><table className="tbl">
+        <thead><tr><th>Tarih</th><th>Belge</th><th>Ürün</th><th>Tip</th><th>Cari / Tedarikçi</th><th className="r">Miktar</th><th className="r">Birim Fiyat</th><th className="r">Tutar</th></tr></thead>
+        <tbody>{STOK_HRK.slice(0,40).map(h=><tr key={h.id}>
+          <td className="tdate">{fmtD(h.date)}</td>
+          <td className="tref">{h.belge}</td>
+          <td><div style={{fontWeight:500}}>{h.ad}</div><div className="mono" style={{fontSize:10.5,color:'var(--text-3)'}}>{h.kod}</div></td>
+          <td>{h.tip==='giris'?<Chip k="good">Giriş</Chip>:<Chip k="info">Çıkış</Chip>}</td>
+          <td style={{color:'var(--text-2)'}}>{h.cariName}</td>
+          <td className="tnum" style={{fontWeight:600,color:h.tip==='giris'?'var(--good)':'var(--info)'}}>{h.tip==='giris'?'+':'−'}{h.miktar.toLocaleString('tr-TR')} <span className="muted" style={{fontSize:11}}>{h.brm}</span></td>
+          <td className="tnum muted">{fmt(h.fiyat)}</td>
+          <td className="tnum" style={{fontWeight:600}}>{fmt(h.tutar)}</td>
+        </tr>)}</tbody>
+      </table></div></div>
+    </>}
+  </div>;
+}
+
+// ============= GELİR/GİDER DATA =============
+const GG_KATEGORI={gelir:['Satış Geliri','Faiz Geliri','Komisyon','Diğer Gelir'],gider:['Maaş','Kira','Elektrik','Su','Doğalgaz','İnternet/Telefon','Yakıt','Vergi','SGK','Kırtasiye','Bakım-Onarım','Yemek','Ulaşım','Diğer Gider']};
+let GG = [];
+// TODO Faz 2/3: const r = await fetch('/api/gelir-gider'); GG = await r.json();
+
+// ============= GELİR/GİDER PAGE =============
+function GelirGider({onNew}){
+  const [tip,setTip]=React.useState('all');
+  const [kat,setKat]=React.useState('all');
+  const [rg,setRg]=React.useState('30');
+  const [ls,setLs]=React.useState('');
+  const q=ls.toLowerCase().trim();
+  let items=GG;
+  if(rg!=='all'){const days=parseInt(rg,10);const cu=new Date('2026-04-24');cu.setDate(cu.getDate()-days);items=items.filter(t=>new Date(t.date)>=cu);}
+  if(tip!=='all')items=items.filter(t=>t.tip===tip);
+  if(kat!=='all')items=items.filter(t=>t.kat===kat);
+  if(q)items=items.filter(t=>(t.aciklama+' '+t.kat).toLowerCase().includes(q));
+  const tGelir=items.filter(t=>t.tip==='gelir').reduce((s,t)=>s+t.tutar,0);
+  const tGider=items.filter(t=>t.tip==='gider').reduce((s,t)=>s+t.tutar,0);
+  const net=tGelir-tGider;
+  const allKats=tip==='all'?[...GG_KATEGORI.gelir,...GG_KATEGORI.gider]:GG_KATEGORI[tip]||[];
+  // Kategori dağılımı
+  const kBy={};items.filter(t=>t.tip==='gider').forEach(t=>{kBy[t.kat]=(kBy[t.kat]||0)+t.tutar;});
+  const kArr=Object.entries(kBy).sort((a,b)=>b[1]-a[1]).slice(0,7);const kMx=kArr[0]?.[1]||1;
+  const COLORS=['var(--accent)','var(--info)','var(--warn)','var(--bad)','#a78bfa','#22d3ee','#fb923c'];
+
+  return <div>
+    <div className="kpi-grid">
+      <div className="kpi"><div className="kpi-icon-wrap" style={{color:'var(--good)'}}><IUp size={14}/></div><div className="kpi-label">Toplam Gelir</div><div className="kpi-val num" style={{color:'var(--good)'}}>{fmtShort(tGelir)}<span className="suf">₺</span></div><div className="kpi-delta">{items.filter(t=>t.tip==='gelir').length} işlem</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap" style={{color:'var(--bad)'}}><IDn size={14}/></div><div className="kpi-label">Toplam Gider</div><div className="kpi-val num" style={{color:'var(--bad)'}}>{fmtShort(tGider)}<span className="suf">₺</span></div><div className="kpi-delta">{items.filter(t=>t.tip==='gider').length} işlem</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap"><IWal size={14}/></div><div className="kpi-label">Net Sonuç</div><div className="kpi-val num" style={{color:net>=0?'var(--accent)':'var(--bad)'}}>{net>=0?'+':'−'}{fmtShort(Math.abs(net))}<span className="suf">₺</span></div><div className="kpi-delta" style={{color:net>=0?'var(--good)':'var(--bad)'}}>{net>=0?'Kâr':'Zarar'}</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap"><ITrend size={14}/></div><div className="kpi-label">Gider/Gelir</div><div className="kpi-val num">{tGelir>0?((tGider/tGelir)*100).toFixed(0):'—'}<span className="suf">%</span></div><div className="kpi-delta">Hedef: %75 altı</div></div>
+    </div>
+
+    <div className="card">
+      <div className="card-hd"><div><div className="card-ttl">Gider Kategorileri</div><div className="card-sub">En yüksek 7 kategori</div></div></div>
+      <div style={{padding:'8px 0'}}>
+        {kArr.length===0&&<div style={{padding:36,textAlign:'center',color:'var(--text-3)',fontSize:12.5}}>Gider kaydı yok</div>}
+        {kArr.map(([k,v],i)=><div key={k} style={{padding:'12px 20px',display:'flex',alignItems:'center',gap:14,borderBottom:'1px solid var(--border)'}}>
+          <span style={{width:10,height:10,borderRadius:3,background:COLORS[i%COLORS.length]}}/>
+          <span style={{flex:'0 0 200px',fontSize:13,fontWeight:500}}>{k}</span>
+          <div style={{flex:1,height:6,background:'var(--bg-2)',borderRadius:999,overflow:'hidden'}}><div style={{height:'100%',background:COLORS[i%COLORS.length],width:`${(v/kMx)*100}%`}}/></div>
+          <span className="num muted" style={{width:50,textAlign:'right',fontSize:12}}>%{((v/kMx)*100).toFixed(0)}</span>
+          <span className="num" style={{width:130,textAlign:'right',fontWeight:600,fontSize:13}}>{fmt(v)}</span>
+        </div>)}
+      </div>
+    </div>
+
+    <div className="fbar" style={{marginTop:14}}>
+      <div className="seg">{[['7','7g'],['30','30g'],['90','3 ay'],['all','Tümü']].map(([k,l])=>(<button key={k} className={rg===k?'on':''} onClick={()=>setRg(k)}>{l}</button>))}</div>
+      <div className="seg"><button className={tip==='all'?'on':''} onClick={()=>{setTip('all');setKat('all');}}>Tümü</button><button className={tip==='gelir'?'on':''} onClick={()=>{setTip('gelir');setKat('all');}}>Gelir</button><button className={tip==='gider'?'on':''} onClick={()=>{setTip('gider');setKat('all');}}>Gider</button></div>
+      <div className={`flt ${kat!=='all'?'on':''}`}><ITag size={13}/><select value={kat} onChange={e=>setKat(e.target.value)}><option value="all">Tüm Kategoriler</option>{allKats.map(k=><option key={k} value={k}>{k}</option>)}</select><IDown size={12}/></div>
+      <div className="grow"/>
+      <div className="input-search"><ISearch size={13}/><input placeholder="Açıklama ara…" value={ls} onChange={e=>setLs(e.target.value)}/></div>
+      <button className="btn btn-sm"><IPdf size={13}/>PDF</button>
+      <button className="btn btn-sm"><IXls size={13}/>Excel</button>
+      <button className="btn btn-sm btn-primary" onClick={onNew}><IPlus size={13}/>Yeni Kayıt</button>
+    </div>
+
+    <div className="card"><div className="card-hd"><div className="card-ttl">Gelir / Gider Kayıtları</div><span className="muted" style={{fontSize:11.5}}>{items.length} kayıt</span><div className="grow"/></div>
+      <div className="tbl-wrap"><table className="tbl">
+        <thead><tr><th>Tarih</th><th>Belge</th><th>Kategori</th><th>Açıklama</th><th>Ödeme</th><th>Tip</th><th className="r">Tutar</th></tr></thead>
+        <tbody>{items.length===0&&<tr><td colSpan={7} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>Bu filtre için kayıt bulunamadı.</td></tr>}
+        {items.slice(0,50).map(t=><tr key={t.id}>
+          <td className="tdate">{fmtD(t.date)}</td>
+          <td className="tref">{t.belge}</td>
+          <td><Chip k="mute" dot={false}>{t.kat}</Chip></td>
+          <td>{t.aciklama}</td>
+          <td style={{color:'var(--text-2)',fontSize:12}}>{t.odeme}</td>
+          <td>{t.tip==='gelir'?<Chip k="good">Gelir</Chip>:<Chip k="bad">Gider</Chip>}</td>
+          <td className="tnum" style={{fontWeight:600,color:t.tip==='gelir'?'var(--good)':'var(--bad)'}}>{t.tip==='gelir'?'+':'−'}{fmt(t.tutar)}</td>
+        </tr>)}</tbody>
+        {items.length>0&&<tfoot><tr style={{background:'var(--panel-2)',fontWeight:600}}>
+          <td colSpan={6} style={{padding:'12px 14px',fontSize:11,color:'var(--text-3)',fontWeight:500}}>NET (Gelir − Gider)</td>
+          <td className="tnum" style={{padding:'12px 14px',color:net>=0?'var(--accent)':'var(--bad)'}}>{net>=0?'+':'−'}{fmt(Math.abs(net))}</td>
+        </tr></tfoot>}
+      </table></div>
+    </div>
+  </div>;
+}
+
+// ============= STOK HAREKETLER DATA =============
+let HAREKETLER = [];
+// TODO Faz 2/3: const r = await fetch('/api/stok-hareketler?yil=&ay='); HAREKETLER = await r.json();
+const KDV_OPTIONS = [{v:0,l:'%0'},{v:1,l:'%1'},{v:10,l:'%10'},{v:20,l:'%20'}];
+const TEVKIFAT_OPTIONS = [{v:'0',l:'Yok'},{v:'2/10',l:'2/10'},{v:'5/10',l:'5/10'},{v:'7/10',l:'7/10'},{v:'9/10',l:'9/10'}];
+
+function hesaplaHareket(miktar, birimFiyat, kdvOrani, tevkifatStr) {
+  const m = parseFloat(miktar)||0, bf = parseFloat(birimFiyat)||0;
+  const ko = parseFloat(kdvOrani)||0;
+  const matrah = m * bf;
+  const kdv = matrah * ko / 100;
+  let tevkifatPay = 0;
+  if (tevkifatStr && tevkifatStr !== '0') {
+    const parts = String(tevkifatStr).split('/');
+    if (parts.length === 2) tevkifatPay = parseInt(parts[0])||0;
+  }
+  const tevkifatTutar = kdv * tevkifatPay / 10;
+  const odenecekKdv = kdv - tevkifatTutar;
+  const kdvliToplam = matrah + odenecekKdv;
+  return { matrah, kdv, tevkifatTutar, odenecekKdv, kdvliToplam };
+}
+
+// ============= STOK HAREKETLER PAGE =============
+function Hareketler({onNew}){
+  const [yil,setYil]=React.useState(new Date().getFullYear());
+  const [ay,setAy]=React.useState(new Date().getMonth()+1);
+  const [tip,setTip]=React.useState('all');
+  const [ls,setLs]=React.useState('');
+  const q=ls.toLowerCase().trim();
+  let items = HAREKETLER.filter(h=>{
+    const d = h.tarih ? new Date(h.tarih) : null;
+    if (d && (d.getFullYear()!==yil || (d.getMonth()+1)!==ay)) return false;
+    if (tip!=='all' && h.tur!==tip) return false;
+    if (q && !((h.firma_ad+' '+h.urun_ad+' '+(h.belge_no||'')).toLowerCase().includes(q))) return false;
+    return true;
+  });
+  items = items.sort((a,b)=>(b.tarih||'').localeCompare(a.tarih||''));
+  const tAlis = items.filter(h=>h.tur==='ALIS').reduce((s,h)=>s+(h.kdvli_toplam||h.toplam||0),0);
+  const tSatis = items.filter(h=>h.tur==='SATIS').reduce((s,h)=>s+(h.kdvli_toplam||h.toplam||0),0);
+  const net = tSatis - tAlis;
+
+  const AY_ISIMLERI = {1:'Ocak',2:'Şubat',3:'Mart',4:'Nisan',5:'Mayıs',6:'Haziran',7:'Temmuz',8:'Ağustos',9:'Eylül',10:'Ekim',11:'Kasım',12:'Aralık'};
+  const yillar = [];
+  const cy = new Date().getFullYear();
+  for(let i=cy-3;i<=cy+1;i++) yillar.push(i);
+
+  return <div>
+    <div className="kpi-grid">
+      <div className="kpi"><div className="kpi-icon-wrap" style={{color:'var(--info)'}}><IDn size={14}/></div><div className="kpi-label">Toplam Alış</div><div className="kpi-val num" style={{color:'var(--info)'}}>{fmtShort(tAlis)}<span className="suf">₺</span></div><div className="kpi-delta">{items.filter(h=>h.tur==='ALIS').length} hareket</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap" style={{color:'var(--good)'}}><IUp size={14}/></div><div className="kpi-label">Toplam Satış</div><div className="kpi-val num" style={{color:'var(--good)'}}>{fmtShort(tSatis)}<span className="suf">₺</span></div><div className="kpi-delta">{items.filter(h=>h.tur==='SATIS').length} hareket</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap"><IWal size={14}/></div><div className="kpi-label">Net</div><div className="kpi-val num" style={{color:net>=0?'var(--accent)':'var(--bad)'}}>{net>=0?'+':'−'}{fmtShort(Math.abs(net))}<span className="suf">₺</span></div><div className="kpi-delta">{net>=0?'Pozitif':'Negatif'}</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap"><IDoc size={14}/></div><div className="kpi-label">Toplam Hareket</div><div className="kpi-val num">{items.length}</div><div className="kpi-delta">{AY_ISIMLERI[ay]} {yil}</div></div>
+    </div>
+
+    <div className="fbar">
+      <div className="flt"><ICal size={13}/><select value={yil} onChange={e=>setYil(parseInt(e.target.value))}>{yillar.map(y=><option key={y} value={y}>{y}</option>)}</select><IDown size={12}/></div>
+      <div className="flt"><ICal size={13}/><select value={ay} onChange={e=>setAy(parseInt(e.target.value))}>{Object.keys(AY_ISIMLERI).map(m=><option key={m} value={m}>{AY_ISIMLERI[m]}</option>)}</select><IDown size={12}/></div>
+      <div className="seg">
+        <button className={tip==='all'?'on':''} onClick={()=>setTip('all')}>Tümü</button>
+        <button className={tip==='ALIS'?'on':''} onClick={()=>setTip('ALIS')}>Alış</button>
+        <button className={tip==='SATIS'?'on':''} onClick={()=>setTip('SATIS')}>Satış</button>
+      </div>
+      <div className="grow"/>
+      <div className="input-search"><ISearch size={13}/><input placeholder="Firma, ürün, belge…" value={ls} onChange={e=>setLs(e.target.value)}/></div>
+      <button className="btn btn-sm"><IXls size={13}/>Excel</button>
+      <button className="btn btn-sm btn-primary" onClick={onNew}><IPlus size={13}/>Yeni Hareket</button>
+    </div>
+
+    <div className="card">
+      <div className="card-hd"><div className="card-ttl">Hareketler</div><span className="muted" style={{fontSize:11.5}}>{items.length} kayıt</span><div className="grow"/></div>
+      <div className="tbl-wrap">
+        <table className="tbl">
+          <thead><tr>
+            <th style={{width:84}}>Tarih</th>
+            <th style={{width:100}}>Belge No</th>
+            <th>Firma</th>
+            <th style={{width:80}}>Tür</th>
+            <th>Ürün</th>
+            <th className="r" style={{width:90}}>Miktar</th>
+            <th className="r" style={{width:100}}>B.Fiyat</th>
+            <th className="r" style={{width:110}}>Matrah</th>
+            <th className="r" style={{width:90}}>KDV</th>
+            <th style={{width:80}}>Tevkifat</th>
+            <th className="r" style={{width:120}}>Toplam</th>
+          </tr></thead>
+          <tbody>
+            {items.length===0&&<tr><td colSpan={11} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>Bu dönemde hareket yok. <strong style={{color:'var(--accent)',cursor:'pointer'}} onClick={onNew}>Yeni Hareket</strong> ile başla.</td></tr>}
+            {items.map(h=><tr key={h.id}>
+              <td className="tdate">{fmtD(h.tarih)}</td>
+              <td className="tref">{h.belge_no||'—'}</td>
+              <td style={{fontWeight:500}}>{h.firma_ad}</td>
+              <td><Chip k={h.tur==='ALIS'?'info':'good'}>{h.tur==='ALIS'?'Alış':'Satış'}</Chip></td>
+              <td style={{color:'var(--text-2)'}}>{h.urun_ad}</td>
+              <td className="tnum">{(h.miktar||0).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+              <td className="tnum">{fmt(h.birim_fiyat||0)}</td>
+              <td className="tnum">{fmt(h.toplam||0)}</td>
+              <td className="tnum">{fmt(h.kdv_tutar||0)}</td>
+              <td>{h.tevkifat_orani && h.tevkifat_orani!=='0' ? <Chip k="warn" dot={false}>{h.tevkifat_orani}</Chip> : <span className="muted">—</span>}</td>
+              <td className="tnum" style={{fontWeight:600}}>{fmt(h.kdvli_toplam||0)}</td>
+            </tr>)}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>;
+}
+
+// ============= HAREKET MODAL =============
+function HareketModal({onClose,onSaved}){
+  const [tarih,setTarih]=React.useState(new Date().toISOString().slice(0,10));
+  const [belgeNo,setBelgeNo]=React.useState('');
+  const [tur,setTur]=React.useState('ALIS');
+  const [kdv,setKdv]=React.useState(20);
+  const [tevkifat,setTevkifat]=React.useState('0');
+  const [firmaId,setFirmaId]=React.useState(CUSTOMERS[0]?.id||'');
+  const [urunKod,setUrunKod]=React.useState(STOK[0]?.kod||'');
+  const [miktar,setMiktar]=React.useState('');
+  const [birimFiyat,setBirimFiyat]=React.useState('');
+  const [aciklama,setAciklama]=React.useState('');
+
+  const calc = hesaplaHareket(miktar, birimFiyat, kdv, tevkifat);
+  const firma = CUSTOMERS.find(c=>c.id===firmaId);
+  const limitAsim = tur==='SATIS' && firma && firma.credit>0 && firma.balance>firma.credit*0.8;
+
+  const submit=(e)=>{e.preventDefault();onSaved?.(tur==='ALIS'?'Alış kaydedildi':'Satış kaydedildi');};
+
+  return <div className="scrim" onClick={onClose}>
+    <form className="modal" style={{width:640}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
+      <div className="m-hd">
+        <div style={{width:34,height:34,borderRadius:8,background:tur==='ALIS'?'var(--info-soft)':'var(--good-soft)',color:tur==='ALIS'?'var(--info)':'var(--good)',display:'grid',placeItems:'center'}}>{tur==='ALIS'?<IDn size={15}/>:<IUp size={15}/>}</div>
+        <div style={{flex:1}}><div className="m-ttl">Yeni Hareket</div><div className="m-sub">{tur==='ALIS'?'Tedarikçiden alış':'Müşteriye satış'}</div></div>
+        <button type="button" className="btn btn-icon btn-ghost" onClick={onClose}><IX size={14}/></button>
+      </div>
+      <div className="m-bd">
+        <div className="field"><label>Hareket Türü</label><div className="tp">
+          <label><input type="radio" name="ht" checked={tur==='ALIS'} onChange={()=>setTur('ALIS')}/><div className="tp-ic"><IDn size={14}/></div><div><div className="tp-ttl">Alış</div><div className="tp-sub">Tedarikçiden gelen</div></div></label>
+          <label><input type="radio" name="ht" checked={tur==='SATIS'} onChange={()=>setTur('SATIS')}/><div className="tp-ic"><IUp size={14}/></div><div><div className="tp-ttl">Satış</div><div className="tp-sub">Müşteriye giden</div></div></label>
+        </div></div>
+
+        <div className="field-row">
+          <div className="field"><label>Tarih</label><input type="date" value={tarih} onChange={e=>setTarih(e.target.value)}/></div>
+          <div className="field"><label>Belge No</label><input value={belgeNo} onChange={e=>setBelgeNo(e.target.value)} placeholder="İrsaliye/Fatura no" className="mono"/></div>
+        </div>
+
+        <div className="field-row">
+          <div className="field"><label>KDV Oranı</label><select value={kdv} onChange={e=>setKdv(parseFloat(e.target.value))}>{KDV_OPTIONS.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select></div>
+          <div className="field"><label>Tevkifat</label><select value={tevkifat} onChange={e=>setTevkifat(e.target.value)}>{TEVKIFAT_OPTIONS.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select></div>
+        </div>
+
+        <div className="field"><label>Firma</label>
+          <select value={firmaId} onChange={e=>setFirmaId(e.target.value)}>
+            {CUSTOMERS.length===0&&<option value="">— Henüz cari yok —</option>}
+            {CUSTOMERS.map(c=><option key={c.id} value={c.id}>{c.code} · {c.name}</option>)}
+          </select>
+        </div>
+
+        {limitAsim&&<div style={{padding:'10px 13px',background:'var(--bad-soft)',border:'1px solid rgba(248,113,113,0.3)',borderLeft:'3px solid var(--bad)',borderRadius:7,display:'flex',alignItems:'center',gap:10,fontSize:12,marginBottom:14}}>
+          <span style={{fontSize:18,color:'var(--bad)',fontWeight:700,lineHeight:1}}>!</span>
+          <div style={{flex:1}}><strong style={{color:'var(--bad)'}}>Risk Limiti Uyarısı</strong><div style={{color:'var(--text-2)',marginTop:2}}>Bakiye: <span className="num">{fmt(firma.balance)}</span> / Limit: <span className="num">{fmt(firma.credit)}</span> (%{((firma.balance/firma.credit)*100).toFixed(0)} kullanım)</div></div>
+        </div>}
+
+        <div className="field"><label>Ürün</label>
+          <select value={urunKod} onChange={e=>setUrunKod(e.target.value)}>
+            {STOK.length===0&&<option value="">— Henüz ürün yok —</option>}
+            {STOK.map(s=><option key={s.kod} value={s.kod}>{s.kod} · {s.ad}</option>)}
+          </select>
+        </div>
+
+        <div className="field-row">
+          <div className="field"><label>Miktar</label><input value={miktar} onChange={e=>setMiktar(e.target.value)} placeholder="0,00" style={{textAlign:'right',fontVariantNumeric:'tabular-nums'}} autoFocus/></div>
+          <div className="field"><label>Birim Fiyat (₺)</label><input value={birimFiyat} onChange={e=>setBirimFiyat(e.target.value)} placeholder="0,00" style={{textAlign:'right',fontVariantNumeric:'tabular-nums'}}/></div>
+        </div>
+
+        <div className="field"><label>Açıklama</label><input value={aciklama} onChange={e=>setAciklama(e.target.value)} placeholder="İsteğe bağlı"/></div>
+
+        {(miktar&&birimFiyat)&&<div style={{padding:'12px 14px',background:'var(--panel-2)',border:'1px solid var(--border)',borderRadius:8,marginTop:8}}>
+          <div style={{fontSize:10.5,color:'var(--text-3)',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:8}}>Otomatik Hesap</div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,fontSize:12.5}}>
+            <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--text-2)'}}>Matrah</span><span className="num" style={{fontWeight:600}}>{fmt(calc.matrah)}</span></div>
+            <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--text-2)'}}>KDV (%{kdv})</span><span className="num" style={{fontWeight:600}}>{fmt(calc.kdv)}</span></div>
+            {calc.tevkifatTutar>0&&<div style={{display:'flex',justifyContent:'space-between',color:'var(--warn)'}}><span>Tevkifat ({tevkifat})</span><span className="num" style={{fontWeight:600}}>−{fmt(calc.tevkifatTutar)}</span></div>}
+            <div style={{display:'flex',justifyContent:'space-between',gridColumn:calc.tevkifatTutar>0?'auto':'span 2',paddingTop:8,marginTop:8,borderTop:'1px solid var(--border)'}}><span style={{color:'var(--text)',fontWeight:600}}>Fatura Toplam</span><span className="num" style={{fontWeight:700,fontSize:14,color:'var(--accent)'}}>{fmt(calc.kdvliToplam)}</span></div>
+          </div>
+        </div>}
+      </div>
+      <div className="m-ft"><button type="button" className="btn" onClick={onClose}>İptal</button><button type="submit" className={tur==='ALIS'?'btn btn-primary':'btn btn-good'}><ICk size={13}/>Kaydet</button></div>
+    </form>
+  </div>;
+}
+
+// ============= HAFTALIK BILANCO PAGE =============
+// ISO hafta hesabı için yardımcı
+function getISOWeeks(yil, ay) {
+  const result = [];
+  const seen = new Set();
+  const lastDay = new Date(yil, ay, 0).getDate();
+  for (let g = 1; g <= lastDay; g++) {
+    const d = new Date(yil, ay-1, g);
+    // ISO hafta numarası
+    const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    tmp.setUTCDate(tmp.getUTCDate() + 4 - (tmp.getUTCDay()||7));
+    const ys = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+    const isoYil = tmp.getUTCFullYear();
+    const isoHafta = Math.ceil((((tmp - ys)/86400000) + 1)/7);
+    const key = `${isoYil}:${isoHafta}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    // Pazartesi-Pazar aralığı
+    const wd = d.getDay()||7;
+    const pazartesi = new Date(d); pazartesi.setDate(d.getDate() - (wd-1));
+    const pazar = new Date(pazartesi); pazar.setDate(pazartesi.getDate()+6);
+    const ayKisa = ['','Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+    const tarihStr = pazartesi.getMonth()===pazar.getMonth()
+      ? `${pazartesi.getDate()}-${pazar.getDate()} ${ayKisa[pazartesi.getMonth()+1]}`
+      : `${pazartesi.getDate()} ${ayKisa[pazartesi.getMonth()+1]} - ${pazar.getDate()} ${ayKisa[pazar.getMonth()+1]}`;
+    result.push({ isoYil, hafta: isoHafta, key, label: `${isoHafta}. Hafta (${tarihStr})` });
+  }
+  return result;
+}
+
+// DESI değerli ürünler — Faz 2/3'te API'dan gelecek
+let DESI_URUNLER = [];
+// TODO Faz 2/3: const r = await fetch('/api/bilanco/desi-urunler'); DESI_URUNLER = await r.json();
+
+function HaftalikBilanco(){
+  const now = new Date();
+  const [yil,setYil] = React.useState(now.getFullYear());
+  const [ay,setAy] = React.useState(now.getMonth()+1);
+  const haftalar = React.useMemo(()=>getISOWeeks(yil,ay),[yil,ay]);
+  const [haftaKey,setHaftaKey] = React.useState(haftalar[0]?.key||'');
+  React.useEffect(()=>{ if(!haftalar.find(h=>h.key===haftaKey)) setHaftaKey(haftalar[0]?.key||''); },[haftalar,haftaKey]);
+
+  const [papelFiyat,setPapelFiyat] = React.useState(25);
+  const [tutkalFiyat,setTutkalFiyat] = React.useState(10);
+
+  // Her ürün için satır state'i: { [kod]: {adet, tutkal, satisFiyat} }
+  const [rowState,setRowState] = React.useState({});
+  React.useEffect(()=>{
+    // DESI_URUNLER değişirse veya seçili hafta değişirse: state'i sıfırla
+    const fresh = {};
+    DESI_URUNLER.forEach(u=>{ fresh[u.kod] = { adet:0, tutkal: tutkalFiyat, satisFiyat: 0 }; });
+    setRowState(fresh);
+    // Faz 2/3: const r = await fetch(`/api/bilanco/${isoYil}/${isoHafta}`); ... seedRowState(r.kalemler)
+  },[haftaKey]);
+
+  const updRow = (kod, k, v) => setRowState(p=>({...p, [kod]: {...(p[kod]||{adet:0,tutkal:tutkalFiyat,satisFiyat:0}), [k]: parseFloat(v)||0}}));
+
+  // Hesaplamalar
+  const calcRow = (u) => {
+    const r = rowState[u.kod] || { adet:0, tutkal:tutkalFiyat, satisFiyat:0 };
+    const desi = parseFloat(u.desi)||0;
+    const papelHam = desi * papelFiyat;
+    const hamMaliyet = papelHam + r.tutkal;
+    const kar = r.satisFiyat>0 ? r.satisFiyat - hamMaliyet : 0;
+    const kazanc = kar * r.adet;
+    const hammadde = desi * r.adet;
+    const ciro = r.satisFiyat * r.adet;
+    return { ...r, desi, papelHam, hamMaliyet, kar, kazanc, hammadde, ciro };
+  };
+
+  const allRows = DESI_URUNLER.map(u=>({u, c: calcRow(u)}));
+  const tHammadde = allRows.reduce((s,x)=>s+x.c.hammadde,0);
+  const tCiro = allRows.reduce((s,x)=>s+x.c.ciro,0);
+  const tKazanc = allRows.reduce((s,x)=>s+x.c.kazanc,0);
+
+  const yillar = [];
+  const cy = now.getFullYear();
+  for(let i=cy-2;i<=cy+1;i++) yillar.push(i);
+  const AY_ISIMLERI = {1:'Ocak',2:'Şubat',3:'Mart',4:'Nisan',5:'Mayıs',6:'Haziran',7:'Temmuz',8:'Ağustos',9:'Eylül',10:'Ekim',11:'Kasım',12:'Aralık'};
+
+  const onSave = ()=>{ window.__toast?.('Bilanço kaydedildi'); };
+  const onPdf = ()=>{ window.open('PDF Dökümleri.html#gg','_blank'); };
+  const onExcel = ()=>{ window.__toast?.('Excel hazırlanıyor…'); };
+
+  return <div>
+    {/* Üst dönem seçici */}
+    <div className="card" style={{marginBottom:14}}>
+      <div className="card-hd"><div><div className="card-ttl">Dönem Seçimi</div><div className="card-sub">Yıl · Ay · Hafta</div></div></div>
+      <div style={{padding:'14px 18px',display:'flex',gap:12,alignItems:'flex-end',flexWrap:'wrap'}}>
+        <div className="field" style={{margin:0,minWidth:120}}><label>Yıl</label><select value={yil} onChange={e=>setYil(parseInt(e.target.value))}>{yillar.map(y=><option key={y} value={y}>{y}</option>)}</select></div>
+        <div className="field" style={{margin:0,minWidth:140}}><label>Ay</label><select value={ay} onChange={e=>setAy(parseInt(e.target.value))}>{Object.keys(AY_ISIMLERI).map(m=><option key={m} value={m}>{AY_ISIMLERI[m]}</option>)}</select></div>
+        <div className="field" style={{margin:0,flex:1,minWidth:240}}><label>Hafta</label><select value={haftaKey} onChange={e=>setHaftaKey(e.target.value)}>{haftalar.map(h=><option key={h.key} value={h.key}>{h.label}</option>)}{haftalar.length===0&&<option value="">— Hafta yok —</option>}</select></div>
+      </div>
+    </div>
+
+    {/* Hammadde fiyat girişi (warn-soft sarı) */}
+    <div className="card" style={{marginBottom:14,background:'var(--warn-soft)',borderColor:'rgba(251,191,36,0.3)'}}>
+      <div style={{padding:'14px 18px',display:'flex',gap:14,alignItems:'flex-end',flexWrap:'wrap'}}>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
+          <div style={{width:34,height:34,borderRadius:8,background:'var(--warn)',color:'#0a0a0b',display:'grid',placeItems:'center'}}><ITag size={16}/></div>
+          <div><div style={{fontSize:13,fontWeight:600,color:'var(--warn)'}}>Hammadde Fiyatları</div><div style={{fontSize:11,color:'var(--text-2)'}}>Bu hafta için geçerli</div></div>
+        </div>
+        <div className="grow"/>
+        <div className="field" style={{margin:0,minWidth:180}}><label>Papel Fiyat (₺/desi)</label><input type="number" step="0.01" value={papelFiyat} onChange={e=>setPapelFiyat(parseFloat(e.target.value)||0)} style={{textAlign:'right',fontVariantNumeric:'tabular-nums'}}/></div>
+        <div className="field" style={{margin:0,minWidth:180}}><label>Tutkal Fiyat (₺/birim)</label><input type="number" step="0.01" value={tutkalFiyat} onChange={e=>setTutkalFiyat(parseFloat(e.target.value)||0)} style={{textAlign:'right',fontVariantNumeric:'tabular-nums'}}/></div>
+      </div>
+    </div>
+
+    {/* Tablo */}
+    <div className="card" style={{marginBottom:14}}>
+      <div className="card-hd"><div className="card-ttl">DESİ Üretim Tablosu</div><span className="muted" style={{fontSize:11.5}}>{DESI_URUNLER.length} ürün</span><div className="grow"/></div>
+      <div className="tbl-wrap">
+        <table className="tbl">
+          <thead><tr>
+            <th>Ürün</th>
+            <th className="r" style={{width:60}}>DESİ</th>
+            <th className="r" style={{width:80}}>Adet</th>
+            <th className="r" style={{width:90}}>Papel Ham</th>
+            <th className="r" style={{width:80}}>Tutkal</th>
+            <th className="r" style={{width:100}}>Ham Maliyet</th>
+            <th className="r" style={{width:100}}>Satış Fiyat</th>
+            <th className="r" style={{width:90}}>Kâr</th>
+            <th className="r" style={{width:100}}>Kazanç</th>
+            <th className="r" style={{width:90}}>Hammadde</th>
+            <th className="r" style={{width:100}}>Ciro</th>
+          </tr></thead>
+          <tbody>
+            {allRows.length===0&&<tr><td colSpan={11} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>DESİ değerli ürün yok. <strong>Stok</strong> sayfasından ürünlere DESİ değeri gir.</td></tr>}
+            {allRows.map(({u,c})=><tr key={u.kod}>
+              <td style={{fontWeight:500}}>{u.ad}</td>
+              <td className="tnum" style={{color:'var(--info)',fontWeight:600}}>{c.desi.toFixed(1)}</td>
+              <td style={{padding:'4px 6px'}}><input type="number" value={c.adet||''} onChange={e=>updRow(u.kod,'adet',e.target.value)} placeholder="0" style={{width:'100%',padding:'5px 8px',border:'1px solid var(--border)',borderRadius:5,background:'var(--panel-2)',textAlign:'right',fontSize:12.5,fontVariantNumeric:'tabular-nums',color:'var(--text)'}}/></td>
+              <td className="tnum" style={{color:'var(--text-2)'}}>{fmt(c.papelHam)}</td>
+              <td style={{padding:'4px 6px'}}><input type="number" value={c.tutkal||''} onChange={e=>updRow(u.kod,'tutkal',e.target.value)} placeholder="0" style={{width:'100%',padding:'5px 8px',border:'1px solid var(--border)',borderRadius:5,background:'var(--panel-2)',textAlign:'right',fontSize:12.5,fontVariantNumeric:'tabular-nums',color:'var(--text)'}}/></td>
+              <td className="tnum">{fmt(c.hamMaliyet)}</td>
+              <td style={{padding:'4px 6px'}}><input type="number" value={c.satisFiyat||''} onChange={e=>updRow(u.kod,'satisFiyat',e.target.value)} placeholder="0" style={{width:'100%',padding:'5px 8px',border:'1px solid var(--border)',borderRadius:5,background:'var(--panel-2)',textAlign:'right',fontSize:12.5,fontVariantNumeric:'tabular-nums',color:'var(--text)'}}/></td>
+              <td className="tnum" style={{color:c.kar>=0?'var(--good)':'var(--bad)',fontWeight:600}}>{fmt(c.kar)}</td>
+              <td className="tnum" style={{color:'var(--info)',fontWeight:600}}>{fmt(c.kazanc)}</td>
+              <td className="tnum" style={{color:'var(--text-2)'}}>{c.hammadde.toFixed(1)}</td>
+              <td className="tnum" style={{fontWeight:600}}>{fmt(c.ciro)}</td>
+            </tr>)}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {/* Toplam özet (info-soft mavi) */}
+    {allRows.length>0&&<div className="card" style={{marginBottom:14,background:'var(--info-soft)',borderColor:'rgba(96,165,250,0.3)'}}>
+      <div style={{padding:'18px 20px',display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:24}}>
+        <div>
+          <div style={{fontSize:10.5,color:'var(--text-3)',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.08em'}}>Toplam Hammadde</div>
+          <div className="num" style={{fontSize:22,fontWeight:700,marginTop:4,color:'var(--info)',letterSpacing:'-0.02em'}}>{tHammadde.toFixed(1)} <span style={{fontSize:13,fontWeight:500}}>desi</span></div>
+          <div style={{fontSize:11,color:'var(--text-3)',marginTop:2}}>{(tHammadde/1000).toFixed(3)} m³</div>
+        </div>
+        <div style={{borderLeft:'1px solid var(--border)',paddingLeft:20}}>
+          <div style={{fontSize:10.5,color:'var(--text-3)',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.08em'}}>Toplam Ciro</div>
+          <div className="num" style={{fontSize:22,fontWeight:700,marginTop:4,color:'var(--good)',letterSpacing:'-0.02em'}}>{fmt(tCiro)}</div>
+        </div>
+        <div style={{borderLeft:'1px solid var(--border)',paddingLeft:20}}>
+          <div style={{fontSize:10.5,color:'var(--text-3)',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.08em'}}>Toplam Kazanç</div>
+          <div className="num" style={{fontSize:22,fontWeight:700,marginTop:4,color:tKazanc>=0?'var(--accent)':'var(--bad)',letterSpacing:'-0.02em'}}>{tKazanc>=0?'+':'−'}{fmt(Math.abs(tKazanc))}</div>
+        </div>
+      </div>
+    </div>}
+
+    <div className="hstack" style={{justifyContent:'flex-end',gap:8}}>
+      <button className="btn" onClick={onPdf}><IPdf size={13}/>PDF</button>
+      <button className="btn" onClick={onExcel}><IXls size={13}/>Excel</button>
+      <button className="btn btn-primary" onClick={onSave}><ICk size={13}/>Kaydet</button>
+    </div>
+  </div>;
+}
+
+// ============= NEW CARI MODAL =============
+function NewCariModal({onClose,onSaved}){
+  const [f,setF]=React.useState({code:'',name:'',taxNo:'',taxOffice:'',city:'',district:'',phone:'',email:'',credit:'',paymentTerm:'30',type:'company'});
+  const upd=(k,v)=>setF(p=>({...p,[k]:v}));
+  const submit=(e)=>{e.preventDefault();onSaved?.('Cari hesap kaydedildi');};
+  return <div className="scrim" onClick={onClose}>
+    <form className="modal" style={{width:620}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
+      <div className="m-hd">
+        <div style={{width:34,height:34,borderRadius:8,background:'var(--accent-soft)',color:'var(--accent)',display:'grid',placeItems:'center'}}><ICari size={15}/></div>
+        <div style={{flex:1}}><div className="m-ttl">Yeni Cari Hesap</div><div className="m-sub">Müşteri/tedarikçi kartı oluştur</div></div>
+        <button type="button" className="btn btn-icon btn-ghost" onClick={onClose}><IX size={14}/></button>
+      </div>
+      <div className="m-bd">
+        <div className="field"><label>Cari Tipi</label><div className="tp">
+          <label><input type="radio" name="ct" checked={f.type==='company'} onChange={()=>upd('type','company')}/><div className="tp-ic"><IApt size={14}/></div><div><div className="tp-ttl">Tüzel Kişi</div><div className="tp-sub">Şirket / kurum</div></div></label>
+          <label><input type="radio" name="ct" checked={f.type==='person'} onChange={()=>upd('type','person')}/><div className="tp-ic"><IBdg size={14}/></div><div><div className="tp-ttl">Gerçek Kişi</div><div className="tp-sub">Bireysel</div></div></label>
+        </div></div>
+        <div className="field-row">
+          <div className="field"><label>Cari Kodu</label><input value={f.code} onChange={e=>upd('code',e.target.value)} placeholder="120.01.XXX" className="mono"/></div>
+          <div className="field"><label>{f.type==='company'?'Vergi No':'TC Kimlik'}</label><input value={f.taxNo} onChange={e=>upd('taxNo',e.target.value)} placeholder={f.type==='company'?'10 hane':'11 hane'} className="mono"/></div>
+        </div>
+        <div className="field"><label>{f.type==='company'?'Şirket Ünvanı':'Ad Soyad'}</label><input value={f.name} onChange={e=>upd('name',e.target.value)} placeholder="Örn: Yıldız İnşaat A.Ş." autoFocus/></div>
+        <div className="field-row">
+          <div className="field"><label>Şehir</label><input value={f.city} onChange={e=>upd('city',e.target.value)} placeholder="İstanbul"/></div>
+          <div className="field"><label>İlçe / Vergi Dairesi</label><input value={f.district} onChange={e=>upd('district',e.target.value)} placeholder="Pendik V.D."/></div>
+        </div>
+        <div className="field-row">
+          <div className="field"><label>Telefon</label><input value={f.phone} onChange={e=>upd('phone',e.target.value)} placeholder="0XXX XXX XX XX" className="mono"/></div>
+          <div className="field"><label>E-posta</label><input type="email" value={f.email} onChange={e=>upd('email',e.target.value)} placeholder="info@firma.com"/></div>
+        </div>
+        <div className="field-row">
+          <div className="field"><label>Kredi Limiti (₺)</label><input value={f.credit} onChange={e=>upd('credit',e.target.value)} placeholder="0,00" style={{textAlign:'right',fontVariantNumeric:'tabular-nums'}}/></div>
+          <div className="field"><label>Vade (gün)</label><select value={f.paymentTerm} onChange={e=>upd('paymentTerm',e.target.value)}>{['7','15','30','45','60','90','120'].map(d=><option key={d} value={d}>{d} gün</option>)}</select></div>
+        </div>
+      </div>
+      <div className="m-ft"><button type="button" className="btn" onClick={onClose}>İptal</button><button type="submit" className="btn btn-primary"><ICk size={13}/>Cari Oluştur</button></div>
+    </form>
+  </div>;
+}
+
+// ============= NEW STOK MODAL =============
+function NewStokModal({onClose,onSaved}){
+  const [f,setF]=React.useState({kod:'',ad:'',kat:STOK_CATEGORIES[0],brm:'kg',baslangic:'',min:'',alis:'',satis:'',kdv:'20'});
+  const upd=(k,v)=>setF(p=>({...p,[k]:v}));
+  const margin=f.alis&&f.satis?(((parseFloat(f.satis)-parseFloat(f.alis))/parseFloat(f.alis))*100):0;
+  const submit=(e)=>{e.preventDefault();onSaved?.('Stok kaydı oluşturuldu');};
+  return <div className="scrim" onClick={onClose}>
+    <form className="modal" style={{width:580}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
+      <div className="m-hd">
+        <div style={{width:34,height:34,borderRadius:8,background:'var(--info-soft)',color:'var(--info)',display:'grid',placeItems:'center'}}><IStok size={15}/></div>
+        <div style={{flex:1}}><div className="m-ttl">Yeni Stok Kartı</div><div className="m-sub">Ürün/malzeme tanımı</div></div>
+        <button type="button" className="btn btn-icon btn-ghost" onClick={onClose}><IX size={14}/></button>
+      </div>
+      <div className="m-bd">
+        <div className="field-row">
+          <div className="field"><label>Stok Kodu</label><input value={f.kod} onChange={e=>upd('kod',e.target.value)} placeholder="STK-XXX" className="mono"/></div>
+          <div className="field"><label>Kategori</label><select value={f.kat} onChange={e=>upd('kat',e.target.value)}>{STOK_CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}</select></div>
+        </div>
+        <div className="field"><label>Ürün Adı</label><input value={f.ad} onChange={e=>upd('ad',e.target.value)} placeholder="Örn: Ø12 Nervürlü İnşaat Demiri" autoFocus/></div>
+        <div className="field-row">
+          <div className="field"><label>Birim</label><select value={f.brm} onChange={e=>upd('brm',e.target.value)}>{['kg','adet','metre','m²','m³','ton','litre','paket'].map(b=><option key={b} value={b}>{b}</option>)}</select></div>
+          <div className="field"><label>KDV Oranı</label><select value={f.kdv} onChange={e=>upd('kdv',e.target.value)}>{['1','10','20'].map(k=><option key={k} value={k}>%{k}</option>)}</select></div>
+        </div>
+        <div className="field-row">
+          <div className="field"><label>Başlangıç Stok</label><input value={f.baslangic} onChange={e=>upd('baslangic',e.target.value)} placeholder="0" style={{textAlign:'right',fontVariantNumeric:'tabular-nums'}}/></div>
+          <div className="field"><label>Min. Stok Seviyesi</label><input value={f.min} onChange={e=>upd('min',e.target.value)} placeholder="0" style={{textAlign:'right',fontVariantNumeric:'tabular-nums'}}/></div>
+        </div>
+        <div className="field-row">
+          <div className="field"><label>Alış Fiyatı (₺)</label><input value={f.alis} onChange={e=>upd('alis',e.target.value)} placeholder="0,00" style={{textAlign:'right',fontVariantNumeric:'tabular-nums'}}/></div>
+          <div className="field"><label>Satış Fiyatı (₺)</label><input value={f.satis} onChange={e=>upd('satis',e.target.value)} placeholder="0,00" style={{textAlign:'right',fontVariantNumeric:'tabular-nums'}}/></div>
+        </div>
+        {f.alis&&f.satis&&<div style={{padding:'10px 13px',background:'var(--accent-soft)',border:'1px solid rgba(163,230,53,0.2)',borderRadius:7,display:'flex',alignItems:'center',gap:8,fontSize:12.5}}><ITrend size={14} style={{color:'var(--accent)'}}/><span style={{color:'var(--text-2)'}}>Kâr Marjı:</span><span className="num" style={{fontWeight:700,color:'var(--accent)'}}>%{margin.toFixed(1)}</span></div>}
+      </div>
+      <div className="m-ft"><button type="button" className="btn" onClick={onClose}>İptal</button><button type="submit" className="btn btn-primary"><ICk size={13}/>Stok Oluştur</button></div>
+    </form>
+  </div>;
+}
+
+// ============= STOK HRK MODAL =============
+function StokHrkModal({onClose,onSaved}){
+  const [tip,setTip]=React.useState('giris');
+  const [stok,setStok]=React.useState(STOK[0]?.kod||'');
+  const [miktar,setMiktar]=React.useState('');
+  const [fiyat,setFiyat]=React.useState('');
+  const [cari,setCari]=React.useState(CUSTOMERS[0]?.id||'');
+  const [date,setDate]=React.useState('2026-04-25');
+  const [note,setNote]=React.useState('');
+  const s=STOK.find(x=>x.kod===stok);
+  React.useEffect(()=>{if(s)setFiyat(String(tip==='giris'?s.alisFiyat:s.satisFiyat));},[stok,tip]);
+  const tutar=miktar&&fiyat?parseFloat(miktar)*parseFloat(fiyat):0;
+  const submit=(e)=>{e.preventDefault();onSaved?.(tip==='giris'?'Stok girişi kaydedildi':'Stok çıkışı kaydedildi');};
+  return <div className="scrim" onClick={onClose}>
+    <form className="modal" style={{width:560}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
+      <div className="m-hd">
+        <div style={{width:34,height:34,borderRadius:8,background:tip==='giris'?'var(--good-soft)':'var(--info-soft)',color:tip==='giris'?'var(--good)':'var(--info)',display:'grid',placeItems:'center'}}>{tip==='giris'?<IDn size={15}/>:<IUp size={15}/>}</div>
+        <div style={{flex:1}}><div className="m-ttl">Stok Hareketi</div><div className="m-sub">{tip==='giris'?'Stok girişi (alış)':'Stok çıkışı (satış)'}</div></div>
+        <button type="button" className="btn btn-icon btn-ghost" onClick={onClose}><IX size={14}/></button>
+      </div>
+      <div className="m-bd">
+        <div className="field"><label>Hareket Tipi</label><div className="tp">
+          <label><input type="radio" name="st" checked={tip==='giris'} onChange={()=>setTip('giris')}/><div className="tp-ic"><IDn size={14}/></div><div><div className="tp-ttl">Giriş</div><div className="tp-sub">Stoğa ekle</div></div></label>
+          <label><input type="radio" name="st" checked={tip==='cikis'} onChange={()=>setTip('cikis')}/><div className="tp-ic"><IUp size={14}/></div><div><div className="tp-ttl">Çıkış</div><div className="tp-sub">Stoktan düş</div></div></label>
+        </div></div>
+        <div className="field"><label>Ürün</label><select value={stok} onChange={e=>setStok(e.target.value)}>{STOK.map(x=><option key={x.kod} value={x.kod}>{x.kod} · {x.ad}</option>)}</select>
+          {s&&<div style={{marginTop:9,padding:'9px 13px',background:'var(--panel-2)',borderRadius:7,display:'flex',alignItems:'center',gap:10,fontSize:12,border:'1px solid var(--border)'}}><span className="muted">Mevcut Stok:</span><span className="num" style={{fontWeight:600}}>{s.stok.toLocaleString('tr-TR')} {s.brm}</span><span className="grow"/><span className="muted">Min: <span className="num">{s.min.toLocaleString('tr-TR')}</span></span></div>}
+        </div>
+        <div className="field-row">
+          <div className="field"><label>Miktar ({s?.brm})</label><input value={miktar} onChange={e=>setMiktar(e.target.value)} placeholder="0" style={{textAlign:'right',fontSize:16,fontWeight:600,fontVariantNumeric:'tabular-nums'}} autoFocus/></div>
+          <div className="field"><label>Birim Fiyat (₺)</label><input value={fiyat} onChange={e=>setFiyat(e.target.value)} placeholder="0,00" style={{textAlign:'right',fontVariantNumeric:'tabular-nums'}}/></div>
+        </div>
+        <div className="field"><label>{tip==='giris'?'Tedarikçi':'Müşteri'}</label><select value={cari} onChange={e=>setCari(e.target.value)}>{CUSTOMERS.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+        <div className="field-row"><div className="field"><label>Tarih</label><input type="date" value={date} onChange={e=>setDate(e.target.value)}/></div><div className="field"><label>Belge No</label><input placeholder="Otomatik üretilecek" disabled className="mono"/></div></div>
+        <div className="field"><label>Not</label><input value={note} onChange={e=>setNote(e.target.value)} placeholder="İsteğe bağlı"/></div>
+        {tutar>0&&<div style={{padding:'12px 16px',background:'var(--accent-soft)',border:'1px solid rgba(163,230,53,0.25)',borderRadius:8,display:'flex',alignItems:'center',gap:10,fontSize:13}}><span style={{color:'var(--text-2)',fontWeight:500}}>Toplam Tutar</span><div className="grow"/><span className="num" style={{fontSize:18,fontWeight:700,color:'var(--accent)'}}>{fmt(tutar)}</span></div>}
+      </div>
+      <div className="m-ft"><button type="button" className="btn" onClick={onClose}>İptal</button><button type="submit" className={tip==='giris'?'btn btn-good':'btn btn-primary'}><ICk size={13}/>Kaydet</button></div>
+    </form>
+  </div>;
+}
+
+// ============= NEW GG MODAL =============
+function NewGGModal({onClose,onSaved}){
+  const [tip,setTip]=React.useState('gider');
+  const [kat,setKat]=React.useState('Maaş');
+  const [tutar,setTutar]=React.useState('');
+  const [date,setDate]=React.useState('2026-04-25');
+  const [odeme,setOdeme]=React.useState('Banka');
+  const [aciklama,setAciklama]=React.useState('');
+  React.useEffect(()=>{setKat(GG_KATEGORI[tip][0]);},[tip]);
+  const submit=(e)=>{e.preventDefault();onSaved?.(tip==='gelir'?'Gelir kaydedildi':'Gider kaydedildi');};
+  return <div className="scrim" onClick={onClose}>
+    <form className="modal" style={{width:540}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
+      <div className="m-hd">
+        <div style={{width:34,height:34,borderRadius:8,background:tip==='gelir'?'var(--good-soft)':'var(--bad-soft)',color:tip==='gelir'?'var(--good)':'var(--bad)',display:'grid',placeItems:'center'}}>{tip==='gelir'?<IUp size={15}/>:<IDn size={15}/>}</div>
+        <div style={{flex:1}}><div className="m-ttl">Yeni {tip==='gelir'?'Gelir':'Gider'}</div><div className="m-sub">İşletme gelir/gider kaydı</div></div>
+        <button type="button" className="btn btn-icon btn-ghost" onClick={onClose}><IX size={14}/></button>
+      </div>
+      <div className="m-bd">
+        <div className="field"><label>Kayıt Tipi</label><div className="tp">
+          <label><input type="radio" name="gt" checked={tip==='gelir'} onChange={()=>setTip('gelir')}/><div className="tp-ic"><IUp size={14}/></div><div><div className="tp-ttl">Gelir</div><div className="tp-sub">Para girişi</div></div></label>
+          <label><input type="radio" name="gt" checked={tip==='gider'} onChange={()=>setTip('gider')}/><div className="tp-ic"><IDn size={14}/></div><div><div className="tp-ttl">Gider</div><div className="tp-sub">Para çıkışı</div></div></label>
+        </div></div>
+        <div className="field"><label>Kategori</label><select value={kat} onChange={e=>setKat(e.target.value)}>{GG_KATEGORI[tip].map(k=><option key={k} value={k}>{k}</option>)}</select></div>
+        <div className="field-row">
+          <div className="field"><label>Tutar (₺)</label><input value={tutar} onChange={e=>setTutar(e.target.value)} placeholder="0,00" style={{fontSize:18,fontWeight:600,textAlign:'right',fontVariantNumeric:'tabular-nums',letterSpacing:'-0.02em'}} autoFocus/></div>
+          <div className="field"><label>Tarih</label><input type="date" value={date} onChange={e=>setDate(e.target.value)}/></div>
+        </div>
+        <div className="field"><label>Ödeme Şekli</label><div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6}}>{['Nakit','Banka','Kredi Kartı','Çek'].map(o=><button key={o} type="button" className={`flt ${odeme===o?'on':''}`} onClick={()=>setOdeme(o)} style={{justifyContent:'center'}}>{o}</button>)}</div></div>
+        <div className="field"><label>Açıklama</label><textarea rows="2" value={aciklama} onChange={e=>setAciklama(e.target.value)} placeholder={`Örn: ${tip==='gider'?'Nisan elektrik faturası':'Faiz geliri'}`}/></div>
+      </div>
+      <div className="m-ft"><button type="button" className="btn" onClick={onClose}>İptal</button><button type="submit" className={tip==='gelir'?'btn btn-good':'btn btn-bad'}><ICk size={13}/>Kaydet</button></div>
+    </form>
+  </div>;
+}
+
+// ============= REPORT =============
+function Report(){
+  const byCity={};CUSTOMERS.forEach(c=>{byCity[c.city]=(byCity[c.city]||0)+Math.max(0,c.balance);});
+  const cities=Object.entries(byCity).sort((a,b)=>b[1]-a[1]);const maxC=cities[0]?.[1]||1;
+  const tt={};TX.forEach(t=>{tt[t.type]=(tt[t.type]||0)+(t.borc||t.alacak);});const arr=Object.entries(tt).map(([k,v])=>({k,v}));const mx=Math.max(...arr.map(t=>t.v));
+  const aging=[{l:'0–30 gün',v:412500,c:'var(--accent)'},{l:'31–60 gün',v:284300,c:'var(--info)'},{l:'61–90 gün',v:128400,c:'var(--warn)'},{l:'90+ gün',v:62800,c:'var(--bad)'}];
+  const totA=aging.reduce((s,a)=>s+a.v,0);
+  return <div>
+    <div className="card" style={{marginBottom:14,padding:'12px 16px'}}>
+      <div className="hstack" style={{gap:10,flexWrap:'wrap'}}>
+        <div className="seg">{[['week','Hafta'],['month','Ay'],['quarter','Çeyrek'],['year','2026']].map(([k,l])=>(<button key={k} className={k==='month'?'on':''}>{l}</button>))}</div>
+        <div className="flt"><ICal size={13}/><span className="mono" style={{fontSize:11}}>01.04.2026 — 30.04.2026</span></div>
+        <div className="grow"/>
+        <button className="btn btn-sm"><IPdf size={13}/>PDF</button><button className="btn btn-sm"><IXls size={13}/>Excel</button>
+      </div>
+    </div>
+    <div className="kpi-grid">
+      <div className="kpi"><div className="kpi-icon-wrap"><ICari size={14}/></div><div className="kpi-label">Cari Sayısı</div><div className="kpi-val num">{CUSTOMERS.length}</div><div className="kpi-delta">+2 bu ay</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap"><IDoc size={14}/></div><div className="kpi-label">Dönem Faturası</div><div className="kpi-val num">{fmtShort(TX.filter(t=>t.type==='fatura').reduce((s,t)=>s+t.borc,0))}<span className="suf">₺</span></div><div className="kpi-delta up"><span className="kpi-pill"><IUp size={10}/>%12</span></div></div>
+      <div className="kpi"><div className="kpi-icon-wrap"><IRcpt size={14}/></div><div className="kpi-label">Tahsil Edilen</div><div className="kpi-val num">{fmtShort(TX.filter(t=>t.type==='tahsilat').reduce((s,t)=>s+t.alacak,0))}<span className="suf">₺</span></div><div className="kpi-delta up"><span className="kpi-pill"><IUp size={10}/>%8</span></div></div>
+      <div className="kpi"><div className="kpi-icon-wrap"><ITrend size={14}/></div><div className="kpi-label">Tahsilat Oranı</div><div className="kpi-val num">68.4<span className="suf">%</span></div><div className="kpi-delta">Hedef: %75</div></div>
+    </div>
+    <div className="rp-grid">
+      <div className="card">
+        <div className="card-hd"><div><div className="card-ttl">Yaşlandırma Analizi</div><div className="card-sub">Açık alacaklar · vade tarihine göre</div></div></div>
+        <div style={{padding:'18px 20px'}}>
+          <div style={{display:'flex',height:14,borderRadius:7,overflow:'hidden',marginBottom:14}}>{aging.map(a=><div key={a.l} style={{width:`${(a.v/totA)*100}%`,background:a.c}}/>)}</div>
+          <div style={{display:'flex',flexDirection:'column',gap:9}}>{aging.map(a=><div key={a.l} className="hstack"><span style={{width:9,height:9,borderRadius:3,background:a.c}}/><span style={{flex:1,fontSize:12.5}}>{a.l}</span><span className="num muted" style={{fontSize:11.5,width:42,textAlign:'right'}}>%{((a.v/totA)*100).toFixed(0)}</span><span className="num" style={{fontWeight:600,width:130,textAlign:'right'}}>{fmt(a.v)}</span></div>)}</div>
+        </div>
+      </div>
+      <div className="card">
+        <div className="card-hd"><div><div className="card-ttl">Şehir Bazlı Alacak</div><div className="card-sub">Açık alacak dağılımı</div></div></div>
+        <div style={{padding:'8px 0'}}>{cities.map(([city,val])=><div key={city} style={{padding:'10px 20px',display:'flex',alignItems:'center',gap:10,borderBottom:'1px solid var(--border)'}}><span style={{flex:1,fontSize:12.5,fontWeight:500}}>{city}</span><div style={{width:100,height:4,background:'var(--bg-2)',borderRadius:999,overflow:'hidden'}}><div style={{height:'100%',background:'var(--accent)',width:`${(val/maxC)*100}%`}}/></div><span className="num" style={{width:100,textAlign:'right',fontWeight:600,fontSize:12}}>{fmt(val)}</span></div>)}</div>
+      </div>
+      <div className="card" style={{gridColumn:'span 2'}}>
+        <div className="card-hd"><div><div className="card-ttl">Belge Tipi Dağılımı</div><div className="card-sub">Tüm hareketler · Nisan 2026</div></div></div>
+        <div className="tbl-wrap"><table className="tbl">
+          <thead><tr><th>Belge Tipi</th><th>Adet</th><th>Toplam</th><th>Ortalama</th><th style={{width:'40%'}}>Oran</th></tr></thead>
+          <tbody>{arr.map(({k,v})=>{const cnt=TX.filter(t=>t.type===k).length;const total=arr.reduce((s,t)=>s+t.v,0);return <tr key={k}>
+            <td><DocChip type={k}/></td><td className="num">{cnt}</td><td className="tnum" style={{fontWeight:600}}>{fmt(v)}</td><td className="tnum">{fmt(v/cnt)}</td>
+            <td><div className="hstack" style={{gap:8}}><div style={{flex:1,height:5,background:'var(--bg-2)',borderRadius:999,overflow:'hidden'}}><div style={{height:'100%',background:'var(--accent)',width:`${(v/mx)*100}%`}}/></div><span className="num muted" style={{fontSize:11,width:42,textAlign:'right'}}>%{((v/total)*100).toFixed(0)}</span></div></td>
+          </tr>;})}</tbody>
+        </table></div>
+      </div>
+    </div>
+  </div>;
+}
+
+// ============= MODAL =============
+function TxModal({kind,customerId,onClose,onSaved}){
+  const [type,setType]=React.useState(kind==='payment'?'payment':'collection');
+  const [cust,setCust]=React.useState(customerId||CUSTOMERS[0]?.id||'');
+  const [amount,setAmount]=React.useState('');
+  const [method,setMethod]=React.useState('havale');
+  const [date,setDate]=React.useState('2026-04-24');
+  const [note,setNote]=React.useState('');
+  const c=CUSTOMERS.find(x=>x.id===cust);
+  const isC=type==='collection';
+  const submit=(e)=>{e.preventDefault();onSaved?.(isC?'Tahsilat kaydedildi':'Ödeme kaydedildi');};
+  return <div className="scrim" onClick={onClose}>
+    <form className="modal" onClick={e=>e.stopPropagation()} onSubmit={submit}>
+      <div className="m-hd">
+        <div style={{width:34,height:34,borderRadius:8,background:isC?'var(--accent-soft)':'var(--bad-soft)',color:isC?'var(--accent)':'var(--bad)',display:'grid',placeItems:'center'}}>{isC?<IUp size={15}/>:<IDn size={15}/>}</div>
+        <div style={{flex:1}}><div className="m-ttl">Yeni {isC?'Tahsilat':'Ödeme'}</div><div className="m-sub">Cari hesaba kayıt oluştur</div></div>
+        <button type="button" className="btn btn-icon btn-ghost" onClick={onClose}><IX size={14}/></button>
+      </div>
+      <div className="m-bd">
+        <div className="field"><label>İşlem Tipi</label><div className="tp">
+          <label><input type="radio" name="t" value="collection" checked={type==='collection'} onChange={()=>setType('collection')}/><div className="tp-ic"><IUp size={14}/></div><div><div className="tp-ttl">Tahsilat</div><div className="tp-sub">Cariden para giriş</div></div></label>
+          <label><input type="radio" name="t" value="payment" checked={type==='payment'} onChange={()=>setType('payment')}/><div className="tp-ic"><IDn size={14}/></div><div><div className="tp-ttl">Ödeme</div><div className="tp-sub">Cariye para çıkış</div></div></label>
+        </div></div>
+        <div className="field"><label>Cari Hesap</label><select value={cust} onChange={e=>setCust(e.target.value)}>{CUSTOMERS.map(x=><option key={x.id} value={x.id}>{x.name} · {x.code}</option>)}</select>
+          {c&&<div style={{marginTop:9,padding:'9px 13px',background:'var(--panel-2)',borderRadius:7,display:'flex',alignItems:'center',gap:10,fontSize:12,border:'1px solid var(--border)'}}><span className="muted">Bakiye:</span><Bal v={c.balance}/><span className="grow"/><span className="muted">Limit: <span className="num">{fmt(c.credit)}</span></span></div>}
+        </div>
+        <div className="field-row"><div className="field"><label>Tutar (₺)</label><input type="text" placeholder="0,00" value={amount} onChange={e=>setAmount(e.target.value)} style={{fontSize:18,fontWeight:600,textAlign:'right',fontVariantNumeric:'tabular-nums',letterSpacing:'-0.02em'}} autoFocus/></div><div className="field"><label>Tarih</label><input type="date" value={date} onChange={e=>setDate(e.target.value)}/></div></div>
+        <div className="field"><label>Tahsilat Şekli</label><div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6}}>{[{k:'nakit',l:'Nakit'},{k:'havale',l:'Havale'},{k:'kredi',l:'Kart'},{k:'cek',l:'Çek'}].map(m=><button key={m.k} type="button" className={`flt ${method===m.k?'on':''}`} onClick={()=>setMethod(m.k)} style={{justifyContent:'center'}}>{m.l}</button>)}</div></div>
+        <div className="field"><label>Açıklama</label><textarea rows="2" value={note} onChange={e=>setNote(e.target.value)} placeholder="Örn: Nisan faturası kapatıldı"/></div>
+      </div>
+      <div className="m-ft"><button type="button" className="btn" onClick={onClose}>İptal</button><button type="submit" className={isC?'btn btn-good':'btn btn-bad'}><ICk size={13}/>Kaydet</button></div>
+    </form>
+  </div>;
+}
+
+// ============= APP =============
+function App(){
+  const [page,setPage]=React.useState(()=>localStorage.getItem('page_v3')||'dashboard');
+  const [focus,setFocus]=React.useState(null);
+  const [modal,setModal]=React.useState(null);
+  const [toast,setToast]=React.useState(null);
+  const [tweaks,setTweaks]=React.useState(false);
+  const [theme,setTheme]=React.useState(()=>{try{return JSON.parse(document.getElementById('tweak-defaults').textContent.match(/\{.*\}/s)[0]).theme||'dark';}catch{return 'dark';}});
+  React.useEffect(()=>{localStorage.setItem('page_v3',page);},[page]);
+  React.useEffect(()=>{document.documentElement.setAttribute('data-theme',theme);},[theme]);
+  window.__nav=setPage;
+  React.useEffect(()=>{
+    const on=(e)=>{const d=e.data||{};if(d.type==='__activate_edit_mode')setTweaks(true);if(d.type==='__deactivate_edit_mode')setTweaks(false);};
+    window.addEventListener('message',on);
+    window.parent.postMessage({type:'__edit_mode_available'},'*');
+    return()=>window.removeEventListener('message',on);
+  },[]);
+  const setKey=(k,v)=>{if(k==='theme')setTheme(v);window.parent.postMessage({type:'__edit_mode_set_keys',edits:{[k]:v}},'*');};
+  const nav=(p)=>{
+    if(p==='pdfdokum'){window.open('PDF Dökümleri.html','_blank');return;}
+    setPage(p);setFocus(null);
+  };
+  const openCustomer=(id)=>{setFocus(id);setPage('cari');};
+  const openEkstre=(id)=>{setFocus(id);setPage('ekstre');};
+  const openModal=(k,id)=>setModal({kind:k,customerId:id});
+  // Toast'a global erişim (HaftalikBilanco gibi sayfalardan)
+  window.__toast = (m) => setToast(m);
+
+  const meta={dashboard:['Bilgi Ekranı'],cariler:['Cariler'],cari:['Cariler','Cari Kart Detayı'],ekstre:['Cariler','Hesap Ekstresi'],hareketler:['Stok Hareketler'],stok:['Stok'],gelirgider:['Gelir / Gider'],bilanco:['Üretim','Haftalık Bilanço'],rapor:['Finans Analiz','Raporlar']};
+  const crumbs=meta[page]||[page];
+
+  const render=()=>{
+    if(page==='dashboard')return <Dashboard onOpenCustomer={openCustomer}/>;
+    if(page==='ekstre')return <Ekstre initialCustomerId={focus} onOpenCustomer={openCustomer} onOpenModal={openModal}/>;
+    if(page==='cariler')return <CariList onOpen={openCustomer} onNew={()=>setModal({kind:'newcari'})}/>;
+    if(page==='cari')return <CustomerDetail customerId={focus||CUSTOMERS[0]?.id} onOpenEkstre={openEkstre} onBack={()=>nav('cariler')} onOpenModal={openModal}/>;
+    if(page==='hareketler')return <Hareketler onNew={()=>setModal({kind:'hareket'})}/>;
+    if(page==='stok')return <StokPage onNew={()=>setModal({kind:'newstok'})} onNewHrk={()=>setModal({kind:'stokhrk'})}/>;
+    if(page==='gelirgider')return <GelirGider onNew={()=>setModal({kind:'newgg'})}/>;
+    if(page==='bilanco')return <HaftalikBilanco/>;
+    if(page==='rapor')return <Report/>;
+    return <div className="card" style={{padding:'72px 36px',textAlign:'center'}}>
+      <div style={{fontSize:22,fontWeight:600,letterSpacing:'-0.02em',marginBottom:6}}>{crumbs[crumbs.length-1]}</div>
+      <div style={{color:'var(--text-3)',fontSize:13,maxWidth:440,margin:'0 auto'}}>Bu modül henüz tasarıma eklenmedi. Repo'daki <span className="mono" style={{color:'var(--text-2)'}}>pages/{page}.py</span> tabanlı eklenebilir.</div>
+      <div style={{marginTop:20}}><button className="btn" onClick={()=>nav('dashboard')}>← Bilgi Ekranı</button></div>
+    </div>;
+  };
+
+  return <div id="root" data-screen-label={page}>
+    <Sidebar page={page} onNav={nav}/>
+    <div className="main">
+      <Topbar crumbs={crumbs}/>
+      <div className="content"><div className="wrap">{render()}</div></div>
+    </div>
+    {modal&&modal.kind==='collection'&&<TxModal kind={modal.kind} customerId={modal.customerId} onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);}}/>}
+    {modal&&modal.kind==='payment'&&<TxModal kind={modal.kind} customerId={modal.customerId} onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);}}/>}
+    {modal&&modal.kind==='newcari'&&<NewCariModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);}}/>}
+    {modal&&modal.kind==='newstok'&&<NewStokModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);}}/>}
+    {modal&&modal.kind==='stokhrk'&&<StokHrkModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);}}/>}
+    {modal&&modal.kind==='newgg'&&<NewGGModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);}}/>}
+    {modal&&modal.kind==='hareket'&&<HareketModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);}}/>}
+    {toast&&<Toast m={toast} onDone={()=>setToast(null)}/>}
+    {tweaks&&<div className="tw">
+      <div><div className="tw-ttl">Tweaks</div><div style={{fontSize:12.5,fontWeight:500,marginTop:2}}>Tema</div></div>
+      <div className="hstack" style={{gap:7}}><ISun size={13} style={{color:theme==='light'?'var(--text)':'var(--text-3)'}}/><button className={`tg ${theme==='dark'?'on':''}`} onClick={()=>setKey('theme',theme==='dark'?'light':'dark')}/><IMoon size={13} style={{color:theme==='dark'?'var(--text)':'var(--text-3)'}}/></div>
+    </div>}
+  </div>;
+}
+ReactDOM.createRoot(document.getElementById('app')).render(<App/>);
+</script>
+</body>
+</html>
