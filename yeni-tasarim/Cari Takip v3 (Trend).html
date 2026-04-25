@@ -1121,6 +1121,7 @@ function HareketModal({onClose,onSaved}){
   const [miktar,setMiktar]=React.useState('');
   const [birimFiyat,setBirimFiyat]=React.useState('');
   const [aciklama,setAciklama]=React.useState('');
+  const [subModal,setSubModal]=React.useState(null); // 'newcari' | 'newstok' | null
 
   const calc = hesaplaHareket(miktar, birimFiyat, kdv, tevkifat);
   const firma = CUSTOMERS.find(c=>c.id===firmaId);
@@ -1152,10 +1153,13 @@ function HareketModal({onClose,onSaved}){
         </div>
 
         <div className="field"><label>Firma</label>
-          <select value={firmaId} onChange={e=>setFirmaId(e.target.value)}>
-            {CUSTOMERS.length===0&&<option value="">— Henüz cari yok —</option>}
-            {CUSTOMERS.map(c=><option key={c.id} value={c.id}>{c.code} · {c.name}</option>)}
-          </select>
+          <div style={{display:'flex',gap:6}}>
+            <select value={firmaId} onChange={e=>setFirmaId(e.target.value)} style={{flex:1}}>
+              {CUSTOMERS.length===0&&<option value="">— Henüz cari yok —</option>}
+              {CUSTOMERS.map(c=><option key={c.id} value={c.id}>{c.code} · {c.name}</option>)}
+            </select>
+            <button type="button" className="btn btn-icon" onClick={()=>setSubModal('newcari')} title="Yeni Firma Ekle"><IPlus size={14}/></button>
+          </div>
         </div>
 
         {limitAsim&&<div style={{padding:'10px 13px',background:'var(--bad-soft)',border:'1px solid rgba(248,113,113,0.3)',borderLeft:'3px solid var(--bad)',borderRadius:7,display:'flex',alignItems:'center',gap:10,fontSize:12,marginBottom:14}}>
@@ -1164,10 +1168,13 @@ function HareketModal({onClose,onSaved}){
         </div>}
 
         <div className="field"><label>Ürün</label>
-          <select value={urunKod} onChange={e=>setUrunKod(e.target.value)}>
-            {STOK.length===0&&<option value="">— Henüz ürün yok —</option>}
-            {STOK.map(s=><option key={s.kod} value={s.kod}>{s.kod} · {s.ad}</option>)}
-          </select>
+          <div style={{display:'flex',gap:6}}>
+            <select value={urunKod} onChange={e=>setUrunKod(e.target.value)} style={{flex:1}}>
+              {STOK.length===0&&<option value="">— Henüz ürün yok —</option>}
+              {STOK.map(s=><option key={s.kod} value={s.kod}>{s.kod} · {s.ad}</option>)}
+            </select>
+            <button type="button" className="btn btn-icon" onClick={()=>setSubModal('newstok')} title="Yeni Ürün Ekle"><IPlus size={14}/></button>
+          </div>
         </div>
 
         <div className="field-row">
@@ -1189,6 +1196,9 @@ function HareketModal({onClose,onSaved}){
       </div>
       <div className="m-ft"><button type="button" className="btn" onClick={onClose}>İptal</button><button type="submit" className={tur==='ALIS'?'btn btn-primary':'btn btn-good'}><ICk size={13}/>Kaydet</button></div>
     </form>
+    {/* Modal-in-modal: Yeni Firma / Yeni Ürün ekleme */}
+    {subModal==='newcari'&&<NewCariModal onClose={()=>setSubModal(null)} onSaved={(m)=>{setSubModal(null);window.__toast?.(m);}}/>}
+    {subModal==='newstok'&&<NewStokModal onClose={()=>setSubModal(null)} onSaved={(m)=>{setSubModal(null);window.__toast?.(m);}}/>}
   </div>;
 }
 
@@ -1603,6 +1613,121 @@ function TxModal({kind,customerId,onClose,onSaved}){
   </div>;
 }
 
+// ============= AYARLAR DATA =============
+let SETTINGS = {
+  firma_adi:'', vkn_tckn:'', vergi_dairesi:'', adres:'', telefon:'', email:'',
+  nace:'', is_alani:'', logo_path:'', ucret_periyodu:'AYLIK', uretim_takibi:false
+};
+let USERS = [];
+let BACKUPS = [];
+// TODO Faz 2/3:
+//   const r1 = await fetch('/api/settings'); SETTINGS = await r1.json();
+//   const r2 = await fetch('/api/users'); USERS = await r2.json();
+//   const r3 = await fetch('/api/backups'); BACKUPS = await r3.json();
+
+// ============= AYARLAR PAGE =============
+function Ayarlar(){
+  const [s,setS]=React.useState(SETTINGS);
+  const upd=(k,v)=>setS(p=>({...p,[k]:v}));
+  const onSave=()=>{ window.__toast?.('Ayarlar kaydedildi'); /* TODO Faz 2: POST /api/settings */ };
+  const onBackup=()=>{ window.__toast?.('Yedek alma başlatıldı'); /* TODO Faz 2: POST /api/backups */ };
+  const onAddUser=()=>{ window.__toast?.('Yeni kullanıcı modal — Faz 2/3'); };
+
+  return <div>
+    {/* 1. Firma Bilgileri */}
+    <div className="card" style={{marginBottom:14}}>
+      <div className="card-hd"><div><div className="card-ttl">Firma Bilgileri</div><div className="card-sub">PDF üst/alt bilgi · Logo</div></div></div>
+      <div style={{padding:'18px 20px'}}>
+        <div className="field"><label>Firma Adı</label><input value={s.firma_adi} onChange={e=>upd('firma_adi',e.target.value)} placeholder="Şenol Çelik San. Tic. Ltd. Şti."/></div>
+        <div className="field-row">
+          <div className="field"><label>VKN / TCKN</label><input value={s.vkn_tckn} onChange={e=>upd('vkn_tckn',e.target.value)} placeholder="0123456789" className="mono"/></div>
+          <div className="field"><label>Vergi Dairesi</label><input value={s.vergi_dairesi} onChange={e=>upd('vergi_dairesi',e.target.value)} placeholder="Pendik V.D."/></div>
+        </div>
+        <div className="field"><label>Adres</label><textarea rows="2" value={s.adres} onChange={e=>upd('adres',e.target.value)} placeholder="Organize Sanayi Bölgesi…"/></div>
+        <div className="field-row">
+          <div className="field"><label>Telefon</label><input value={s.telefon} onChange={e=>upd('telefon',e.target.value)} placeholder="0216 412 88 90"/></div>
+          <div className="field"><label>E-posta</label><input value={s.email} onChange={e=>upd('email',e.target.value)} placeholder="info@firmaadi.com.tr"/></div>
+        </div>
+        <div className="field-row">
+          <div className="field"><label>NACE Kodu</label><input value={s.nace} onChange={e=>upd('nace',e.target.value)} placeholder="46.72.01" className="mono"/></div>
+          <div className="field"><label>İş Alanı</label><input value={s.is_alani} onChange={e=>upd('is_alani',e.target.value)} placeholder="İnşaat demiri toptan satışı"/></div>
+        </div>
+        <div className="field" style={{marginBottom:0}}><label>Logo Dosya Yolu</label><input value={s.logo_path} onChange={e=>upd('logo_path',e.target.value)} placeholder="assets/logo/firma_logo.png" className="mono"/></div>
+      </div>
+    </div>
+
+    {/* 2. Personel Ücret Periyodu */}
+    <div className="card" style={{marginBottom:14}}>
+      <div className="card-hd"><div><div className="card-ttl">Personel Ücret Periyodu</div><div className="card-sub">Maaş hesaplama bazı</div></div></div>
+      <div style={{padding:'14px 20px 18px'}}>
+        <div className="tp">
+          <label><input type="radio" name="up" checked={s.ucret_periyodu==='AYLIK'} onChange={()=>upd('ucret_periyodu','AYLIK')}/><div className="tp-ic"><ICal size={14}/></div><div><div className="tp-ttl">Aylık</div><div className="tp-sub">Ay bazında maaş</div></div></label>
+          <label><input type="radio" name="up" checked={s.ucret_periyodu==='HAFTALIK'} onChange={()=>upd('ucret_periyodu','HAFTALIK')}/><div className="tp-ic"><ICal size={14}/></div><div><div className="tp-ttl">Haftalık</div><div className="tp-sub">Hafta bazında maaş</div></div></label>
+        </div>
+      </div>
+    </div>
+
+    {/* 3. Üretim Takibi */}
+    <div className="card" style={{marginBottom:14}}>
+      <div className="card-hd"><div><div className="card-ttl">Üretim Takibi</div><div className="card-sub">DESİ hesaplama · Haftalık Bilanço · Hammadde m³ takibi</div></div></div>
+      <div style={{padding:'16px 20px',display:'flex',alignItems:'center',gap:14}}>
+        <button className={`tg ${s.uretim_takibi?'on':''}`} onClick={()=>upd('uretim_takibi',!s.uretim_takibi)} style={{flexShrink:0}}/>
+        <div style={{flex:1}}>
+          <div style={{fontSize:13,fontWeight:500}}>{s.uretim_takibi?'Aktif':'Pasif'}</div>
+          <div style={{fontSize:11.5,color:'var(--text-3)',marginTop:2}}>{s.uretim_takibi?'Haftalık Bilanço sayfası kullanılabilir, ürünlere DESİ değeri girilebilir':'Üretim takibi kapalı — Haftalık Bilanço görünmez'}</div>
+        </div>
+      </div>
+    </div>
+
+    {/* 4. Kullanıcı Yönetimi */}
+    <div className="card" style={{marginBottom:14}}>
+      <div className="card-hd"><div><div className="card-ttl">Kullanıcı Yönetimi</div><div className="card-sub">Sistem kullanıcıları · Rol & yetki</div></div><div className="grow"/><button className="btn btn-sm btn-primary" onClick={onAddUser}><IPlus size={13}/>Yeni Kullanıcı</button></div>
+      <div className="tbl-wrap"><table className="tbl">
+        <thead><tr><th>Kullanıcı</th><th>Ad Soyad</th><th>Rol</th><th>Durum</th><th style={{width:1}}>İşlemler</th></tr></thead>
+        <tbody>
+          {USERS.length===0&&<tr><td colSpan={5} style={{padding:36,textAlign:'center',color:'var(--text-3)'}}>Henüz kullanıcı yok.</td></tr>}
+          {USERS.map(u=><tr key={u.id}>
+            <td className="mono">{u.username}</td>
+            <td style={{fontWeight:500}}>{u.full_name}</td>
+            <td><Chip k="info" dot={false}>{u.role}</Chip></td>
+            <td><Chip k={u.is_active?'good':'mute'}>{u.is_active?'Aktif':'Pasif'}</Chip></td>
+            <td><div className="hstack" style={{gap:4}}>
+              <button className="btn btn-icon btn-ghost btn-sm" title="Düzenle"><ISet size={13}/></button>
+              <button className="btn btn-icon btn-ghost btn-sm" title="Şifre"><ITag size={13}/></button>
+              <button className="btn btn-icon btn-ghost btn-sm" title="Sil" style={{color:'var(--bad)'}}><IX size={13}/></button>
+            </div></td>
+          </tr>)}
+        </tbody>
+      </table></div>
+    </div>
+
+    {/* 5. Veritabanı Yedekleme */}
+    <div className="card" style={{marginBottom:14}}>
+      <div className="card-hd">
+        <div style={{width:30,height:30,borderRadius:7,background:'var(--info-soft)',color:'var(--info)',display:'grid',placeItems:'center'}}><IRcpt size={15}/></div>
+        <div><div className="card-ttl">Veritabanı Yedekleme</div><div className="card-sub">Otomatik ve manuel yedek arşivi</div></div>
+        <div className="grow"/>
+        <button className="btn btn-sm btn-primary" onClick={onBackup}><IPlus size={13}/>Yedek Al</button>
+      </div>
+      <div className="tbl-wrap"><table className="tbl">
+        <thead><tr><th>Dosya</th><th className="r">Boyut (MB)</th><th>Tarih</th></tr></thead>
+        <tbody>
+          {BACKUPS.length===0&&<tr><td colSpan={3} style={{padding:36,textAlign:'center',color:'var(--text-3)'}}>Henüz yedek alınmamış.</td></tr>}
+          {BACKUPS.map(b=><tr key={b.filename}>
+            <td className="mono">{b.filename}</td>
+            <td className="tnum">{(b.size_mb||0).toFixed(2)}</td>
+            <td className="tdate">{b.created}</td>
+          </tr>)}
+        </tbody>
+      </table></div>
+    </div>
+
+    <div className="hstack" style={{justifyContent:'flex-end',gap:8}}>
+      <button className="btn btn-primary" onClick={onSave}><ICk size={13}/>Ayarları Kaydet</button>
+    </div>
+  </div>;
+}
+
 // ============= APP =============
 function App(){
   const [page,setPage]=React.useState(()=>localStorage.getItem('page_v3')||'dashboard');
@@ -1631,7 +1756,7 @@ function App(){
   // Toast'a global erişim (HaftalikBilanco gibi sayfalardan)
   window.__toast = (m) => setToast(m);
 
-  const meta={dashboard:['Bilgi Ekranı'],cariler:['Cariler'],cari:['Cariler','Cari Kart Detayı'],ekstre:['Cariler','Hesap Ekstresi'],hareketler:['Stok Hareketler'],stok:['Stok'],gelirgider:['Gelir / Gider'],bilanco:['Üretim','Haftalık Bilanço'],rapor:['Finans Analiz','Raporlar']};
+  const meta={dashboard:['Bilgi Ekranı'],cariler:['Cariler'],cari:['Cariler','Cari Kart Detayı'],ekstre:['Cariler','Hesap Ekstresi'],hareketler:['Stok Hareketler'],stok:['Stok'],gelirgider:['Gelir / Gider'],bilanco:['Üretim','Haftalık Bilanço'],rapor:['Finans Analiz','Raporlar'],ayarlar:['Yönetim','Ayarlar']};
   const crumbs=meta[page]||[page];
 
   const render=()=>{
@@ -1644,6 +1769,7 @@ function App(){
     if(page==='gelirgider')return <GelirGider onNew={()=>setModal({kind:'newgg'})}/>;
     if(page==='bilanco')return <HaftalikBilanco/>;
     if(page==='rapor')return <Report/>;
+    if(page==='ayarlar')return <Ayarlar/>;
     return <div className="card" style={{padding:'72px 36px',textAlign:'center'}}>
       <div style={{fontSize:22,fontWeight:600,letterSpacing:'-0.02em',marginBottom:6}}>{crumbs[crumbs.length-1]}</div>
       <div style={{color:'var(--text-3)',fontSize:13,maxWidth:440,margin:'0 auto'}}>Bu modül henüz tasarıma eklenmedi. Repo'daki <span className="mono" style={{color:'var(--text-2)'}}>pages/{page}.py</span> tabanlı eklenebilir.</div>
