@@ -15,7 +15,8 @@ from services.auth_service import ensure_default_admin
 from services.pdf_service import get_pdf_preview_dir
 
 # Sayfa modullerini import et (bu @ui.page decorator'larini register eder)
-import pages.dashboard
+# pages.dashboard kaldırıldı - / artık v3'e yönlenir (aşağıda root_redirect)
+# import pages.dashboard
 import pages.cari
 import pages.firma_master
 import pages.cari_detay
@@ -147,6 +148,18 @@ if os.path.isdir(assets_dir):
 yeni_tasarim_dir = os.path.join(BASE_DIR, 'yeni-tasarim')
 if os.path.isdir(yeni_tasarim_dir):
     app.add_static_files('/v3', yeni_tasarim_dir)
+
+
+# Root: kullanıcıyı v3 tasarımına yönlendir (Faz 4)
+# Login yoksa /login'e, varsa /v3/...html'e
+@ui.page('/')
+def root_redirect():
+    if not app.storage.user.get('auth_user') or not app.storage.user.get('tenant_schema'):
+        ui.navigate.to('/login')
+        return
+    # JS redirect (URL içinde özel karakterler var)
+    ui.add_body_html('<script>window.location.href="/v3/Cari%20Takip%20v3%20(Trend).html";</script>')
+    ui.label('Yönlendiriliyor...')
 
 
 def _launch_chrome_app_mode():

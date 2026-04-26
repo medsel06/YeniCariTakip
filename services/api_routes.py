@@ -436,4 +436,256 @@ async def api_mutabakat_create(request: Request):
     return _json({'ok': True, 'id': new_id})
 
 
-print("[API] services.api_routes yüklendi - /api/* endpoint'leri aktif")
+# ============= PUT (UPDATE) =============
+
+@app.put('/api/cariler/{kod}')
+@api_auth
+async def api_cari_update(request: Request, kod: str):
+    data = await request.json()
+    cari_service.update_firma(kod, data)
+    return _json({'ok': True})
+
+
+@app.put('/api/stok/urunler/{kod}')
+@api_auth
+async def api_urun_update(request: Request, kod: str):
+    data = await request.json()
+    stok_service.update_urun(kod, data)
+    return _json({'ok': True})
+
+
+@app.put('/api/hareketler/{rec_id}')
+@api_auth
+async def api_hareket_update(request: Request, rec_id: int):
+    data = await request.json()
+    kasa_service.update_hareket(rec_id, data)
+    return _json({'ok': True})
+
+
+@app.put('/api/kasa/{rec_id}')
+@api_auth
+async def api_kasa_update(request: Request, rec_id: int):
+    data = await request.json()
+    kasa_service.update_kasa(rec_id, data)
+    return _json({'ok': True})
+
+
+@app.put('/api/cekler/{cek_id}')
+@api_auth
+async def api_cek_update(request: Request, cek_id: int):
+    data = await request.json()
+    cek_service.update_cek(cek_id, data)
+    return _json({'ok': True})
+
+
+@app.put('/api/cekler/{cek_id}/durum')
+@api_auth
+async def api_cek_durum(request: Request, cek_id: int):
+    data = await request.json()
+    cek_service.change_durum(
+        cek_id, data.get('durum'),
+        aciklama=data.get('aciklama', ''),
+        ciro_firma_kod=data.get('ciro_firma_kod', ''),
+        ciro_firma_ad=data.get('ciro_firma_ad', ''),
+    )
+    return _json({'ok': True})
+
+
+@app.put('/api/gelir-gider/{rec_id}')
+@api_auth
+async def api_gg_update(request: Request, rec_id: int):
+    data = await request.json()
+    gelir_gider_service.update_gelir_gider(rec_id, data)
+    return _json({'ok': True})
+
+
+@app.put('/api/personel/{pid}')
+@api_auth
+async def api_personel_update(request: Request, pid: int):
+    data = await request.json()
+    personel_service.update_personel(pid, data)
+    return _json({'ok': True})
+
+
+@app.put('/api/settings')
+@api_auth
+async def api_settings_update(request: Request):
+    data = await request.json()
+    return _json({'ok': True, 'data': settings_service.update_company_settings(data)})
+
+
+# ============= DELETE =============
+
+@app.delete('/api/cariler/{kod}')
+@api_auth
+async def api_cari_delete(request: Request, kod: str):
+    cari_service.delete_firma(kod)
+    return _json({'ok': True})
+
+
+@app.delete('/api/stok/urunler/{kod}')
+@api_auth
+async def api_urun_delete(request: Request, kod: str):
+    stok_service.delete_urun(kod)
+    return _json({'ok': True})
+
+
+@app.delete('/api/hareketler/{rec_id}')
+@api_auth
+async def api_hareket_delete(request: Request, rec_id: int):
+    kasa_service.delete_hareket(rec_id)
+    return _json({'ok': True})
+
+
+@app.delete('/api/kasa/{rec_id}')
+@api_auth
+async def api_kasa_delete(request: Request, rec_id: int):
+    kasa_service.delete_kasa(rec_id)
+    return _json({'ok': True})
+
+
+@app.delete('/api/cekler/{cek_id}')
+@api_auth
+async def api_cek_delete(request: Request, cek_id: int):
+    cek_service.delete_cek(cek_id)
+    return _json({'ok': True})
+
+
+@app.delete('/api/gelir-gider/{rec_id}')
+@api_auth
+async def api_gg_delete(request: Request, rec_id: int):
+    gelir_gider_service.delete_gelir_gider(rec_id)
+    return _json({'ok': True})
+
+
+@app.delete('/api/personel/{pid}')
+@api_auth
+async def api_personel_delete(request: Request, pid: int):
+    personel_service.delete_personel(pid)
+    return _json({'ok': True})
+
+
+# ============= PERSONEL MESAİ =============
+
+@app.post('/api/personel/mesai')
+@api_auth
+async def api_personel_mesai_create(request: Request):
+    data = await request.json()
+    new_id = personel_service.add_hareket(data)
+    return _json({'ok': True, 'id': new_id})
+
+
+@app.delete('/api/personel/mesai/{hid}')
+@api_auth
+async def api_personel_mesai_delete(request: Request, hid: int):
+    personel_service.delete_hareket(hid)
+    return _json({'ok': True})
+
+
+@app.get('/api/personel/{pid}/mesai')
+@api_auth
+async def api_personel_mesai_list(request: Request, pid: int, yil: int, ay: int, hafta: int = 0):
+    return _json(personel_service.get_hareketler(pid, yil, ay, hafta))
+
+
+# ============= ÇEK GET BY ID =============
+
+@app.get('/api/cekler/{cek_id}/detay')
+@api_auth
+async def api_cek_detay(request: Request, cek_id: int):
+    return _json(cek_service.get_cek_by_id(cek_id))
+
+
+@app.get('/api/cekler/{cek_id}/hareketler')
+@api_auth
+async def api_cek_hareketler(request: Request, cek_id: int):
+    return _json(cek_service.get_cek_hareketleri(cek_id))
+
+
+# ============= KASA HAREKET BY ID =============
+
+@app.get('/api/kasa/{rec_id}/detay')
+@api_auth
+async def api_kasa_detay(request: Request, rec_id: int):
+    return _json(kasa_service.get_kasa_by_id(rec_id))
+
+
+@app.get('/api/hareketler/{rec_id}/detay')
+@api_auth
+async def api_hareket_detay(request: Request, rec_id: int):
+    return _json(kasa_service.get_hareket_by_id(rec_id))
+
+
+# ============= USERS (Ayarlar) =============
+
+@app.get('/api/users')
+@api_auth
+async def api_users(request: Request):
+    from services import auth_service
+    return _json(auth_service.list_users())
+
+
+@app.post('/api/users')
+@api_auth
+async def api_user_create(request: Request):
+    from services import auth_service
+    data = await request.json()
+    new_id = auth_service.add_user(data)
+    return _json({'ok': True, 'id': new_id})
+
+
+@app.put('/api/users/{uid}')
+@api_auth
+async def api_user_update(request: Request, uid: int):
+    from services import auth_service
+    data = await request.json()
+    auth_service.update_user(uid, data)
+    return _json({'ok': True})
+
+
+@app.put('/api/users/{uid}/password')
+@api_auth
+async def api_user_password(request: Request, uid: int):
+    from services import auth_service
+    data = await request.json()
+    auth_service.set_user_password(uid, data.get('password', ''))
+    return _json({'ok': True})
+
+
+@app.delete('/api/users/{uid}')
+@api_auth
+async def api_user_delete(request: Request, uid: int):
+    from services import auth_service
+    auth_service.delete_user(uid)
+    return _json({'ok': True})
+
+
+# ============= BACKUP =============
+
+@app.get('/api/backups')
+@api_auth
+async def api_backups(request: Request):
+    from services import backup_service
+    return _json(backup_service.list_backups())
+
+
+@app.post('/api/backups')
+@api_auth
+async def api_backup_create(request: Request):
+    from services import backup_service
+    path = backup_service.create_backup()
+    return _json({'ok': True, 'path': str(path)})
+
+
+# ============= LOGOUT =============
+
+@app.post('/api/logout')
+async def api_logout(request: Request):
+    try:
+        app.storage.user.clear()
+    except Exception:
+        pass
+    return _json({'ok': True})
+
+
+print("[API] services.api_routes yüklendi - /api/* endpoint'leri aktif (GET+POST+PUT+DELETE)")

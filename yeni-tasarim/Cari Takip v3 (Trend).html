@@ -664,7 +664,33 @@ async function apiPost(path, data) {
     console.error('Post error', path, e); return null;
   }
 }
+async function apiPut(path, data) {
+  try {
+    const r = await fetch(path, {
+      method: 'PUT', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (r.status === 401) { window.location.href = '/login'; return null; }
+    return await r.json();
+  } catch (e) { console.error('Put error', path, e); return null; }
+}
+async function apiDelete(path) {
+  try {
+    const r = await fetch(path, { method: 'DELETE', credentials: 'same-origin' });
+    if (r.status === 401) { window.location.href = '/login'; return null; }
+    return await r.json();
+  } catch (e) { console.error('Delete error', path, e); return null; }
+}
+async function handleDelete(endpoint, id, mesaj) {
+  if (!confirm(mesaj || 'Silmek istediğinize emin misiniz?')) return;
+  const r = await apiDelete(endpoint + '/' + encodeURIComponent(id));
+  if (r?.ok) { window.__toast?.('Silindi'); window.__reload?.(); }
+  else alert('Silme başarısız');
+}
 window.apiGet = apiGet; window.apiPost = apiPost;
+window.apiPut = apiPut; window.apiDelete = apiDelete;
+window.handleDelete = handleDelete;
 
 const DOC_LBL = { fatura:'Fatura', tahsilat:'Tahsilat', cek:'Çek/Senet', odeme:'Ödeme', iade:'İade' };
 const DOC_CHIP = { fatura:'info', tahsilat:'good', cek:'warn', odeme:'bad', iade:'mute' };
@@ -1310,8 +1336,8 @@ function GelirGider({onNew}){
 
     <div className="card"><div className="card-hd"><div className="card-ttl">Gelir / Gider Kayıtları</div><span className="muted" style={{fontSize:11.5}}>{items.length} kayıt</span><div className="grow"/></div>
       <div className="tbl-wrap"><table className="tbl">
-        <thead><tr><th>Tarih</th><th>Belge</th><th>Kategori</th><th>Cari (Firma)</th><th>Açıklama</th><th>Tip</th><th className="r">Tutar</th><th>Durum</th><th>Ödeme</th></tr></thead>
-        <tbody>{items.length===0&&<tr><td colSpan={9} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>Henüz gelir/gider kaydı yok.</td></tr>}
+        <thead><tr><th>Tarih</th><th>Belge</th><th>Kategori</th><th>Cari (Firma)</th><th>Açıklama</th><th>Tip</th><th className="r">Tutar</th><th>Durum</th><th>Ödeme</th><th style={{width:80}}>İşlem</th></tr></thead>
+        <tbody>{items.length===0&&<tr><td colSpan={10} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>Henüz gelir/gider kaydı yok.</td></tr>}
         {items.slice(0,50).map(t=>{const c=CUSTOMERS.find(x=>x.id===t.firma_id);return <tr key={t.id}>
           <td className="tdate">{fmtD(t.date)}</td>
           <td className="tref">{t.belge}</td>
@@ -1322,10 +1348,12 @@ function GelirGider({onNew}){
           <td className="tnum" style={{fontWeight:600,color:t.tip==='gelir'?'var(--good)':'var(--bad)'}}>{t.tip==='gelir'?'+':'−'}{fmt(t.tutar)}</td>
           <td><Chip k={t.durum==='ODENDI'?'good':'warn'}>{t.durum==='ODENDI'?'Ödendi':'Ödenmedi'}</Chip></td>
           <td style={{color:'var(--text-2)',fontSize:12}}>{t.odeme}</td>
+          <td><div className="hstack" style={{gap:4}}><button className="btn btn-icon btn-ghost btn-sm" title="Düzenle"><ISet size={13}/></button><button className="btn btn-icon btn-ghost btn-sm" style={{color:'var(--bad)'}} title="Sil" onClick={(e)=>{e.stopPropagation();handleDelete('/api/gelir-gider',t.id,'Bu kaydı silmek istiyor musunuz?')}}><IX size={13}/></button></div></td>
         </tr>;})}</tbody>
         {items.length>0&&<tfoot><tr style={{background:'var(--panel-2)',fontWeight:600}}>
           <td colSpan={6} style={{padding:'12px 14px',fontSize:11,color:'var(--text-3)',fontWeight:500}}>NET (Gelir − Gider)</td>
           <td className="tnum" style={{padding:'12px 14px',color:net>=0?'var(--accent)':'var(--bad)'}}>{net>=0?'+':'−'}{fmt(Math.abs(net))}</td>
+          <td colSpan={3}></td>
           <td colSpan={2}></td>
         </tr></tfoot>}
       </table></div>
@@ -1418,9 +1446,10 @@ function Hareketler({onNew}){
             <th className="r" style={{width:90}}>KDV</th>
             <th style={{width:80}}>Tevkifat</th>
             <th className="r" style={{width:120}}>Toplam</th>
+            <th style={{width:80}}>İşlem</th>
           </tr></thead>
           <tbody>
-            {items.length===0&&<tr><td colSpan={11} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>Bu dönemde hareket yok. <strong style={{color:'var(--accent)',cursor:'pointer'}} onClick={onNew}>Yeni Hareket</strong> ile başla.</td></tr>}
+            {items.length===0&&<tr><td colSpan={12} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>Bu dönemde hareket yok. <strong style={{color:'var(--accent)',cursor:'pointer'}} onClick={onNew}>Yeni Hareket</strong> ile başla.</td></tr>}
             {items.map(h=><tr key={h.id}>
               <td className="tdate">{fmtD(h.tarih)}</td>
               <td className="tref">{h.belge_no||'—'}</td>
@@ -1433,6 +1462,7 @@ function Hareketler({onNew}){
               <td className="tnum">{fmt(h.kdv_tutar||0)}</td>
               <td>{h.tevkifat_orani && h.tevkifat_orani!=='0' ? <Chip k="warn" dot={false}>{h.tevkifat_orani}</Chip> : <span className="muted">—</span>}</td>
               <td className="tnum" style={{fontWeight:600}}>{fmt(h.kdvli_toplam||0)}</td>
+              <td><div className="hstack" style={{gap:4}}><button className="btn btn-icon btn-ghost btn-sm" title="Düzenle"><ISet size={13}/></button><button className="btn btn-icon btn-ghost btn-sm" style={{color:'var(--bad)'}} title="Sil" onClick={(e)=>{e.stopPropagation();handleDelete('/api/hareketler',h.id,'Bu hareketi silmek istiyor musunuz?')}}><IX size={13}/></button></div></td>
             </tr>)}
           </tbody>
         </table>
@@ -2117,8 +2147,8 @@ function Ayarlar(){
             <td><Chip k={u.is_active?'good':'mute'}>{u.is_active?'Aktif':'Pasif'}</Chip></td>
             <td><div className="hstack" style={{gap:4}}>
               <button className="btn btn-icon btn-ghost btn-sm" title="Düzenle"><ISet size={13}/></button>
-              <button className="btn btn-icon btn-ghost btn-sm" title="Şifre"><ITag size={13}/></button>
-              <button className="btn btn-icon btn-ghost btn-sm" title="Sil" style={{color:'var(--bad)'}}><IX size={13}/></button>
+              <button className="btn btn-icon btn-ghost btn-sm" title="Şifre" onClick={()=>{const np=prompt('Yeni şifre:');if(np)apiPut('/api/users/'+u.id+'/password',{password:np}).then(r=>r?.ok&&window.__toast?.('Şifre güncellendi'));}}><ITag size={13}/></button>
+              <button className="btn btn-icon btn-ghost btn-sm" title="Sil" style={{color:'var(--bad)'}} onClick={()=>handleDelete('/api/users',u.id,`${u.username} kullanıcı silinsin mi?`)}><IX size={13}/></button>
             </div></td>
           </tr>)}
         </tbody>
@@ -2222,7 +2252,7 @@ function Kasa({onNew}){
             <td className="tnum" style={{fontWeight:600,color:k.tip==='GELIR'?'var(--good)':'var(--bad)'}}>{k.tip==='GELIR'?'+':'−'}{fmt(k.tutar||0)}</td>
             <td>{k.odeme_sekli}</td>
             <td style={{color:'var(--text-2)'}}>{k.aciklama}</td>
-            <td><div className="hstack" style={{gap:4}}><button className="btn btn-icon btn-ghost btn-sm"><ISet size={13}/></button><button className="btn btn-icon btn-ghost btn-sm" style={{color:'var(--bad)'}}><IX size={13}/></button></div></td>
+            <td><div className="hstack" style={{gap:4}}><button className="btn btn-icon btn-ghost btn-sm" title="Düzenle"><ISet size={13}/></button><button className="btn btn-icon btn-ghost btn-sm" style={{color:'var(--bad)'}} title="Sil" onClick={(e)=>{e.stopPropagation();handleDelete('/api/kasa',k.id,'Bu kasa kaydını silmek istiyor musunuz?')}}><IX size={13}/></button></div></td>
           </tr>)}
         </tbody>
       </table></div>
@@ -2346,7 +2376,7 @@ function PersonelPage({onNew,onMesai}){
             <td><div className="hstack" style={{gap:4}}>
               <button className="btn btn-icon btn-ghost btn-sm" onClick={()=>onMesai(p.id)} title="Mesai Kaydı"><ICal size={13}/></button>
               <button className="btn btn-icon btn-ghost btn-sm" title="Düzenle"><ISet size={13}/></button>
-              <button className="btn btn-icon btn-ghost btn-sm" style={{color:'var(--bad)'}} title="Sil"><IX size={13}/></button>
+              <button className="btn btn-icon btn-ghost btn-sm" style={{color:'var(--bad)'}} title="Sil" onClick={(e)=>{e.stopPropagation();handleDelete('/api/personel',p.id,`${p.ad_soyad} silinsin mi?`)}}><IX size={13}/></button>
             </div></td>
           </tr>)}
         </tbody>
@@ -2481,7 +2511,7 @@ function CeklerPage({onNew}){
             <td className="tdate">{fmtD(c.vade_tarihi)}</td>
             <td className="tnum" style={{fontWeight:600}}>{fmt(c.tutar||0)}</td>
             <td><Chip k={CEK_DURUM_K[c.durum]||'mute'}>{CEK_DURUM[c.durum]||c.durum}</Chip></td>
-            <td><div className="hstack" style={{gap:4}}><button className="btn btn-icon btn-ghost btn-sm"><ISet size={13}/></button><button className="btn btn-icon btn-ghost btn-sm" style={{color:'var(--bad)'}}><IX size={13}/></button></div></td>
+            <td><div className="hstack" style={{gap:4}}><button className="btn btn-icon btn-ghost btn-sm" title="Düzenle"><ISet size={13}/></button><button className="btn btn-icon btn-ghost btn-sm" style={{color:'var(--bad)'}} title="Sil" onClick={(e)=>{e.stopPropagation();handleDelete('/api/cekler',c.id,'Bu çek kaydını silmek istiyor musunuz?')}}><IX size={13}/></button></div></td>
           </tr>)}
         </tbody>
       </table></div>
@@ -2830,7 +2860,7 @@ function FirmalarPage({onNew}){
             <td><div className="hstack" style={{gap:4}}>
               <button className="btn btn-icon btn-ghost btn-sm" title="Detay"><IDoc size={13}/></button>
               <button className="btn btn-icon btn-ghost btn-sm" title="Düzenle"><ISet size={13}/></button>
-              <button className="btn btn-icon btn-ghost btn-sm" style={{color:'var(--bad)'}} title="Sil"><IX size={13}/></button>
+              <button className="btn btn-icon btn-ghost btn-sm" style={{color:'var(--bad)'}} title="Sil" onClick={(e)=>{e.stopPropagation();handleDelete('/api/cariler',f.kod,`${f.ad} silinsin mi?`)}}><IX size={13}/></button>
             </div></td>
           </tr>)}
         </tbody>
