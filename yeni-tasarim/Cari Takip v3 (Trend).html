@@ -512,12 +512,159 @@ const openPdf = (kind, params={}) => {
   window.open(`PDF Dökümleri.html${qs}#${kind}`, '_blank');
 };
 
-// DATA — Faz 2/3'te API'dan doldurulacak
+// DATA — useEffect ile API'dan doldurulur (App component'inde)
 let CUSTOMERS = [];
 let TX = [];
-// TODO Faz 2/3: API'dan veri çek
-//   const r1 = await fetch('/api/cariler'); CUSTOMERS = await r1.json();
-//   const r2 = await fetch('/api/hareketler'); TX = await r2.json();
+
+// API → v3 schema adapter'ları
+const adapt = {
+  cari: (r) => ({
+    id: r.kod, code: r.kod, name: r.ad,
+    balance: parseFloat(r.bakiye || 0),
+    devir: parseFloat(r.devir || 0),
+    alis: parseFloat(r.alis || 0),
+    satis: parseFloat(r.satis || 0),
+    odeme: parseFloat(r.odeme || 0),
+    tahsilat: parseFloat(r.tahsilat || 0),
+    credit: parseFloat(r.risk_limiti || 0),
+    phone: r.tel || '', email: r.email || '', tax: r.vkn_tckn || '',
+    city: r.city || '', district: r.district || '',
+    taxOffice: r.vergi_dairesi || '',
+    paymentTerm: r.vade || 30,
+    status: (r.aktif === false || r.durum === 'PASIF') ? 'passive' : 'active',
+    lastActivity: r.son_hareket || r.last_activity || '',
+    nace: r.nace || '', is_alani: r.is_alani || '',
+  }),
+  tx: (r) => ({
+    id: r.id, customerId: r.firma_kod, ref: r.belge_no || '',
+    date: r.tarih, type: r.tur === 'ALIS' ? 'fatura' : (r.tur === 'SATIS' ? 'fatura' : (r.tur || 'fatura').toLowerCase()),
+    description: r.aciklama || r.urun_ad || '',
+    borc: parseFloat(r.borc || (r.tur === 'ALIS' ? r.kdvli_toplam : 0) || 0),
+    alacak: parseFloat(r.alacak || (r.tur === 'SATIS' ? r.kdvli_toplam : 0) || 0),
+    running: parseFloat(r.bakiye || 0),
+  }),
+  hareket: (r) => ({
+    id: r.id, tarih: r.tarih, belge_no: r.belge_no,
+    firma_id: r.firma_kod, firma_ad: r.firma_ad,
+    tur: r.tur, urun_kod: r.urun_kod, urun_ad: r.urun_ad,
+    miktar: parseFloat(r.miktar || 0),
+    birim_fiyat: parseFloat(r.birim_fiyat || 0),
+    toplam: parseFloat(r.toplam || 0),
+    kdv_orani: parseFloat(r.kdv_orani || 0),
+    kdv_tutar: parseFloat(r.kdv_tutar || 0),
+    kdvli_toplam: parseFloat(r.kdvli_toplam || 0),
+    tevkifat_orani: r.tevkifat_orani || '0',
+    tevkifat_tutar: parseFloat(r.tevkifat_tutar || 0),
+    aciklama: r.aciklama || '',
+  }),
+  stok: (r) => ({
+    kod: r.kod, ad: r.ad, kat: r.kategori || '', brm: r.birim || 'kg',
+    stok: parseFloat(r.stok || r.net_stok || 0),
+    min: parseFloat(r.min_stok || 0),
+    alis: parseFloat(r.alis || 0),
+    satis: parseFloat(r.satis || 0),
+    uretim_girdi: parseFloat(r.uretim_girdi || 0),
+    uretim_cikti: parseFloat(r.uretim_cikti || 0),
+    alisFiyat: parseFloat(r.alis_fiyat || 0),
+    satisFiyat: parseFloat(r.satis_fiyat || 0),
+    sonHareket: r.son_hareket || '',
+    desi: parseFloat(r.desi_degeri || 0),
+  }),
+  kasa: (r) => ({
+    id: r.id, tarih: r.tarih,
+    firma_id: r.firma_kod, firma_ad: r.firma_ad,
+    tip: r.tur === 'GELIR' || r.tip === 'GELIR' ? 'GELIR' : 'GIDER',
+    tutar: parseFloat(r.tutar || 0),
+    odeme_sekli: r.odeme_sekli || '',
+    aciklama: r.aciklama || '',
+  }),
+  cek: (r) => ({
+    id: r.id, evrak_no: r.cek_no || r.evrak_no || '',
+    evrak_tipi: r.evrak_tipi || 'CEK',
+    firma_id: r.firma_kod, firma_ad: r.firma_ad,
+    kesim_tarihi: r.kesim_tarih || r.kesim_tarihi || '',
+    vade_tarihi: r.vade_tarih || r.vade_tarihi || '',
+    tutar: parseFloat(r.tutar || 0),
+    tip: (r.tur || r.cek_turu || 'ALINAN').toUpperCase(),
+    durum: (r.durum || 'portfoyde').toLowerCase(),
+    notlar: r.aciklama || r.notlar || '',
+  }),
+  gg: (r) => ({
+    id: r.id, date: r.tarih, belge: r.belge_no || '',
+    tip: (r.tur || '').toLowerCase() === 'gelir' ? 'gelir' : 'gider',
+    kat: r.kategori || '',
+    firma_id: r.firma_kod, firma_ad: r.firma_ad,
+    aciklama: r.aciklama || '',
+    tutar: parseFloat(r.tutar || 0),
+    odeme: r.odeme_sekli || '',
+    durum: r.durum || 'ODENMEDI',
+  }),
+  personel: (r) => ({
+    id: r.id, ad_soyad: r.ad_soyad,
+    maas: parseFloat(r.maas || 0),
+    durum: r.durum || 'AKTIF',
+    giris_tarihi: r.giris_tarihi, cikis_tarihi: r.cikis_tarihi,
+    telefon: r.telefon || '',
+  }),
+  mutabakat: (r) => ({
+    id: r.id, tarih: r.tarih,
+    firma_kod: r.firma_kod, firma_ad: r.firma_ad,
+    sistem_bakiye: parseFloat(r.sistem_bakiye || 0),
+    firma_beyan: parseFloat(r.firma_beyan || 0),
+    fark: parseFloat(r.fark || 0),
+    durum: r.durum || 'FARKLI',
+    not: r.not || '',
+  }),
+  oneri: (r) => ({
+    kod: r.kod, firma: r.firma_ad || r.firma,
+    oneri_tutar: parseFloat(r.oneri_tutar || r.bakiye || 0),
+    risk_yuzdesi: parseFloat(r.risk_yuzdesi || 0),
+    en_eski_satis: r.en_eski_satis || '',
+    gecikme_gun: parseFloat(r.gecikme_gun || 0),
+    oncelik: parseFloat(r.oncelik_skoru || r.oncelik || 0),
+  }),
+  karlilik: (r) => ({
+    kod: r.kod, ad: r.ad,
+    alis_miktar: parseFloat(r.alis_miktar || 0),
+    satis_miktar: parseFloat(r.satis_miktar || 0),
+    alis_tutar: parseFloat(r.alis_tutar || 0),
+    satis_tutar: parseFloat(r.satis_tutar || 0),
+    kar: parseFloat(r.kar || 0),
+    marj_yuzde: parseFloat(r.marj_yuzdesi || r.marj_yuzde || 0),
+  }),
+  log: (r) => ({
+    id: r.id, tarih: r.created_at || r.tarih, kim: r.actor || r.kim || '',
+    islem: r.action || r.islem, varlik_tipi: r.entity_type || r.varlik_tipi,
+    varlik_id: r.entity_id || r.varlik_id, detay: r.detail || r.detay || '',
+    eski_data: r.old_data, yeni_data: r.new_data,
+  }),
+};
+
+// API çağrı helper'ı
+async function apiGet(path) {
+  try {
+    const r = await fetch(path, { credentials: 'same-origin' });
+    if (r.status === 401) { window.location.href = '/login'; return null; }
+    if (!r.ok) { console.error('API error', path, r.status); return null; }
+    return await r.json();
+  } catch (e) {
+    console.error('Fetch error', path, e); return null;
+  }
+}
+async function apiPost(path, data) {
+  try {
+    const r = await fetch(path, {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (r.status === 401) { window.location.href = '/login'; return null; }
+    return await r.json();
+  } catch (e) {
+    console.error('Post error', path, e); return null;
+  }
+}
+window.apiGet = apiGet; window.apiPost = apiPost;
 
 const DOC_LBL = { fatura:'Fatura', tahsilat:'Tahsilat', cek:'Çek/Senet', odeme:'Ödeme', iade:'İade' };
 const DOC_CHIP = { fatura:'info', tahsilat:'good', cek:'warn', odeme:'bad', iade:'mute' };
@@ -1307,12 +1454,33 @@ function HareketModal({onClose,onSaved}){
   const [birimFiyat,setBirimFiyat]=React.useState('');
   const [aciklama,setAciklama]=React.useState('');
   const [subModal,setSubModal]=React.useState(null); // 'newcari' | 'newstok' | null
+  const [saving,setSaving]=React.useState(false);
 
   const calc = hesaplaHareket(miktar, birimFiyat, kdv, tevkifat);
   const firma = CUSTOMERS.find(c=>c.id===firmaId);
+  const stk = STOK.find(s=>s.kod===urunKod);
   const limitAsim = tur==='SATIS' && firma && firma.credit>0 && firma.balance>firma.credit*0.8;
 
-  const submit=(e)=>{e.preventDefault();onSaved?.(tur==='ALIS'?'Alış kaydedildi':'Satış kaydedildi');};
+  const submit=async(e)=>{
+    e.preventDefault();
+    if(!firma||!stk||!miktar||!birimFiyat){ alert('Tüm alanlar dolu olmalı'); return; }
+    setSaving(true);
+    const payload = {
+      tarih, belge_no: belgeNo, tur,
+      firma_kod: firma.code, firma_ad: firma.name,
+      urun_kod: stk.kod, urun_ad: stk.ad,
+      miktar: parseFloat(miktar), birim_fiyat: parseFloat(birimFiyat),
+      toplam: calc.matrah, kdv_orani: kdv, kdv_tutar: calc.kdv,
+      kdvli_toplam: calc.kdvliToplam,
+      tevkifat_orani: tevkifat, tevkifat_tutar: calc.tevkifatTutar,
+      tevkifatsiz_kdv: calc.odenecekKdv,
+      aciklama,
+    };
+    const res = await apiPost('/api/hareketler', payload);
+    setSaving(false);
+    if(res?.ok) onSaved?.(tur==='ALIS'?'Alış kaydedildi':'Satış kaydedildi');
+    else alert('Kayıt başarısız: ' + (res?.message || 'Hata'));
+  };
 
   return <div className="scrim" onClick={onClose}>
     <form className="modal" style={{width:640}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
@@ -1564,7 +1732,16 @@ function HaftalikBilanco(){
 function NewCariModal({onClose,onSaved}){
   const [f,setF]=React.useState({code:'',name:'',taxNo:'',taxOffice:'',city:'',district:'',phone:'',email:'',credit:'',paymentTerm:'30',type:'company'});
   const upd=(k,v)=>setF(p=>({...p,[k]:v}));
-  const submit=(e)=>{e.preventDefault();onSaved?.('Cari hesap kaydedildi');};
+  const submit=async(e)=>{
+    e.preventDefault();
+    if(!f.name){ alert('Firma adı zorunlu'); return; }
+    const payload = { kod: f.code || '', ad: f.name, tel: f.phone, email: f.email,
+      adres: '', vkn_tckn: f.taxNo, nace: '', is_alani: '',
+      risk_limiti: parseFloat(f.credit||0) };
+    const res = await apiPost('/api/cariler', payload);
+    if(res?.ok) onSaved?.('Cari hesap kaydedildi');
+    else alert('Kayıt başarısız');
+  };
   return <div className="scrim" onClick={onClose}>
     <form className="modal" style={{width:620}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
       <div className="m-hd">
@@ -1605,7 +1782,16 @@ function NewStokModal({onClose,onSaved}){
   const [f,setF]=React.useState({kod:'',ad:'',kat:STOK_CATEGORIES[0],brm:'kg',baslangic:'',min:'',alis:'',satis:'',kdv:'20'});
   const upd=(k,v)=>setF(p=>({...p,[k]:v}));
   const margin=f.alis&&f.satis?(((parseFloat(f.satis)-parseFloat(f.alis))/parseFloat(f.alis))*100):0;
-  const submit=(e)=>{e.preventDefault();onSaved?.('Stok kaydı oluşturuldu');};
+  const submit=async(e)=>{
+    e.preventDefault();
+    if(!f.ad){ alert('Ürün adı zorunlu'); return; }
+    const payload = { kod: f.kod, ad: f.ad, kategori: f.kat, birim: f.brm,
+      desi_degeri: 0, alis_fiyat: parseFloat(f.alis||0), satis_fiyat: parseFloat(f.satis||0),
+      min_stok: parseFloat(f.min||0) };
+    const res = await apiPost('/api/stok/urunler', payload);
+    if(res?.ok) onSaved?.('Stok kaydı oluşturuldu');
+    else alert('Kayıt başarısız');
+  };
   return <div className="scrim" onClick={onClose}>
     <form className="modal" style={{width:580}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
       <div className="m-hd">
@@ -1650,7 +1836,24 @@ function StokHrkModal({onClose,onSaved}){
   const s=STOK.find(x=>x.kod===stok);
   React.useEffect(()=>{if(s)setFiyat(String(tip==='giris'?s.alisFiyat:s.satisFiyat));},[stok,tip]);
   const tutar=miktar&&fiyat?parseFloat(miktar)*parseFloat(fiyat):0;
-  const submit=(e)=>{e.preventDefault();onSaved?.(tip==='giris'?'Stok girişi kaydedildi':'Stok çıkışı kaydedildi');};
+  const submit=async(e)=>{
+    e.preventDefault();
+    if(!s||!miktar||!fiyat){ alert('Tüm alanlar dolu olmalı'); return; }
+    const c = CUSTOMERS.find(x=>x.id===cari);
+    const m = parseFloat(miktar), bf = parseFloat(fiyat);
+    const payload = {
+      tarih: date, tur: tip==='giris'?'ALIS':'SATIS',
+      firma_kod: c?.code||'', firma_ad: c?.name||'',
+      urun_kod: s.kod, urun_ad: s.ad,
+      miktar: m, birim_fiyat: bf, toplam: m*bf,
+      kdv_orani: 20, kdv_tutar: m*bf*0.2, kdvli_toplam: m*bf*1.2,
+      tevkifat_orani: '0', tevkifat_tutar: 0,
+      aciklama: note,
+    };
+    const res = await apiPost('/api/hareketler', payload);
+    if(res?.ok) onSaved?.(tip==='giris'?'Stok girişi kaydedildi':'Stok çıkışı kaydedildi');
+    else alert('Kayıt başarısız');
+  };
   return <div className="scrim" onClick={onClose}>
     <form className="modal" style={{width:560}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
       <div className="m-hd">
@@ -1691,7 +1894,21 @@ function NewGGModal({onClose,onSaved}){
   const [durum,setDurum]=React.useState('ODENMEDI');
   const [aciklama,setAciklama]=React.useState('');
   React.useEffect(()=>{setKat(GG_KATEGORI[tip][0]);},[tip]);
-  const submit=(e)=>{e.preventDefault();onSaved?.(tip==='gelir'?'Gelir kaydedildi':'Gider kaydedildi');};
+  const submit=async(e)=>{
+    e.preventDefault();
+    if(!tutar){ alert('Tutar zorunlu'); return; }
+    const c = CUSTOMERS.find(x=>x.id===firmaId);
+    const payload = {
+      tarih: date, tur: tip,
+      kategori: kat, tutar: parseFloat(tutar),
+      firma_kod: c?.code||'', firma_ad: c?.name||'',
+      odeme_sekli: durum==='ODENDI'?odeme:'',
+      durum, aciklama,
+    };
+    const res = await apiPost('/api/gelir-gider', payload);
+    if(res?.ok) onSaved?.(tip==='gelir'?'Gelir kaydedildi':'Gider kaydedildi');
+    else alert('Kayıt başarısız');
+  };
   return <div className="scrim" onClick={onClose}>
     <form className="modal" style={{width:580}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
       <div className="m-hd">
@@ -1782,7 +1999,20 @@ function TxModal({kind,customerId,onClose,onSaved}){
   const [note,setNote]=React.useState('');
   const c=CUSTOMERS.find(x=>x.id===cust);
   const isC=type==='collection';
-  const submit=(e)=>{e.preventDefault();onSaved?.(isC?'Tahsilat kaydedildi':'Ödeme kaydedildi');};
+  const submit=async(e)=>{
+    e.preventDefault();
+    if(!amount){ alert('Tutar zorunlu'); return; }
+    const payload = {
+      tarih: date, tur: isC?'GELIR':'GIDER',
+      firma_kod: c?.code||'', firma_ad: c?.name||'',
+      tutar: parseFloat(amount),
+      odeme_sekli: method==='nakit'?'Nakit':method==='havale'?'Havale':method==='kredi'?'Kredi Kartı':'Çek',
+      aciklama: note,
+    };
+    const res = await apiPost('/api/kasa', payload);
+    if(res?.ok) onSaved?.(isC?'Tahsilat kaydedildi':'Ödeme kaydedildi');
+    else alert('Kayıt başarısız');
+  };
   return <div className="scrim" onClick={onClose}>
     <form className="modal" onClick={e=>e.stopPropagation()} onSubmit={submit}>
       <div className="m-hd">
@@ -2022,7 +2252,26 @@ function KasaModal({onClose,onSaved}){
     }
   },[ciroSecili,cekTuru,odeme]);
 
-  const submit=(e)=>{e.preventDefault();onSaved?.(tip==='GELIR'?'Kasa girişi kaydedildi':'Kasa çıkışı kaydedildi');};
+  const submit=async(e)=>{
+    e.preventDefault();
+    if(!tutar){ alert('Tutar zorunlu'); return; }
+    const c = CUSTOMERS.find(x=>x.id===firmaId);
+    const payload = {
+      tarih, tur: tip,
+      firma_kod: c?.code||'', firma_ad: c?.name||'',
+      tutar: parseFloat(tutar),
+      odeme_sekli: odeme, aciklama,
+    };
+    if(odeme==='Çek'){
+      payload.cek_turu = cekTuru;
+      payload.cek_no = cekNo;
+      payload.cek_vade_tarih = cekVade;
+      payload.ciro_cek_id = ciroSecili;
+    }
+    const res = await apiPost('/api/kasa', payload);
+    if(res?.ok) onSaved?.(tip==='GELIR'?'Kasa girişi kaydedildi':'Kasa çıkışı kaydedildi');
+    else alert('Kayıt başarısız');
+  };
 
   return <div className="scrim" onClick={onClose}>
     <form className="modal" style={{width:600}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
@@ -2126,7 +2375,16 @@ function PersonelPage({onNew,onMesai}){
 function PersonelModal({onClose,onSaved}){
   const [f,setF]=React.useState({ad_soyad:'',maas:'',durum:'AKTIF',giris_tarihi:new Date().toISOString().slice(0,10),cikis_tarihi:'',telefon:''});
   const upd=(k,v)=>setF(p=>({...p,[k]:v}));
-  const submit=(e)=>{e.preventDefault();onSaved?.('Personel kaydedildi');};
+  const submit=async(e)=>{
+    e.preventDefault();
+    if(!f.ad_soyad){ alert('Ad Soyad zorunlu'); return; }
+    const payload = { ad_soyad: f.ad_soyad, maas: parseFloat(f.maas||0),
+      durum: f.durum, giris_tarihi: f.giris_tarihi, cikis_tarihi: f.cikis_tarihi || null,
+      telefon: f.telefon };
+    const res = await apiPost('/api/personel', payload);
+    if(res?.ok) onSaved?.('Personel kaydedildi');
+    else alert('Kayıt başarısız');
+  };
   return <div className="scrim" onClick={onClose}>
     <form className="modal" style={{width:540}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
       <div className="m-hd">
@@ -2235,7 +2493,20 @@ function CeklerPage({onNew}){
 function CekModal({tip='ALINAN',onClose,onSaved}){
   const [f,setF]=React.useState({evrak_tipi:'CEK',evrak_no:'',firma_id:CUSTOMERS[0]?.id||'',kesim_tarihi:new Date().toISOString().slice(0,10),vade_tarihi:'',tutar:'',notlar:''});
   const upd=(k,v)=>setF(p=>({...p,[k]:v}));
-  const submit=(e)=>{e.preventDefault();onSaved?.(`${tip==='ALINAN'?'Alınan':'Verilen'} çek kaydedildi`);};
+  const submit=async(e)=>{
+    e.preventDefault();
+    if(!f.tutar){ alert('Tutar zorunlu'); return; }
+    const c = CUSTOMERS.find(x=>x.id===f.firma_id);
+    const payload = {
+      cek_turu: tip, evrak_tipi: f.evrak_tipi,
+      cek_no: f.evrak_no, firma_kod: c?.code||'', firma_ad: c?.name||'',
+      kesim_tarih: f.kesim_tarihi, vade_tarih: f.vade_tarihi,
+      tutar: parseFloat(f.tutar||0), aciklama: f.notlar,
+    };
+    const res = await apiPost('/api/cekler', payload);
+    if(res?.ok) onSaved?.(`${tip==='ALINAN'?'Alınan':'Verilen'} çek kaydedildi`);
+    else alert('Kayıt başarısız');
+  };
   return <div className="scrim" onClick={onClose}>
     <form className="modal" style={{width:560}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
       <div className="m-hd">
@@ -2324,7 +2595,19 @@ function MutabakatPage({onSaved}){
   const tamSayi = MUTABAKATLAR.filter(m=>m.durum==='TAM').length;
   const farkSayi = MUTABAKATLAR.filter(m=>m.durum==='FARKLI').length;
 
-  const submit=(e)=>{e.preventDefault();window.__toast?.('Mutabakat kaydedildi');setFirmaBeyan('');setNot('');};
+  const submit=async(e)=>{
+    e.preventDefault();
+    if(!firmaId||!firmaBeyan){ alert('Firma ve beyan tutarı zorunlu'); return; }
+    const payload = {
+      tarih, firma_kod: c?.code||'', firma_ad: c?.name||'',
+      sistem_bakiye: sistemBakiye,
+      firma_beyan: parseFloat(firmaBeyan||0),
+      fark, durum: tam?'TAM':'FARKLI', not,
+    };
+    const res = await apiPost('/api/mutabakat', payload);
+    if(res?.ok){ window.__toast?.('Mutabakat kaydedildi'); setFirmaBeyan(''); setNot(''); window.__reload?.(); }
+    else alert('Kayıt başarısız');
+  };
 
   return <div>
     <div className="kpi-grid">
@@ -2560,7 +2843,17 @@ function FirmalarPage({onNew}){
 function FirmaModal({onClose,onSaved}){
   const [f,setF]=React.useState({kod:'',ad:'',vkn:'',vergi_dairesi:'',telefon:'',email:'',adres:'',nace:'',is_alani:'',risk_limiti:''});
   const upd=(k,v)=>setF(p=>({...p,[k]:v}));
-  const submit=(e)=>{e.preventDefault();onSaved?.('Firma kaydedildi');};
+  const submit=async(e)=>{
+    e.preventDefault();
+    if(!f.ad){ alert('Firma adı zorunlu'); return; }
+    const payload = { kod: f.kod, ad: f.ad, vkn_tckn: f.vkn,
+      tel: f.telefon, email: f.email, adres: f.adres,
+      nace: f.nace, is_alani: f.is_alani,
+      risk_limiti: parseFloat(f.risk_limiti||0) };
+    const res = await apiPost('/api/cariler', payload);
+    if(res?.ok) onSaved?.('Firma kaydedildi');
+    else alert('Kayıt başarısız');
+  };
   return <div className="scrim" onClick={onClose}>
     <form className="modal" style={{width:600}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
       <div className="m-hd">
@@ -2704,8 +2997,80 @@ function App(){
   const [toast,setToast]=React.useState(null);
   const [tweaks,setTweaks]=React.useState(false);
   const [theme,setTheme]=React.useState(()=>{try{return JSON.parse(document.getElementById('tweak-defaults').textContent.match(/\{.*\}/s)[0]).theme||'dark';}catch{return 'dark';}});
+  const [dataVersion,setDataVersion]=React.useState(0);
+  const [loading,setLoading]=React.useState(true);
+  const [me,setMe]=React.useState(null);
   React.useEffect(()=>{localStorage.setItem('page_v3',page);},[page]);
   React.useEffect(()=>{document.documentElement.setAttribute('data-theme',theme);},[theme]);
+
+  // === DATA LOAD ===
+  const reloadData = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const meRes = await fetch('/api/me', { credentials: 'same-origin' });
+      if (meRes.status === 401) { window.location.href = '/login'; return; }
+      if (meRes.ok) setMe(await meRes.json());
+      const [c, h, s, k, gg, p, ck, mut, to, kr, lg, fmaster, kasa_bak, dashKpi, settings, ckPort, ckVade, gg_ozet] = await Promise.all([
+        apiGet('/api/cariler'),
+        apiGet('/api/hareketler'),
+        apiGet('/api/stok'),
+        apiGet('/api/kasa'),
+        apiGet('/api/gelir-gider'),
+        apiGet('/api/personel'),
+        apiGet('/api/cekler'),
+        apiGet('/api/mutabakat'),
+        apiGet('/api/tahsilat-onerileri'),
+        apiGet('/api/karlilik'),
+        apiGet('/api/logs'),
+        apiGet('/api/cariler/master'),
+        apiGet('/api/kasa/bakiye'),
+        apiGet('/api/dashboard/kpi'),
+        apiGet('/api/settings'),
+        apiGet('/api/cekler/portfoyde'),
+        apiGet('/api/cekler/vade-uyarilari'),
+        apiGet('/api/gelir-gider/ozet'),
+      ]);
+      // Cariler: bakiye listesi + master birleştir
+      const masterMap = {};
+      (fmaster || []).forEach(f => { masterMap[f.kod] = f; });
+      CUSTOMERS = (c || []).map(row => {
+        const m = masterMap[row.kod] || {};
+        return adapt.cari({ ...m, ...row });
+      });
+      // Diğer entity'ler
+      TX = (h || []).map(adapt.tx);
+      HAREKETLER = (h || []).map(adapt.hareket);
+      STOK = (s || []).map(adapt.stok);
+      // STOK_HRK boş - stok detay sayfasında ürün bazında çekilir
+      KASA = (k || []).map(adapt.kasa);
+      GG = (gg || []).map(adapt.gg);
+      PERSONEL = (p || []).map(adapt.personel);
+      CEKLER = (ck || []).map(adapt.cek);
+      MUTABAKATLAR = (mut || []).map(adapt.mutabakat);
+      TAHSILAT_ONERI = (to || []).map(adapt.oneri);
+      KARLILIK = (kr || []).map(adapt.karlilik);
+      LOGS = (lg || []).map(adapt.log);
+      FIRMALAR_MASTER = (fmaster || []).map(f => ({
+        kod: f.kod, ad: f.ad, vkn: f.vkn_tckn || '',
+        telefon: f.tel || '', email: f.email || '',
+        adres: f.adres || '', nace: f.nace || '',
+        is_alani: f.is_alani || '',
+        risk_limiti: parseFloat(f.risk_limiti || 0),
+      }));
+      if (settings) SETTINGS = { ...SETTINGS, ...settings };
+      // DESI_URUNLER: STOK içinden filtrele
+      DESI_URUNLER = STOK.filter(s => s.desi > 0).map(s => ({ kod: s.kod, ad: s.ad, desi: s.desi }));
+      setDataVersion(v => v + 1);
+    } catch (e) {
+      console.error('reloadData error', e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => { reloadData(); }, [reloadData]);
+  // Modal save sonrası reload tetikle
+  window.__reload = reloadData;
   window.__nav=(p,foc)=>{setPage(p);if(foc!==undefined)setFocus(foc);};
   React.useEffect(()=>{
     const on=(e)=>{const d=e.data||{};if(d.type==='__activate_edit_mode')setTweaks(true);if(d.type==='__deactivate_edit_mode')setTweaks(false);};
@@ -2778,21 +3143,25 @@ function App(){
     <Sidebar page={page} onNav={nav}/>
     <div className="main">
       <Topbar crumbs={crumbs}/>
-      <div className="content"><div className="wrap">{render()}</div></div>
+      <div className="content"><div className="wrap">
+        {loading && dataVersion===0 ? <div className="card" style={{padding:48,textAlign:'center'}}>
+          <div style={{fontSize:14,color:'var(--text-2)'}}>Veri yükleniyor…</div>
+        </div> : render()}
+      </div></div>
     </div>
-    {modal&&modal.kind==='collection'&&<TxModal kind={modal.kind} customerId={modal.customerId} onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);}}/>}
-    {modal&&modal.kind==='payment'&&<TxModal kind={modal.kind} customerId={modal.customerId} onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);}}/>}
-    {modal&&modal.kind==='newcari'&&<NewCariModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);}}/>}
-    {modal&&modal.kind==='newstok'&&<NewStokModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);}}/>}
-    {modal&&modal.kind==='stokhrk'&&<StokHrkModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);}}/>}
-    {modal&&modal.kind==='newgg'&&<NewGGModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);}}/>}
-    {modal&&modal.kind==='hareket'&&<HareketModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);}}/>}
-    {modal&&modal.kind==='kasa'&&<KasaModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);}}/>}
-    {modal&&modal.kind==='personel'&&<PersonelModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);}}/>}
-    {modal&&modal.kind==='mesai'&&<MesaiModal personelId={modal.personelId} onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);}}/>}
-    {modal&&modal.kind==='cek'&&<CekModal tip={modal.cekTip} onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);}}/>}
-    {modal&&modal.kind==='firma'&&<FirmaModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);}}/>}
-    {modal&&modal.kind==='uretim'&&<UretimModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);}}/>}
+    {modal&&modal.kind==='collection'&&<TxModal kind={modal.kind} customerId={modal.customerId} onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
+    {modal&&modal.kind==='payment'&&<TxModal kind={modal.kind} customerId={modal.customerId} onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
+    {modal&&modal.kind==='newcari'&&<NewCariModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
+    {modal&&modal.kind==='newstok'&&<NewStokModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
+    {modal&&modal.kind==='stokhrk'&&<StokHrkModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
+    {modal&&modal.kind==='newgg'&&<NewGGModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
+    {modal&&modal.kind==='hareket'&&<HareketModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
+    {modal&&modal.kind==='kasa'&&<KasaModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
+    {modal&&modal.kind==='personel'&&<PersonelModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
+    {modal&&modal.kind==='mesai'&&<MesaiModal personelId={modal.personelId} onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
+    {modal&&modal.kind==='cek'&&<CekModal tip={modal.cekTip} onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
+    {modal&&modal.kind==='firma'&&<FirmaModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
+    {modal&&modal.kind==='uretim'&&<UretimModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
     {modal&&modal.kind==='logdetay'&&<LogDetayModal log={modal.log} onClose={()=>setModal(null)}/>}
     {toast&&<Toast m={toast} onDone={()=>setToast(null)}/>}
     {tweaks&&<div className="tw">
