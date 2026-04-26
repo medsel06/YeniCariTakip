@@ -37,6 +37,9 @@ import pages.gelir_gider
 import pages.personel
 import pages.haftalik_bilanco
 
+# v3 (Trend) frontend için JSON API endpoint'leri
+import services.api_routes  # noqa: F401
+
 
 _orig_run_setup = nicegui_run.setup
 
