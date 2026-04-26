@@ -506,6 +506,11 @@ const IBilanco = (p) => <I {...p} ch={<><path d="M3 3v18h18"/><rect x="6" y="12"
 const fmt = (n) => { const s = n < 0 ? '-' : ''; return s + Math.abs(n).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' ₺'; };
 const fmtShort = (n) => { const a = Math.abs(n); if (a >= 1e6) return (n/1e6).toFixed(1).replace('.', ',') + ' M'; if (a >= 1e3) return (n/1e3).toFixed(0) + 'B'; return n.toFixed(0); };
 const fmtD = (d) => new Date(d).toLocaleDateString('tr-TR', {day:'2-digit', month:'2-digit', year:'numeric'});
+// PDF döküm helper: ilgili PDF Dökümleri sayfasını yeni sekmede aç (anchor: cari/stok/gg)
+const openPdf = (kind, params={}) => {
+  const qs = Object.keys(params).length ? '?' + new URLSearchParams(params).toString() : '';
+  window.open(`PDF Dökümleri.html${qs}#${kind}`, '_blank');
+};
 
 // DATA — Faz 2/3'te API'dan doldurulacak
 let CUSTOMERS = [];
@@ -520,7 +525,7 @@ const DOC_CHIP = { fatura:'info', tahsilat:'good', cek:'warn', odeme:'bad', iade
 // ============= COMPONENTS =============
 function Sidebar({page,onNav}){
   const op=[{id:'dashboard',l:'Bilgi Ekranı',i:<IDash/>},{id:'cariler',l:'Cari Hesaplar',i:<ICari/>,b:String(CUSTOMERS.length)},{id:'hareketler',l:'Stok Hareketler',i:<ISwap/>},{id:'firmalar',l:'Firmalar',i:<IApt/>},{id:'stok',l:'Stok',i:<IStok/>},{id:'kasa',l:'Kasa',i:<IKasa/>},{id:'gelirgider',l:'Gelir / Gider',i:<IGel/>},{id:'personel',l:'Personel',i:<IBdg/>},{id:'cekler',l:'Çek / Senet',i:<ICek/>},{id:'uretim',l:'Üretim',i:<IFct/>},{id:'bilanco',l:'Haftalık Bilanço',i:<IBilanco/>}];
-  const fn=[{id:'cektakvim',l:'Çek Takvimi',i:<ICal/>},{id:'mutabakat',l:'Mutabakat',i:<ICk/>},{id:'tahsilatoneri',l:'Tahsilat Önerisi',i:<IIns/>},{id:'karlilik',l:'Kârlılık',i:<ITrend/>},{id:'rapor',l:'Raporlar',i:<IRep/>},{id:'pdfdokum',l:'PDF Dökümleri',i:<IPdf/>,ext:true}];
+  const fn=[{id:'cektakvim',l:'Çek Takvimi',i:<ICal/>},{id:'mutabakat',l:'Mutabakat',i:<ICk/>},{id:'tahsilatoneri',l:'Tahsilat Önerisi',i:<IIns/>},{id:'karlilik',l:'Kârlılık',i:<ITrend/>}];
   const yn=[{id:'ayarlar',l:'Ayarlar',i:<ISet/>},{id:'loglar',l:'Loglar',i:<IDoc/>}];
   const eff = (page==='cari'||page==='ekstre')?'cariler':page;
   const r=(items)=>items.map(it=><button key={it.id} className={`sb-item ${eff===it.id?'active':''}`} onClick={()=>onNav(it.id)}>{it.i}<span>{it.l}</span>{it.ext&&<span style={{marginLeft:'auto',fontSize:10,color:'var(--text-3)'}}>↗</span>}{it.b&&<span className="badge">{it.b}</span>}</button>);
@@ -602,6 +607,29 @@ function Dashboard({onOpenCustomer}){
         </table>
       </div>
     </div>
+
+    {/* Risk Uyarıları */}
+    {(()=>{const riskli = CUSTOMERS.filter(c=>c.credit>0 && c.balance>c.credit*0.8).sort((a,b)=>(b.balance/b.credit)-(a.balance/a.credit));
+      if (riskli.length===0) return null;
+      return <div className="card" style={{marginTop:14}}>
+        <div className="card-hd">
+          <div style={{width:30,height:30,borderRadius:7,background:'var(--bad-soft)',color:'var(--bad)',display:'grid',placeItems:'center'}}><IBell size={15}/></div>
+          <div><div className="card-ttl">Risk Uyarıları</div><div className="card-sub">Limit üstü cariler · acil takip</div></div>
+          <div className="grow"/>
+          <Chip k="bad">{riskli.length} cari</Chip>
+        </div>
+        <div className="tbl-wrap"><table className="tbl">
+          <thead><tr><th>Firma</th><th className="r">Bakiye</th><th className="r">Risk Limiti</th><th style={{width:160}}>Kullanım %</th><th>Durum</th></tr></thead>
+          <tbody>{riskli.slice(0,8).map(c=>{const u=(c.balance/c.credit)*100;const dur=u>100?'Aşıldı':'Uyarı';const k=u>100?'bad':'warn';return <tr key={c.id} onClick={()=>onOpenCustomer(c.id)}>
+            <td style={{fontWeight:500}}>{c.name}</td>
+            <td className="tnum" style={{fontWeight:600}}>{fmt(c.balance)}</td>
+            <td className="tnum">{fmt(c.credit)}</td>
+            <td><div className="hstack" style={{gap:8}}><div style={{flex:1,height:6,background:'var(--bg-2)',borderRadius:999,overflow:'hidden'}}><div style={{height:'100%',width:`${Math.min(100,u)}%`,background:`var(--${k})`}}/></div><span className="num" style={{fontSize:11.5,fontWeight:600,color:`var(--${k})`,width:50,textAlign:'right'}}>%{u.toFixed(0)}</span></div></td>
+            <td><Chip k={k}>{dur}</Chip></td>
+          </tr>;})}</tbody>
+        </table></div>
+      </div>;
+    })()}
   </div>;
 }
 
@@ -665,8 +693,8 @@ function Ekstre({initialCustomerId,search,onOpenCustomer,onOpenModal}){
         <div className="flt"><ICal size={13}/><span className="mono" style={{fontSize:11}}>01.01.2026 — 24.04.2026</span></div>
         <div className="grow"/>
         <div className="input-search"><ISearch size={13}/><input placeholder="Belge/açıklama…" value={ls} onChange={e=>setLs(e.target.value)}/></div>
-        <button className="btn btn-sm"><IPdf size={13}/>PDF</button>
-        <button className="btn btn-sm"><IXls size={13}/>Excel</button>
+        <button className="btn btn-sm" onClick={()=>openPdf('cari',{id:c.id})} title="Cari Ekstre PDF Dökümü"><IPdf size={13}/>PDF</button>
+        <button className="btn btn-sm" title="Excel Çıktısı"><IXls size={13}/>Excel</button>
         <button className="btn btn-sm btn-primary" onClick={()=>onOpenModal('collection',c.id)}><IPlus size={13}/>Tahsilat</button>
       </div>
 
@@ -762,19 +790,77 @@ function CustomerDetail({customerId,onOpenEkstre,onBack,onOpenModal}){
       </div>
     </div>
 
-    <div className="card">
-      <div className="card-hd"><div className="card-ttl">Son Hareketler</div><div className="grow"/><button className="btn btn-sm btn-ghost" onClick={()=>onOpenEkstre(c.id)}>Ekstre <IRight size={12}/></button></div>
-      <div className="tbl-wrap"><table className="tbl">
-        <thead><tr><th>Tarih</th><th>Belge No</th><th>Açıklama</th><th>Tip</th><th className="r">Borç</th><th className="r">Alacak</th></tr></thead>
-        <tbody>
-          {txs.length===0&&<tr><td colSpan={6} style={{padding:36,textAlign:'center',color:'var(--text-3)'}}>Bu cari için hareket yok.</td></tr>}
-          {txs.slice(0,8).map(t=><tr key={t.id}>
-            <td className="tdate">{fmtD(t.date)}</td><td className="tref">{t.ref}</td><td>{t.description}</td><td><DocChip type={t.type}/></td>
-            <td className="tnum">{t.borc?fmt(t.borc):'—'}</td><td className="tnum pos">{t.alacak?fmt(t.alacak):'—'}</td>
-          </tr>)}
-        </tbody>
-      </table></div>
+    <CariDetayTabs customerId={customerId} txs={txs}/>
+  </div>;
+}
+
+// ============= CARI DETAY TABS =============
+function CariDetayTabs({customerId,txs}){
+  const [tab,setTab] = React.useState('ekstre');
+  const kasaItems = KASA.filter(k=>k.firma_id===customerId).sort((a,b)=>(b.tarih||'').localeCompare(a.tarih||''));
+  const cekItems = CEKLER.filter(c=>c.firma_id===customerId).sort((a,b)=>(b.vade_tarihi||'').localeCompare(a.vade_tarihi||''));
+  const hareketItems = HAREKETLER.filter(h=>h.firma_id===customerId).sort((a,b)=>(b.tarih||'').localeCompare(a.tarih||''));
+
+  return <div className="card">
+    <div className="hstack" style={{padding:'10px 14px',borderBottom:'1px solid var(--border)',gap:0}}>
+      <div className="seg">
+        <button className={tab==='ekstre'?'on':''} onClick={()=>setTab('ekstre')}>Cari Ekstre</button>
+        <button className={tab==='hareketler'?'on':''} onClick={()=>setTab('hareketler')}>Hareketler</button>
+        <button className={tab==='kasa'?'on':''} onClick={()=>setTab('kasa')}>Kasa İşlemleri</button>
+        <button className={tab==='cek'?'on':''} onClick={()=>setTab('cek')}>Çek İşlemleri</button>
+      </div>
+      <div className="grow"/>
+      <button className="btn btn-sm btn-ghost" onClick={()=>openPdf('cari',{id:customerId,tab})} title="PDF Dökümü Al"><IPdf size={13}/>PDF</button>
     </div>
+    {tab==='ekstre'&&<div className="tbl-wrap"><table className="tbl">
+      <thead><tr><th style={{width:90}}>Tarih</th><th style={{width:130}}>Belge No</th><th>Açıklama</th><th>Tip</th><th className="r">Borç</th><th className="r">Alacak</th><th className="r">Bakiye</th></tr></thead>
+      <tbody>
+        {txs.length===0&&<tr><td colSpan={7} style={{padding:36,textAlign:'center',color:'var(--text-3)'}}>Bu cari için hareket yok.</td></tr>}
+        {txs.slice(0,15).map(t=><tr key={t.id}>
+          <td className="tdate">{fmtD(t.date)}</td><td className="tref">{t.ref}</td><td>{t.description}</td><td><DocChip type={t.type}/></td>
+          <td className="tnum">{t.borc?fmt(t.borc):'—'}</td>
+          <td className="tnum pos">{t.alacak?fmt(t.alacak):'—'}</td>
+          <td className="tnum" style={{fontWeight:600}}>{fmt(t.running||0)}</td>
+        </tr>)}
+      </tbody>
+    </table></div>}
+    {tab==='hareketler'&&<div className="tbl-wrap"><table className="tbl">
+      <thead><tr><th>Tarih</th><th>Belge No</th><th>Tür</th><th>Ürün</th><th className="r">Miktar</th><th className="r">Toplam</th></tr></thead>
+      <tbody>
+        {hareketItems.length===0&&<tr><td colSpan={6} style={{padding:36,textAlign:'center',color:'var(--text-3)'}}>Bu cari için alış/satış hareketi yok.</td></tr>}
+        {hareketItems.map(h=><tr key={h.id}>
+          <td className="tdate">{fmtD(h.tarih)}</td><td className="tref">{h.belge_no||'—'}</td>
+          <td><Chip k={h.tur==='ALIS'?'info':'good'}>{h.tur==='ALIS'?'Alış':'Satış'}</Chip></td>
+          <td>{h.urun_ad}</td><td className="tnum">{(h.miktar||0).toFixed(2)}</td>
+          <td className="tnum" style={{fontWeight:600}}>{fmt(h.kdvli_toplam||h.toplam||0)}</td>
+        </tr>)}
+      </tbody>
+    </table></div>}
+    {tab==='kasa'&&<div className="tbl-wrap"><table className="tbl">
+      <thead><tr><th>Tarih</th><th>Tip</th><th className="r">Tutar</th><th>Ödeme Şekli</th><th>Açıklama</th></tr></thead>
+      <tbody>
+        {kasaItems.length===0&&<tr><td colSpan={5} style={{padding:36,textAlign:'center',color:'var(--text-3)'}}>Bu cari için kasa hareketi yok.</td></tr>}
+        {kasaItems.map(k=><tr key={k.id}>
+          <td className="tdate">{fmtD(k.tarih)}</td>
+          <td><Chip k={k.tip==='GELIR'?'good':'bad'}>{k.tip==='GELIR'?'Giriş':'Çıkış'}</Chip></td>
+          <td className="tnum" style={{fontWeight:600,color:k.tip==='GELIR'?'var(--good)':'var(--bad)'}}>{k.tip==='GELIR'?'+':'−'}{fmt(k.tutar||0)}</td>
+          <td>{k.odeme_sekli}</td><td style={{color:'var(--text-2)'}}>{k.aciklama}</td>
+        </tr>)}
+      </tbody>
+    </table></div>}
+    {tab==='cek'&&<div className="tbl-wrap"><table className="tbl">
+      <thead><tr><th>Evrak No</th><th>Tip</th><th>Kesim</th><th>Vade</th><th className="r">Tutar</th><th>Durum</th></tr></thead>
+      <tbody>
+        {cekItems.length===0&&<tr><td colSpan={6} style={{padding:36,textAlign:'center',color:'var(--text-3)'}}>Bu cari için çek/senet yok.</td></tr>}
+        {cekItems.map(c=><tr key={c.id}>
+          <td className="tref">{c.evrak_no}</td>
+          <td><Chip k={c.tip==='ALINAN'?'good':'bad'}>{c.tip==='ALINAN'?'Alınan':'Verilen'}</Chip></td>
+          <td className="tdate">{fmtD(c.kesim_tarihi)}</td><td className="tdate">{fmtD(c.vade_tarihi)}</td>
+          <td className="tnum" style={{fontWeight:600}}>{fmt(c.tutar||0)}</td>
+          <td><Chip k={CEK_DURUM_K[c.durum]||'mute'}>{CEK_DURUM[c.durum]||c.durum}</Chip></td>
+        </tr>)}
+      </tbody>
+    </table></div>}
   </div>;
 }
 
@@ -812,23 +898,36 @@ function CariList({onOpen,onNew}){
       <div className={`flt ${bal!=='all'?'on':''}`}><IWal size={13}/><select value={bal} onChange={e=>setBal(e.target.value)}><option value="all">Tüm Bakiyeler</option><option value="pos">Alacaklı</option><option value="neg">Borçlu</option><option value="zero">Sıfır</option></select><IDown size={12}/></div>
       <div className="grow"/>
       <div className="input-search"><ISearch size={13}/><input placeholder="Cari ara…" value={ls} onChange={e=>setLs(e.target.value)}/></div>
-      <button className="btn btn-sm"><IXls size={13}/>Excel</button>
+      <button className="btn btn-sm" onClick={()=>openPdf('cari')} title="Cari Liste PDF Dökümü"><IPdf size={13}/>PDF</button>
+      <button className="btn btn-sm" title="Excel Çıktısı"><IXls size={13}/>Excel</button>
       <button className="btn btn-sm btn-primary" onClick={onNew}><IPlus size={13}/>Yeni Cari</button>
     </div>
     <div className="card"><div className="tbl-wrap"><table className="tbl">
-      <thead><tr><th>Cari Kodu</th><th>Ünvan</th><th>Şehir</th><th>Son İşlem</th><th>Vade</th><th>Durum</th><th style={{width:160}}>Kredi Kullanımı</th><th className="r">Bakiye</th><th style={{width:1}}></th></tr></thead>
-      <tbody>{list.length===0&&<tr><td colSpan={9} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>Bu filtre için cari bulunamadı.</td></tr>}
-      {list.map(c=>{const u=Math.max(0,c.balance)/c.credit;return <tr key={c.id} onClick={()=>onOpen(c.id)}>
-        <td className="mono" style={{color:'var(--text-3)'}}>{c.code}</td>
-        <td style={{fontWeight:500}}>{c.name}</td>
-        <td style={{color:'var(--text-2)'}}>{c.city}</td>
-        <td className="tdate">{fmtD(c.lastActivity)}</td>
-        <td className="num" style={{color:'var(--text-2)'}}>{c.paymentTerm} gün</td>
-        <td><Chip k={c.status==='active'?'good':'mute'}>{c.status==='active'?'Aktif':'Pasif'}</Chip></td>
-        <td><div className="hstack" style={{gap:8,minWidth:140}}><div style={{flex:1,height:4,background:'var(--bg-2)',borderRadius:999,overflow:'hidden'}}><div style={{height:'100%',width:`${Math.min(100,u*100)}%`,background:u>0.8?'var(--bad)':u>0.5?'var(--warn)':'var(--accent)'}}/></div><span className="num muted" style={{fontSize:11,width:34}}>%{(u*100).toFixed(0)}</span></div></td>
-        <td className="tnum" style={{fontWeight:600,color:c.balance<0?'var(--bad)':'var(--text)'}}>{fmt(c.balance)}</td>
-        <td><IRight size={13} style={{color:'var(--text-3)'}}/></td>
-      </tr>;})}</tbody>
+      <thead><tr>
+        <th style={{width:90}}>Kod</th>
+        <th>Firma Adı</th>
+        <th className="r">Devir</th>
+        <th className="r">Alış</th>
+        <th className="r">Satış</th>
+        <th className="r">Ödeme</th>
+        <th className="r">Tahsilat</th>
+        <th className="r">Bakiye</th>
+        <th style={{width:1}}></th>
+      </tr></thead>
+      <tbody>
+        {list.length===0&&<tr><td colSpan={9} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>Henüz cari yok.</td></tr>}
+        {list.map(c=><tr key={c.id} onClick={()=>onOpen(c.id)}>
+          <td className="mono" style={{color:'var(--text-3)'}}>{c.code}</td>
+          <td style={{fontWeight:500}}>{c.name}</td>
+          <td className="tnum">{fmt(c.devir||0)}</td>
+          <td className="tnum">{fmt(c.alis||0)}</td>
+          <td className="tnum">{fmt(c.satis||0)}</td>
+          <td className="tnum">{fmt(c.odeme||0)}</td>
+          <td className="tnum pos">{fmt(c.tahsilat||0)}</td>
+          <td className="tnum" style={{fontWeight:600,color:(c.balance||0)<0?'var(--bad)':(c.balance||0)>0?'var(--good)':'var(--text)'}}>{fmt(c.balance||0)}</td>
+          <td><IRight size={13} style={{color:'var(--text-3)'}}/></td>
+        </tr>)}
+      </tbody>
     </table></div></div>
   </div>;
 }
@@ -842,7 +941,7 @@ let STOK_HRK = [];
 //   const r2 = await fetch('/api/stok-hareketler'); STOK_HRK = await r2.json();
 
 // ============= STOK PAGE =============
-function StokPage({onNew,onNewHrk}){
+function StokPage({onNew,onNewHrk,onOpenDetay}){
   const [tab,setTab]=React.useState('list');
   const [kat,setKat]=React.useState('all');
   const [stat,setStat]=React.useState('all');
@@ -875,25 +974,28 @@ function StokPage({onNew,onNewHrk}){
         <div className={`flt ${stat!=='all'?'on':''}`}><IFlt size={13}/><select value={stat} onChange={e=>setStat(e.target.value)}><option value="all">Tüm Stoklar</option><option value="low">Kritik Seviye</option><option value="ok">Yeterli</option></select><IDown size={12}/></div>
         <div className="grow"/>
         <div className="input-search"><ISearch size={13}/><input placeholder="Stok ara…" value={ls} onChange={e=>setLs(e.target.value)}/></div>
-        <button className="btn btn-sm"><IXls size={13}/>Excel</button>
+        <button className="btn btn-sm" onClick={()=>openPdf('stok')} title="Stok Listesi PDF Dökümü"><IPdf size={13}/>PDF</button>
+        <button className="btn btn-sm" title="Excel Çıktısı"><IXls size={13}/>Excel</button>
         <button className="btn btn-sm" onClick={onNewHrk}><IPlus size={13}/>Stok Hareketi</button>
         <button className="btn btn-sm btn-primary" onClick={onNew}><IPlus size={13}/>Yeni Stok</button>
       </div>
       <div className="card"><div className="tbl-wrap"><table className="tbl">
-        <thead><tr><th style={{width:90}}>Kod</th><th>Ürün Adı</th><th>Kategori</th><th className="r">Stok</th><th>Birim</th><th className="r">Min. Stok</th><th style={{width:140}}>Doluluk</th><th className="r">Alış</th><th className="r">Satış</th><th className="r">Stok Değeri</th></tr></thead>
-        <tbody>{items.length===0&&<tr><td colSpan={10} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>Bu filtre için ürün bulunamadı.</td></tr>}
-        {items.map(s=>{const ratio=Math.min(2,s.stok/s.min);const low=s.stok<s.min;return <tr key={s.kod}>
-          <td className="mono" style={{color:'var(--text-3)'}}>{s.kod}</td>
-          <td style={{fontWeight:500}}>{s.ad}</td>
-          <td><Chip k="mute" dot={false}>{s.kat}</Chip></td>
-          <td className="tnum" style={{fontWeight:600,color:low?'var(--bad)':'var(--text)'}}>{s.stok.toLocaleString('tr-TR')}</td>
-          <td style={{color:'var(--text-2)',fontSize:11.5}}>{s.brm}</td>
-          <td className="tnum muted">{s.min.toLocaleString('tr-TR')}</td>
-          <td><div className="hstack" style={{gap:6}}><div style={{flex:1,height:4,background:'var(--bg-2)',borderRadius:999,overflow:'hidden'}}><div style={{height:'100%',width:`${Math.min(100,(ratio/2)*100)}%`,background:low?'var(--bad)':ratio<1.3?'var(--warn)':'var(--accent)'}}/></div>{low&&<Chip k="bad">Kritik</Chip>}</div></td>
-          <td className="tnum muted">{fmt(s.alisFiyat)}</td>
-          <td className="tnum">{fmt(s.satisFiyat)}</td>
-          <td className="tnum" style={{fontWeight:600}}>{fmt(s.stok*s.alisFiyat)}</td>
-        </tr>;})}</tbody>
+        <thead><tr><th style={{width:90}}>Kod</th><th>Ürün Adı</th><th>Kategori</th><th className="r">Alış (KG)</th><th className="r">Satış (KG)</th><th className="r">Üretim Girdi</th><th className="r">Üretim Çıktı</th><th className="r">Net Stok</th><th>Birim</th><th style={{width:1}}></th></tr></thead>
+        <tbody>
+          {items.length===0&&<tr><td colSpan={10} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>Henüz ürün yok.</td></tr>}
+          {items.map(s=>{const low=(s.stok||0)<(s.min||0);return <tr key={s.kod} onClick={()=>onOpenDetay&&onOpenDetay(s.kod)} style={{cursor:'pointer'}}>
+            <td className="mono" style={{color:'var(--text-3)'}}>{s.kod}</td>
+            <td style={{fontWeight:500}}>{s.ad}</td>
+            <td><Chip k="mute" dot={false}>{s.kat}</Chip></td>
+            <td className="tnum">{(s.alis||0).toLocaleString('tr-TR',{minimumFractionDigits:2})}</td>
+            <td className="tnum">{(s.satis||0).toLocaleString('tr-TR',{minimumFractionDigits:2})}</td>
+            <td className="tnum" style={{color:'var(--info)'}}>{(s.uretim_girdi||0).toLocaleString('tr-TR',{minimumFractionDigits:2})}</td>
+            <td className="tnum" style={{color:'var(--good)'}}>{(s.uretim_cikti||0).toLocaleString('tr-TR',{minimumFractionDigits:2})}</td>
+            <td className="tnum" style={{fontWeight:600,color:low?'var(--bad)':'var(--text)'}}>{(s.stok||0).toLocaleString('tr-TR',{minimumFractionDigits:2})}{low&&<span className="muted" style={{marginLeft:4,fontSize:10}}>(Kritik)</span>}</td>
+            <td style={{color:'var(--text-2)',fontSize:11.5}}>{s.brm}</td>
+            <td><IRight size={13} style={{color:'var(--text-3)'}}/></td>
+          </tr>;})}
+        </tbody>
       </table></div></div>
     </>}
 
@@ -918,6 +1020,85 @@ function StokPage({onNew,onNewHrk}){
         </tr>)}</tbody>
       </table></div></div>
     </>}
+  </div>;
+}
+
+// ============= STOK DETAY PAGE =============
+function StokDetay({urunKod,onBack}){
+  const s = STOK.find(x=>x.kod===urunKod);
+  const [tab,setTab] = React.useState('hrk');
+  if(!s) return <div className="card" style={{padding:48,textAlign:'center'}}>
+    <div style={{fontSize:18,fontWeight:600,marginBottom:6}}>Ürün bulunamadı</div>
+    <div style={{marginTop:18}}><button className="btn" onClick={onBack}>← Stok</button></div>
+  </div>;
+  const hareketler = STOK_HRK.filter(h=>h.kod===urunKod).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const uretimHrk = (URETIM||[]).flatMap(u=>{
+    const out=[];
+    (u.girdiler||[]).filter(g=>g.urun_kod===urunKod).forEach(g=>out.push({...g,tarih:u.tarih,tip:'GIRDI'}));
+    (u.ciktilar||[]).filter(c=>c.urun_kod===urunKod).forEach(c=>out.push({...c,tarih:u.tarih,tip:'CIKTI'}));
+    return out;
+  }).sort((a,b)=>(b.tarih||'').localeCompare(a.tarih||''));
+
+  return <div>
+    <div className="hstack" style={{marginBottom:14,gap:8}}>
+      <button className="btn btn-sm btn-ghost" onClick={onBack}><IRight size={12} style={{transform:'rotate(180deg)'}}/>Stok</button>
+    </div>
+    <div className="card" style={{marginBottom:14}}>
+      <div className="hero">
+        <div className="hero-av" style={{background:'linear-gradient(135deg, var(--info), #60a5fa)'}}><IStok size={20}/></div>
+        <div style={{flex:1,minWidth:0}}>
+          <div className="hero-name">{s.ad}</div>
+          <div className="hero-meta">
+            <span className="mono">{s.kod}</span>
+            <span><Chip k="mute" dot={false}>{s.kat}</Chip></span>
+            <span>Birim: <strong>{s.brm}</strong></span>
+          </div>
+        </div>
+        <div className="balance" style={{padding:'8px 14px'}}><span className="bl">Net Stok</span><span className="bv" style={{fontSize:15}}>{(s.stok||0).toLocaleString('tr-TR',{minimumFractionDigits:2})} {s.brm}</span></div>
+      </div>
+      <div className="stats">
+        <div className="stat"><div className="stat-l">Min Stok</div><div className="stat-v">{(s.min||0).toLocaleString('tr-TR')}</div><div className="stat-s">{(s.stok||0)<(s.min||0)?'⚠ Kritik altında':'Yeterli'}</div></div>
+        <div className="stat"><div className="stat-l">Alış (KG)</div><div className="stat-v">{(s.alis||0).toLocaleString('tr-TR',{minimumFractionDigits:2})}</div><div className="stat-s">Toplam giriş</div></div>
+        <div className="stat"><div className="stat-l">Satış (KG)</div><div className="stat-v">{(s.satis||0).toLocaleString('tr-TR',{minimumFractionDigits:2})}</div><div className="stat-s">Toplam çıkış</div></div>
+        <div className="stat"><div className="stat-l">Üretim Net</div><div className="stat-v">{((s.uretim_cikti||0)-(s.uretim_girdi||0)).toLocaleString('tr-TR',{minimumFractionDigits:2})}</div><div className="stat-s">{s.uretim_girdi||0} girdi · {s.uretim_cikti||0} çıktı</div></div>
+      </div>
+    </div>
+
+    <div className="card">
+      <div className="hstack" style={{padding:'10px 14px',borderBottom:'1px solid var(--border)'}}>
+        <div className="seg">
+          <button className={tab==='hrk'?'on':''} onClick={()=>setTab('hrk')}>Stok Hareketleri</button>
+          <button className={tab==='uretim'?'on':''} onClick={()=>setTab('uretim')}>Üretim Hareketleri</button>
+        </div>
+        <div className="grow"/>
+        <button className="btn btn-sm btn-ghost" onClick={()=>openPdf('stok',{kod:s.kod,tab})} title="PDF Dökümü Al"><IPdf size={13}/>PDF</button>
+      </div>
+      {tab==='hrk'&&<div className="tbl-wrap"><table className="tbl">
+        <thead><tr><th>Tarih</th><th>Tür</th><th>Firma</th><th className="r">Miktar</th><th className="r">Birim Fiyat</th><th className="r">Toplam</th></tr></thead>
+        <tbody>
+          {hareketler.length===0&&<tr><td colSpan={6} style={{padding:36,textAlign:'center',color:'var(--text-3)'}}>Bu ürün için stok hareketi yok.</td></tr>}
+          {hareketler.map(h=><tr key={h.id}>
+            <td className="tdate">{fmtD(h.date)}</td>
+            <td><Chip k={h.tip==='giris'?'info':'good'}>{h.tip==='giris'?'Alış':'Satış'}</Chip></td>
+            <td>{h.cariName}</td>
+            <td className="tnum">{(h.miktar||0).toLocaleString('tr-TR',{minimumFractionDigits:2})} {s.brm}</td>
+            <td className="tnum">{fmt(h.fiyat||0)}</td>
+            <td className="tnum" style={{fontWeight:600}}>{fmt(h.tutar||0)}</td>
+          </tr>)}
+        </tbody>
+      </table></div>}
+      {tab==='uretim'&&<div className="tbl-wrap"><table className="tbl">
+        <thead><tr><th>Tarih</th><th>Tip</th><th className="r">Miktar</th></tr></thead>
+        <tbody>
+          {uretimHrk.length===0&&<tr><td colSpan={3} style={{padding:36,textAlign:'center',color:'var(--text-3)'}}>Bu ürün için üretim hareketi yok.</td></tr>}
+          {uretimHrk.map((u,i)=><tr key={i}>
+            <td className="tdate">{fmtD(u.tarih)}</td>
+            <td><Chip k={u.tip==='GIRDI'?'info':'good'}>{u.tip==='GIRDI'?'Girdi':'Çıktı'}</Chip></td>
+            <td className="tnum" style={{fontWeight:600}}>{(parseFloat(u.miktar)||0).toLocaleString('tr-TR',{minimumFractionDigits:2})} {s.brm}</td>
+          </tr>)}
+        </tbody>
+      </table></div>}
+    </div>
   </div>;
 }
 
@@ -975,27 +1156,30 @@ function GelirGider({onNew}){
       <div className={`flt ${kat!=='all'?'on':''}`}><ITag size={13}/><select value={kat} onChange={e=>setKat(e.target.value)}><option value="all">Tüm Kategoriler</option>{allKats.map(k=><option key={k} value={k}>{k}</option>)}</select><IDown size={12}/></div>
       <div className="grow"/>
       <div className="input-search"><ISearch size={13}/><input placeholder="Açıklama ara…" value={ls} onChange={e=>setLs(e.target.value)}/></div>
-      <button className="btn btn-sm"><IPdf size={13}/>PDF</button>
-      <button className="btn btn-sm"><IXls size={13}/>Excel</button>
+      <button className="btn btn-sm" onClick={()=>openPdf('gg',{rg,tip})} title="Gelir/Gider PDF Dökümü"><IPdf size={13}/>PDF</button>
+      <button className="btn btn-sm" title="Excel Çıktısı"><IXls size={13}/>Excel</button>
       <button className="btn btn-sm btn-primary" onClick={onNew}><IPlus size={13}/>Yeni Kayıt</button>
     </div>
 
     <div className="card"><div className="card-hd"><div className="card-ttl">Gelir / Gider Kayıtları</div><span className="muted" style={{fontSize:11.5}}>{items.length} kayıt</span><div className="grow"/></div>
       <div className="tbl-wrap"><table className="tbl">
-        <thead><tr><th>Tarih</th><th>Belge</th><th>Kategori</th><th>Açıklama</th><th>Ödeme</th><th>Tip</th><th className="r">Tutar</th></tr></thead>
-        <tbody>{items.length===0&&<tr><td colSpan={7} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>Bu filtre için kayıt bulunamadı.</td></tr>}
-        {items.slice(0,50).map(t=><tr key={t.id}>
+        <thead><tr><th>Tarih</th><th>Belge</th><th>Kategori</th><th>Cari (Firma)</th><th>Açıklama</th><th>Tip</th><th className="r">Tutar</th><th>Durum</th><th>Ödeme</th></tr></thead>
+        <tbody>{items.length===0&&<tr><td colSpan={9} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>Henüz gelir/gider kaydı yok.</td></tr>}
+        {items.slice(0,50).map(t=>{const c=CUSTOMERS.find(x=>x.id===t.firma_id);return <tr key={t.id}>
           <td className="tdate">{fmtD(t.date)}</td>
           <td className="tref">{t.belge}</td>
           <td><Chip k="mute" dot={false}>{t.kat}</Chip></td>
+          <td style={{color:'var(--text-2)',fontSize:12}}>{c?.name||t.firma_ad||'—'}</td>
           <td>{t.aciklama}</td>
-          <td style={{color:'var(--text-2)',fontSize:12}}>{t.odeme}</td>
           <td>{t.tip==='gelir'?<Chip k="good">Gelir</Chip>:<Chip k="bad">Gider</Chip>}</td>
           <td className="tnum" style={{fontWeight:600,color:t.tip==='gelir'?'var(--good)':'var(--bad)'}}>{t.tip==='gelir'?'+':'−'}{fmt(t.tutar)}</td>
-        </tr>)}</tbody>
+          <td><Chip k={t.durum==='ODENDI'?'good':'warn'}>{t.durum==='ODENDI'?'Ödendi':'Ödenmedi'}</Chip></td>
+          <td style={{color:'var(--text-2)',fontSize:12}}>{t.odeme}</td>
+        </tr>;})}</tbody>
         {items.length>0&&<tfoot><tr style={{background:'var(--panel-2)',fontWeight:600}}>
           <td colSpan={6} style={{padding:'12px 14px',fontSize:11,color:'var(--text-3)',fontWeight:500}}>NET (Gelir − Gider)</td>
           <td className="tnum" style={{padding:'12px 14px',color:net>=0?'var(--accent)':'var(--bad)'}}>{net>=0?'+':'−'}{fmt(Math.abs(net))}</td>
+          <td colSpan={2}></td>
         </tr></tfoot>}
       </table></div>
     </div>
@@ -1066,7 +1250,8 @@ function Hareketler({onNew}){
       </div>
       <div className="grow"/>
       <div className="input-search"><ISearch size={13}/><input placeholder="Firma, ürün, belge…" value={ls} onChange={e=>setLs(e.target.value)}/></div>
-      <button className="btn btn-sm"><IXls size={13}/>Excel</button>
+      <button className="btn btn-sm" onClick={()=>openPdf('hareketler',{yil,ay,tip})} title="Hareketler PDF Raporu"><IPdf size={13}/>PDF</button>
+      <button className="btn btn-sm" title="Excel Çıktısı"><IXls size={13}/>Excel</button>
       <button className="btn btn-sm btn-primary" onClick={onNew}><IPlus size={13}/>Yeni Hareket</button>
     </div>
 
@@ -1283,7 +1468,7 @@ function HaftalikBilanco(){
   const AY_ISIMLERI = {1:'Ocak',2:'Şubat',3:'Mart',4:'Nisan',5:'Mayıs',6:'Haziran',7:'Temmuz',8:'Ağustos',9:'Eylül',10:'Ekim',11:'Kasım',12:'Aralık'};
 
   const onSave = ()=>{ window.__toast?.('Bilanço kaydedildi'); };
-  const onPdf = ()=>{ window.open('PDF Dökümleri.html#gg','_blank'); };
+  const onPdf = ()=>openPdf('bilanco',{yil,hafta:haftaKey});
   const onExcel = ()=>{ window.__toast?.('Excel hazırlanıyor…'); };
 
   return <div>
@@ -1499,14 +1684,16 @@ function StokHrkModal({onClose,onSaved}){
 function NewGGModal({onClose,onSaved}){
   const [tip,setTip]=React.useState('gider');
   const [kat,setKat]=React.useState('Maaş');
+  const [firmaId,setFirmaId]=React.useState('');
   const [tutar,setTutar]=React.useState('');
-  const [date,setDate]=React.useState('2026-04-25');
+  const [date,setDate]=React.useState(new Date().toISOString().slice(0,10));
   const [odeme,setOdeme]=React.useState('Banka');
+  const [durum,setDurum]=React.useState('ODENMEDI');
   const [aciklama,setAciklama]=React.useState('');
   React.useEffect(()=>{setKat(GG_KATEGORI[tip][0]);},[tip]);
   const submit=(e)=>{e.preventDefault();onSaved?.(tip==='gelir'?'Gelir kaydedildi':'Gider kaydedildi');};
   return <div className="scrim" onClick={onClose}>
-    <form className="modal" style={{width:540}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
+    <form className="modal" style={{width:580}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
       <div className="m-hd">
         <div style={{width:34,height:34,borderRadius:8,background:tip==='gelir'?'var(--good-soft)':'var(--bad-soft)',color:tip==='gelir'?'var(--good)':'var(--bad)',display:'grid',placeItems:'center'}}>{tip==='gelir'?<IUp size={15}/>:<IDn size={15}/>}</div>
         <div style={{flex:1}}><div className="m-ttl">Yeni {tip==='gelir'?'Gelir':'Gider'}</div><div className="m-sub">İşletme gelir/gider kaydı</div></div>
@@ -1517,12 +1704,19 @@ function NewGGModal({onClose,onSaved}){
           <label><input type="radio" name="gt" checked={tip==='gelir'} onChange={()=>setTip('gelir')}/><div className="tp-ic"><IUp size={14}/></div><div><div className="tp-ttl">Gelir</div><div className="tp-sub">Para girişi</div></div></label>
           <label><input type="radio" name="gt" checked={tip==='gider'} onChange={()=>setTip('gider')}/><div className="tp-ic"><IDn size={14}/></div><div><div className="tp-ttl">Gider</div><div className="tp-sub">Para çıkışı</div></div></label>
         </div></div>
-        <div className="field"><label>Kategori</label><select value={kat} onChange={e=>setKat(e.target.value)}>{GG_KATEGORI[tip].map(k=><option key={k} value={k}>{k}</option>)}</select></div>
+        <div className="field-row">
+          <div className="field"><label>Kategori</label><select value={kat} onChange={e=>setKat(e.target.value)}>{GG_KATEGORI[tip].map(k=><option key={k} value={k}>{k}</option>)}</select></div>
+          <div className="field"><label>Cari (Firma)</label><select value={firmaId} onChange={e=>setFirmaId(e.target.value)}><option value="">— Seçim yok —</option>{CUSTOMERS.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+        </div>
         <div className="field-row">
           <div className="field"><label>Tutar (₺)</label><input value={tutar} onChange={e=>setTutar(e.target.value)} placeholder="0,00" style={{fontSize:18,fontWeight:600,textAlign:'right',fontVariantNumeric:'tabular-nums',letterSpacing:'-0.02em'}} autoFocus/></div>
           <div className="field"><label>Tarih</label><input type="date" value={date} onChange={e=>setDate(e.target.value)}/></div>
         </div>
-        <div className="field"><label>Ödeme Şekli</label><div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6}}>{['Nakit','Banka','Kredi Kartı','Çek'].map(o=><button key={o} type="button" className={`flt ${odeme===o?'on':''}`} onClick={()=>setOdeme(o)} style={{justifyContent:'center'}}>{o}</button>)}</div></div>
+        <div className="field"><label>Durum</label><div className="tp" style={{gridTemplateColumns:'1fr 1fr'}}>
+          <label><input type="radio" name="dur" checked={durum==='ODENDI'} onChange={()=>setDurum('ODENDI')}/><div className="tp-ic"><ICk size={14}/></div><div><div className="tp-ttl">Ödendi</div><div className="tp-sub">Kasa hareketi oluştur</div></div></label>
+          <label><input type="radio" name="dur" checked={durum==='ODENMEDI'} onChange={()=>setDurum('ODENMEDI')}/><div className="tp-ic"><ICal size={14}/></div><div><div className="tp-ttl">Ödenmedi</div><div className="tp-sub">Beklemede</div></div></label>
+        </div></div>
+        {durum==='ODENDI'&&<div className="field"><label>Ödeme Şekli</label><div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:6}}>{['Nakit','Banka','Kredi Kartı','Çek','Senet'].map(o=><button key={o} type="button" className={`flt ${odeme===o?'on':''}`} onClick={()=>setOdeme(o)} style={{justifyContent:'center'}}>{o}</button>)}</div></div>}
         <div className="field"><label>Açıklama</label><textarea rows="2" value={aciklama} onChange={e=>setAciklama(e.target.value)} placeholder={`Örn: ${tip==='gider'?'Nisan elektrik faturası':'Faiz geliri'}`}/></div>
       </div>
       <div className="m-ft"><button type="button" className="btn" onClick={onClose}>İptal</button><button type="submit" className={tip==='gelir'?'btn btn-good':'btn btn-bad'}><ICk size={13}/>Kaydet</button></div>
@@ -1782,7 +1976,7 @@ function Kasa({onNew}){
       </div>
       <div className="grow"/>
       <div className="input-search"><ISearch size={13}/><input placeholder="Firma, açıklama…" value={ls} onChange={e=>setLs(e.target.value)}/></div>
-      <button className="btn btn-sm"><IPdf size={13}/>PDF</button>
+      <button className="btn btn-sm" onClick={()=>openPdf('kasa',{yil,ay})} title="Kasa Raporu PDF"><IPdf size={13}/>PDF</button>
       <button className="btn btn-sm btn-primary" onClick={onNew}><IPlus size={13}/>Yeni Kasa Kaydı</button>
     </div>
     <div className="card">
@@ -2012,7 +2206,7 @@ function CeklerPage({onNew}){
       <div className="flt"><ITag size={13}/><select value={durum} onChange={e=>setDurum(e.target.value)}><option value="all">Tüm Durumlar</option>{Object.keys(CEK_DURUM).map(k=><option key={k} value={k}>{CEK_DURUM[k]}</option>)}</select><IDown size={12}/></div>
       <div className="grow"/>
       <div className="input-search"><ISearch size={13}/><input placeholder="Çek no, firma…" value={ls} onChange={e=>setLs(e.target.value)}/></div>
-      <button className="btn btn-sm"><IPdf size={13}/>PDF</button>
+      <button className="btn btn-sm" onClick={()=>openPdf('cek',{tab,durum})} title="Çek Portföy Raporu"><IPdf size={13}/>PDF</button>
       <button className="btn btn-sm btn-primary" onClick={()=>onNew(tab)}><IPlus size={13}/>Yeni Çek</button>
     </div>
     <div className="card">
@@ -2200,7 +2394,8 @@ function TahsilatOneri(){
     <div className="fbar">
       <div className="grow"/>
       <div className="input-search"><ISearch size={13}/><input placeholder="Firma ara…" value={ls} onChange={e=>setLs(e.target.value)}/></div>
-      <button className="btn btn-sm"><IXls size={13}/>Excel</button>
+      <button className="btn btn-sm" onClick={()=>openPdf('tahsilat')} title="Tahsilat Önerisi PDF"><IPdf size={13}/>PDF</button>
+      <button className="btn btn-sm" title="Excel Çıktısı"><IXls size={13}/>Excel</button>
     </div>
     <div className="card">
       <div className="card-hd"><div><div className="card-ttl">Tahsilat Önerileri</div><div className="card-sub">Risk analizi · gecikme süresi · öncelik skoru</div></div></div>
@@ -2413,7 +2608,8 @@ function KarlilikPage(){
     <div className="fbar">
       <div className="grow"/>
       <div className="input-search"><ISearch size={13}/><input placeholder="Ürün ara…" value={ls} onChange={e=>setLs(e.target.value)}/></div>
-      <button className="btn btn-sm"><IXls size={13}/>Excel</button>
+      <button className="btn btn-sm" onClick={()=>openPdf('karlilik')} title="Kârlılık Raporu PDF"><IPdf size={13}/>PDF</button>
+      <button className="btn btn-sm" title="Excel Çıktısı"><IXls size={13}/>Excel</button>
     </div>
     <div className="card">
       <div className="card-hd"><div><div className="card-ttl">Ürün Bazında Kârlılık</div><div className="card-sub">Alış · Satış · Kâr · Marj</div></div></div>
@@ -2510,7 +2706,7 @@ function App(){
   const [theme,setTheme]=React.useState(()=>{try{return JSON.parse(document.getElementById('tweak-defaults').textContent.match(/\{.*\}/s)[0]).theme||'dark';}catch{return 'dark';}});
   React.useEffect(()=>{localStorage.setItem('page_v3',page);},[page]);
   React.useEffect(()=>{document.documentElement.setAttribute('data-theme',theme);},[theme]);
-  window.__nav=setPage;
+  window.__nav=(p,foc)=>{setPage(p);if(foc!==undefined)setFocus(foc);};
   React.useEffect(()=>{
     const on=(e)=>{const d=e.data||{};if(d.type==='__activate_edit_mode')setTweaks(true);if(d.type==='__deactivate_edit_mode')setTweaks(false);};
     window.addEventListener('message',on);
@@ -2518,12 +2714,12 @@ function App(){
     return()=>window.removeEventListener('message',on);
   },[]);
   const setKey=(k,v)=>{if(k==='theme')setTheme(v);window.parent.postMessage({type:'__edit_mode_set_keys',edits:{[k]:v}},'*');};
-  const nav=(p)=>{
-    if(p==='pdfdokum'){window.open('PDF Dökümleri.html','_blank');return;}
-    setPage(p);setFocus(null);
+  const nav=(p,foc=null)=>{
+    setPage(p);setFocus(foc);
   };
   const openCustomer=(id)=>{setFocus(id);setPage('cari');};
   const openEkstre=(id)=>{setFocus(id);setPage('ekstre');};
+  const openStokDetay=(kod)=>{setFocus(kod);setPage('stokDetay');};
   const openModal=(k,id)=>setModal({kind:k,customerId:id});
   // Toast'a global erişim (HaftalikBilanco gibi sayfalardan)
   window.__toast = (m) => setToast(m);
@@ -2544,7 +2740,7 @@ function App(){
     mutabakat:['Finans Analiz','Mutabakat'],
     tahsilatoneri:['Finans Analiz','Tahsilat Önerisi'],
     karlilik:['Finans Analiz','Kârlılık'],
-    rapor:['Finans Analiz','Raporlar'],
+    stokDetay:['Stok','Stok Detay'],
     ayarlar:['Yönetim','Ayarlar'],
     loglar:['Yönetim','Loglar']
   };
@@ -2557,7 +2753,7 @@ function App(){
     if(page==='cari')return <CustomerDetail customerId={focus||CUSTOMERS[0]?.id} onOpenEkstre={openEkstre} onBack={()=>nav('cariler')} onOpenModal={openModal}/>;
     if(page==='hareketler')return <Hareketler onNew={()=>setModal({kind:'hareket'})}/>;
     if(page==='firmalar')return <FirmalarPage onNew={()=>setModal({kind:'firma'})}/>;
-    if(page==='stok')return <StokPage onNew={()=>setModal({kind:'newstok'})} onNewHrk={()=>setModal({kind:'stokhrk'})}/>;
+    if(page==='stok')return <StokPage onNew={()=>setModal({kind:'newstok'})} onNewHrk={()=>setModal({kind:'stokhrk'})} onOpenDetay={openStokDetay}/>;
     if(page==='kasa')return <Kasa onNew={()=>setModal({kind:'kasa'})}/>;
     if(page==='gelirgider')return <GelirGider onNew={()=>setModal({kind:'newgg'})}/>;
     if(page==='personel')return <PersonelPage onNew={()=>setModal({kind:'personel'})} onMesai={(id)=>setModal({kind:'mesai',personelId:id})}/>;
@@ -2568,7 +2764,7 @@ function App(){
     if(page==='mutabakat')return <MutabakatPage/>;
     if(page==='tahsilatoneri')return <TahsilatOneri/>;
     if(page==='karlilik')return <KarlilikPage/>;
-    if(page==='rapor')return <Report/>;
+    if(page==='stokDetay')return <StokDetay urunKod={focus} onBack={()=>nav('stok')}/>;
     if(page==='ayarlar')return <Ayarlar/>;
     if(page==='loglar')return <LoglarPage onView={(log)=>setModal({kind:'logdetay',log})}/>;
     return <div className="card" style={{padding:'72px 36px',textAlign:'center'}}>
