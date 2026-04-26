@@ -139,6 +139,12 @@ if os.path.isdir(assets_dir):
     app.add_static_files('/assets', assets_dir)
     ui.add_head_html('<link rel="icon" type="image/x-icon" href="/assets/logo/favicon.ico?v=2">', shared=True)
 
+# Yeni v3 (Trend) tasarimi - statik HTML olarak servis edilir
+# Erisim: http://<host>:8080/v3/  veya http://<host>:8080/v3/Cari%20Takip%20v3%20(Trend).html
+yeni_tasarim_dir = os.path.join(BASE_DIR, 'yeni-tasarim')
+if os.path.isdir(yeni_tasarim_dir):
+    app.add_static_files('/v3', yeni_tasarim_dir)
+
 
 def _launch_chrome_app_mode():
     """Windows'ta Chrome'u app mode ile ac (sekmesiz, adres cubugu olmadan)."""
