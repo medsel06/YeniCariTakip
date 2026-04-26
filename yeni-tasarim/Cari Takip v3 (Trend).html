@@ -520,8 +520,8 @@ const DOC_CHIP = { fatura:'info', tahsilat:'good', cek:'warn', odeme:'bad', iade
 // ============= COMPONENTS =============
 function Sidebar({page,onNav}){
   const op=[{id:'dashboard',l:'Bilgi Ekranı',i:<IDash/>},{id:'cariler',l:'Cari Hesaplar',i:<ICari/>,b:String(CUSTOMERS.length)},{id:'hareketler',l:'Stok Hareketler',i:<ISwap/>},{id:'firmalar',l:'Firmalar',i:<IApt/>},{id:'stok',l:'Stok',i:<IStok/>},{id:'kasa',l:'Kasa',i:<IKasa/>},{id:'gelirgider',l:'Gelir / Gider',i:<IGel/>},{id:'personel',l:'Personel',i:<IBdg/>},{id:'cekler',l:'Çek / Senet',i:<ICek/>},{id:'uretim',l:'Üretim',i:<IFct/>},{id:'bilanco',l:'Haftalık Bilanço',i:<IBilanco/>}];
-  const fn=[{id:'cektakvim',l:'Çek Takvimi',i:<ICal/>},{id:'mutabakat',l:'Mutabakat',i:<ICk/>},{id:'tahsilatoneri',l:'Tahsilat Önerisi',i:<IIns/>},{id:'rapor',l:'Raporlar',i:<IRep/>},{id:'pdfdokum',l:'PDF Dökümleri',i:<IPdf/>,ext:true}];
-  const yn=[{id:'ayarlar',l:'Ayarlar',i:<ISet/>}];
+  const fn=[{id:'cektakvim',l:'Çek Takvimi',i:<ICal/>},{id:'mutabakat',l:'Mutabakat',i:<ICk/>},{id:'tahsilatoneri',l:'Tahsilat Önerisi',i:<IIns/>},{id:'karlilik',l:'Kârlılık',i:<ITrend/>},{id:'rapor',l:'Raporlar',i:<IRep/>},{id:'pdfdokum',l:'PDF Dökümleri',i:<IPdf/>,ext:true}];
+  const yn=[{id:'ayarlar',l:'Ayarlar',i:<ISet/>},{id:'loglar',l:'Loglar',i:<IDoc/>}];
   const eff = (page==='cari'||page==='ekstre')?'cariler':page;
   const r=(items)=>items.map(it=><button key={it.id} className={`sb-item ${eff===it.id?'active':''}`} onClick={()=>onNav(it.id)}>{it.i}<span>{it.l}</span>{it.ext&&<span style={{marginLeft:'auto',fontSize:10,color:'var(--text-3)'}}>↗</span>}{it.b&&<span className="badge">{it.b}</span>}</button>);
   return <aside className="sb">
@@ -1728,6 +1728,778 @@ function Ayarlar(){
   </div>;
 }
 
+// ============= EK DATA (yeni sayfalar için) =============
+let KASA = [];
+let CEKLER = [];          // {evrak_tipi, evrak_no, firma_kod, firma_ad, kesim_tarihi, vade_tarihi, tutar, tip:'ALINAN'|'VERILEN', durum, notlar}
+let PERSONEL = [];        // {id, ad_soyad, maas, durum, giris_tarihi, cikis_tarihi, telefon}
+let MESAILER = [];        // {personel_id, hafta, fazla_mesai_saat, tutar}
+let MUTABAKATLAR = [];    // {firma_kod, firma_ad, tarih, sistem_bakiye, firma_beyan, fark, durum, not}
+let TAHSILAT_ONERI = [];  // {kod, firma, oneri_tutar, risk_yuzdesi, en_eski_satis, gecikme_gun, oncelik}
+let URETIM = [];          // {id, tarih, aciklama, girdi_toplam, cikti_toplam, fire, girdiler:[], ciktilar:[]}
+let KARLILIK = [];        // {kod, ad, alis_miktar, satis_miktar, alis_tutar, satis_tutar, kar, marj_yuzde}
+let LOGS = [];            // {id, tarih, kim, islem, varlik_tipi, varlik_id, detay, eski_data, yeni_data}
+let FIRMALAR_MASTER = []; // CUSTOMERS'ın superset'i (NACE, is_alani, risk_limiti vs ek alanlar)
+// TODO Faz 2/3: tüm bu let array'leri /api/* endpoint'lerinden gelecek
+
+const ODEME_SEKLI = ['Nakit','Havale','Kredi Kartı','Çek','Senet','Diğer'];
+const CEK_DURUM = {portfoyde:'Portföyde',tahsil:'Tahsil',karsiliksiz:'Karşılıksız',ciro:'Ciro',iade:'İade'};
+const CEK_DURUM_K = {portfoyde:'info',tahsil:'good',karsiliksiz:'bad',ciro:'warn',iade:'mute'};
+
+// ============= KASA PAGE =============
+function Kasa({onNew}){
+  const [yil,setYil]=React.useState(new Date().getFullYear());
+  const [ay,setAy]=React.useState(new Date().getMonth()+1);
+  const [tip,setTip]=React.useState('all');
+  const [ls,setLs]=React.useState('');
+  const q=ls.toLowerCase().trim();
+  let items = KASA.filter(k=>{
+    const d = k.tarih ? new Date(k.tarih) : null;
+    if (d && (d.getFullYear()!==yil || (d.getMonth()+1)!==ay)) return false;
+    if (tip!=='all' && k.tip!==tip) return false;
+    if (q && !((k.firma_ad+' '+k.aciklama+' '+k.odeme_sekli).toLowerCase().includes(q))) return false;
+    return true;
+  }).sort((a,b)=>(b.tarih||'').localeCompare(a.tarih||''));
+  const tGiris = items.filter(k=>k.tip==='GELIR').reduce((s,k)=>s+(k.tutar||0),0);
+  const tCikis = items.filter(k=>k.tip==='GIDER').reduce((s,k)=>s+(k.tutar||0),0);
+  const bakiye = tGiris - tCikis;
+  const AY_ISIMLERI={1:'Ocak',2:'Şubat',3:'Mart',4:'Nisan',5:'Mayıs',6:'Haziran',7:'Temmuz',8:'Ağustos',9:'Eylül',10:'Ekim',11:'Kasım',12:'Aralık'};
+  const yillar=[];const cy=new Date().getFullYear();for(let i=cy-3;i<=cy+1;i++)yillar.push(i);
+
+  return <div>
+    <div className="kpi-grid">
+      <div className="kpi"><div className="kpi-icon-wrap" style={{color:'var(--good)'}}><IUp size={14}/></div><div className="kpi-label">Toplam Giriş</div><div className="kpi-val num" style={{color:'var(--good)'}}>{fmtShort(tGiris)}<span className="suf">₺</span></div><div className="kpi-delta">{items.filter(k=>k.tip==='GELIR').length} işlem</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap" style={{color:'var(--bad)'}}><IDn size={14}/></div><div className="kpi-label">Toplam Çıkış</div><div className="kpi-val num" style={{color:'var(--bad)'}}>{fmtShort(tCikis)}<span className="suf">₺</span></div><div className="kpi-delta">{items.filter(k=>k.tip==='GIDER').length} işlem</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap"><IWal size={14}/></div><div className="kpi-label">Bakiye</div><div className="kpi-val num" style={{color:bakiye>=0?'var(--accent)':'var(--bad)'}}>{bakiye>=0?'+':'−'}{fmtShort(Math.abs(bakiye))}<span className="suf">₺</span></div><div className="kpi-delta">{AY_ISIMLERI[ay]} {yil}</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap"><IRcpt size={14}/></div><div className="kpi-label">Toplam Hareket</div><div className="kpi-val num">{items.length}</div><div className="kpi-delta">Bu dönem</div></div>
+    </div>
+    <div className="fbar">
+      <div className="flt"><ICal size={13}/><select value={yil} onChange={e=>setYil(parseInt(e.target.value))}>{yillar.map(y=><option key={y} value={y}>{y}</option>)}</select><IDown size={12}/></div>
+      <div className="flt"><ICal size={13}/><select value={ay} onChange={e=>setAy(parseInt(e.target.value))}>{Object.keys(AY_ISIMLERI).map(m=><option key={m} value={m}>{AY_ISIMLERI[m]}</option>)}</select><IDown size={12}/></div>
+      <div className="seg">
+        <button className={tip==='all'?'on':''} onClick={()=>setTip('all')}>Tümü</button>
+        <button className={tip==='GELIR'?'on':''} onClick={()=>setTip('GELIR')}>Giriş</button>
+        <button className={tip==='GIDER'?'on':''} onClick={()=>setTip('GIDER')}>Çıkış</button>
+      </div>
+      <div className="grow"/>
+      <div className="input-search"><ISearch size={13}/><input placeholder="Firma, açıklama…" value={ls} onChange={e=>setLs(e.target.value)}/></div>
+      <button className="btn btn-sm"><IPdf size={13}/>PDF</button>
+      <button className="btn btn-sm btn-primary" onClick={onNew}><IPlus size={13}/>Yeni Kasa Kaydı</button>
+    </div>
+    <div className="card">
+      <div className="card-hd"><div className="card-ttl">Kasa Hareketleri</div><span className="muted" style={{fontSize:11.5}}>{items.length} kayıt</span><div className="grow"/></div>
+      <div className="tbl-wrap"><table className="tbl">
+        <thead><tr><th style={{width:84}}>Tarih</th><th>Firma</th><th style={{width:80}}>Tip</th><th className="r" style={{width:130}}>Tutar</th><th style={{width:120}}>Ödeme Şekli</th><th>Açıklama</th><th style={{width:100}}>İşlemler</th></tr></thead>
+        <tbody>
+          {items.length===0&&<tr><td colSpan={7} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>Bu dönemde kasa hareketi yok. <strong style={{color:'var(--accent)',cursor:'pointer'}} onClick={onNew}>Yeni Kasa Kaydı</strong> ile başla.</td></tr>}
+          {items.map(k=><tr key={k.id}>
+            <td className="tdate">{fmtD(k.tarih)}</td>
+            <td style={{fontWeight:500}}>{k.firma_ad||'—'}</td>
+            <td><Chip k={k.tip==='GELIR'?'good':'bad'}>{k.tip==='GELIR'?'Giriş':'Çıkış'}</Chip></td>
+            <td className="tnum" style={{fontWeight:600,color:k.tip==='GELIR'?'var(--good)':'var(--bad)'}}>{k.tip==='GELIR'?'+':'−'}{fmt(k.tutar||0)}</td>
+            <td>{k.odeme_sekli}</td>
+            <td style={{color:'var(--text-2)'}}>{k.aciklama}</td>
+            <td><div className="hstack" style={{gap:4}}><button className="btn btn-icon btn-ghost btn-sm"><ISet size={13}/></button><button className="btn btn-icon btn-ghost btn-sm" style={{color:'var(--bad)'}}><IX size={13}/></button></div></td>
+          </tr>)}
+        </tbody>
+      </table></div>
+    </div>
+  </div>;
+}
+
+// ============= KASA MODAL =============
+function KasaModal({onClose,onSaved}){
+  const [tarih,setTarih]=React.useState(new Date().toISOString().slice(0,10));
+  const [tip,setTip]=React.useState('GELIR');
+  const [firmaId,setFirmaId]=React.useState(CUSTOMERS[0]?.id||'');
+  const [tutar,setTutar]=React.useState('');
+  const [odeme,setOdeme]=React.useState('Nakit');
+  const [aciklama,setAciklama]=React.useState('');
+  // Çek alanları
+  const [cekTuru,setCekTuru]=React.useState('FIRMA'); // FIRMA / CIRO
+  const [cekNo,setCekNo]=React.useState('');
+  const [cekVade,setCekVade]=React.useState('');
+  const [ciroSecili,setCiroSecili]=React.useState(''); // portföydeki çek
+
+  const portfoy = CEKLER.filter(c=>c.tip==='ALINAN' && c.durum==='portfoyde');
+  React.useEffect(()=>{
+    if(odeme==='Çek' && cekTuru==='CIRO' && ciroSecili){
+      const c=portfoy.find(x=>x.id===ciroSecili);
+      if(c) setTutar(String(c.tutar||''));
+    }
+  },[ciroSecili,cekTuru,odeme]);
+
+  const submit=(e)=>{e.preventDefault();onSaved?.(tip==='GELIR'?'Kasa girişi kaydedildi':'Kasa çıkışı kaydedildi');};
+
+  return <div className="scrim" onClick={onClose}>
+    <form className="modal" style={{width:600}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
+      <div className="m-hd">
+        <div style={{width:34,height:34,borderRadius:8,background:tip==='GELIR'?'var(--good-soft)':'var(--bad-soft)',color:tip==='GELIR'?'var(--good)':'var(--bad)',display:'grid',placeItems:'center'}}><IKasa size={15}/></div>
+        <div style={{flex:1}}><div className="m-ttl">Yeni Kasa Kaydı</div><div className="m-sub">{tip==='GELIR'?'Para girişi':'Para çıkışı'}</div></div>
+        <button type="button" className="btn btn-icon btn-ghost" onClick={onClose}><IX size={14}/></button>
+      </div>
+      <div className="m-bd">
+        <div className="field"><label>Tip</label><div className="tp">
+          <label><input type="radio" name="kt" checked={tip==='GELIR'} onChange={()=>setTip('GELIR')}/><div className="tp-ic"><IUp size={14}/></div><div><div className="tp-ttl">Giriş</div><div className="tp-sub">Kasaya para giriyor</div></div></label>
+          <label><input type="radio" name="kt" checked={tip==='GIDER'} onChange={()=>setTip('GIDER')}/><div className="tp-ic"><IDn size={14}/></div><div><div className="tp-ttl">Çıkış</div><div className="tp-sub">Kasadan para çıkıyor</div></div></label>
+        </div></div>
+        <div className="field-row">
+          <div className="field"><label>Tarih</label><input type="date" value={tarih} onChange={e=>setTarih(e.target.value)}/></div>
+          <div className="field"><label>Firma</label><select value={firmaId} onChange={e=>setFirmaId(e.target.value)}>{CUSTOMERS.length===0&&<option value="">— Henüz cari yok —</option>}{CUSTOMERS.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+        </div>
+        <div className="field-row">
+          <div className="field"><label>Tutar (₺)</label><input value={tutar} onChange={e=>setTutar(e.target.value)} placeholder="0,00" style={{textAlign:'right',fontSize:16,fontWeight:600,fontVariantNumeric:'tabular-nums'}} autoFocus disabled={odeme==='Çek'&&cekTuru==='CIRO'&&!!ciroSecili}/></div>
+          <div className="field"><label>Ödeme Şekli</label><select value={odeme} onChange={e=>setOdeme(e.target.value)}>{ODEME_SEKLI.map(o=><option key={o} value={o}>{o}</option>)}</select></div>
+        </div>
+        {/* Koşullu Çek alanları */}
+        {odeme==='Çek'&&<div style={{padding:'14px',background:'var(--warn-soft)',border:'1px solid rgba(251,191,36,0.3)',borderRadius:8,marginBottom:14}}>
+          <div className="field"><label>Çek Türü</label><div className="tp" style={{gridTemplateColumns:'1fr 1fr'}}>
+            <label><input type="radio" name="ct" checked={cekTuru==='FIRMA'} onChange={()=>setCekTuru('FIRMA')}/><div className="tp-ic"><ICek size={14}/></div><div><div className="tp-ttl">Firma Çeki</div><div className="tp-sub">Yeni çek alındı</div></div></label>
+            <label><input type="radio" name="ct" checked={cekTuru==='CIRO'} onChange={()=>setCekTuru('CIRO')}/><div className="tp-ic"><ISwap size={14}/></div><div><div className="tp-ttl">Ciro Çeki</div><div className="tp-sub">Portföyden çek ciro et</div></div></label>
+          </div></div>
+          {cekTuru==='FIRMA'?<div className="field-row">
+            <div className="field"><label>Çek No</label><input value={cekNo} onChange={e=>setCekNo(e.target.value)} placeholder="Otomatik" className="mono"/></div>
+            <div className="field"><label>Vade Tarihi</label><input type="date" value={cekVade} onChange={e=>setCekVade(e.target.value)}/></div>
+          </div>:<div className="field"><label>Ciro Edilecek Çek</label><select value={ciroSecili} onChange={e=>setCiroSecili(e.target.value)}>
+            <option value="">— Seçin —</option>
+            {portfoy.map(c=><option key={c.id} value={c.id}>{c.evrak_no} · {c.firma_ad} · {fmt(c.tutar||0)}</option>)}
+          </select>{portfoy.length===0&&<div style={{fontSize:11,color:'var(--text-3)',marginTop:4}}>Portföyde ciro edilebilir çek yok.</div>}</div>}
+        </div>}
+        <div className="field"><label>Açıklama</label><textarea rows="2" value={aciklama} onChange={e=>setAciklama(e.target.value)} placeholder="İsteğe bağlı"/></div>
+      </div>
+      <div className="m-ft"><button type="button" className="btn" onClick={onClose}>İptal</button><button type="submit" className={tip==='GELIR'?'btn btn-good':'btn btn-bad'}><ICk size={13}/>Kaydet</button></div>
+    </form>
+  </div>;
+}
+
+// ============= PERSONEL PAGE =============
+function PersonelPage({onNew,onMesai}){
+  const aktifSayi = PERSONEL.filter(p=>p.durum==='AKTIF').length;
+  const tMaas = PERSONEL.filter(p=>p.durum==='AKTIF').reduce((s,p)=>s+(p.maas||0),0);
+  const cy=new Date().getFullYear(),cm=new Date().getMonth()+1;
+  const ymPrefix = `${cy}-W`;
+  const tMesai = MESAILER.filter(m=>(m.hafta||'').startsWith(String(cy))).reduce((s,m)=>s+(m.tutar||0),0);
+
+  return <div>
+    <div className="kpi-grid">
+      <div className="kpi"><div className="kpi-icon-wrap"><IBdg size={14}/></div><div className="kpi-label">Aktif Personel</div><div className="kpi-val num">{aktifSayi}</div><div className="kpi-delta">{PERSONEL.length} toplam</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap"><IWal size={14}/></div><div className="kpi-label">Toplam Aylık Maaş</div><div className="kpi-val num">{fmtShort(tMaas)}<span className="suf">₺</span></div><div className="kpi-delta">Aktif personel</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap"><ITrend size={14}/></div><div className="kpi-label">Fazla Mesai ({cy})</div><div className="kpi-val num">{fmtShort(tMesai)}<span className="suf">₺</span></div><div className="kpi-delta">{MESAILER.length} kayıt</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap"><ICal size={14}/></div><div className="kpi-label">Pasif Personel</div><div className="kpi-val num">{PERSONEL.filter(p=>p.durum==='PASIF').length}</div><div className="kpi-delta">İşten ayrılan</div></div>
+    </div>
+
+    <div className="card" style={{marginBottom:14}}>
+      <div className="card-hd"><div className="card-ttl">Personel Listesi</div><span className="muted" style={{fontSize:11.5}}>{PERSONEL.length} kayıt</span><div className="grow"/><button className="btn btn-sm btn-primary" onClick={onNew}><IPlus size={13}/>Yeni Personel</button></div>
+      <div className="tbl-wrap"><table className="tbl">
+        <thead><tr><th>Ad Soyad</th><th className="r">Maaş</th><th>Durum</th><th>Giriş Tarihi</th><th>Çıkış Tarihi</th><th>Telefon</th><th style={{width:110}}>İşlemler</th></tr></thead>
+        <tbody>
+          {PERSONEL.length===0&&<tr><td colSpan={7} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>Henüz personel yok. <strong style={{color:'var(--accent)',cursor:'pointer'}} onClick={onNew}>Yeni Personel</strong> ile başla.</td></tr>}
+          {PERSONEL.map(p=><tr key={p.id}>
+            <td style={{fontWeight:500}}>{p.ad_soyad}</td>
+            <td className="tnum" style={{fontWeight:600}}>{fmt(p.maas||0)}</td>
+            <td><Chip k={p.durum==='AKTIF'?'good':'mute'}>{p.durum}</Chip></td>
+            <td className="tdate">{p.giris_tarihi?fmtD(p.giris_tarihi):'—'}</td>
+            <td className="tdate">{p.cikis_tarihi?fmtD(p.cikis_tarihi):'—'}</td>
+            <td className="mono">{p.telefon||'—'}</td>
+            <td><div className="hstack" style={{gap:4}}>
+              <button className="btn btn-icon btn-ghost btn-sm" onClick={()=>onMesai(p.id)} title="Mesai Kaydı"><ICal size={13}/></button>
+              <button className="btn btn-icon btn-ghost btn-sm" title="Düzenle"><ISet size={13}/></button>
+              <button className="btn btn-icon btn-ghost btn-sm" style={{color:'var(--bad)'}} title="Sil"><IX size={13}/></button>
+            </div></td>
+          </tr>)}
+        </tbody>
+      </table></div>
+    </div>
+
+    <div className="card">
+      <div className="card-hd"><div><div className="card-ttl">Aylık Mesai Özeti</div><div className="card-sub">Personel başına haftalık fazla mesai</div></div></div>
+      <div className="tbl-wrap"><table className="tbl">
+        <thead><tr><th>Personel</th><th className="r">Saat</th><th className="r">Tutar</th><th>Hafta</th></tr></thead>
+        <tbody>
+          {MESAILER.length===0&&<tr><td colSpan={4} style={{padding:36,textAlign:'center',color:'var(--text-3)'}}>Henüz mesai kaydı yok.</td></tr>}
+          {MESAILER.map(m=>{const p=PERSONEL.find(x=>x.id===m.personel_id);return <tr key={m.id||m.hafta+m.personel_id}>
+            <td style={{fontWeight:500}}>{p?.ad_soyad||'—'}</td>
+            <td className="tnum">{m.fazla_mesai_saat||0} sa</td>
+            <td className="tnum" style={{fontWeight:600}}>{fmt(m.tutar||0)}</td>
+            <td>{m.hafta}</td>
+          </tr>;})}
+        </tbody>
+      </table></div>
+    </div>
+  </div>;
+}
+
+// ============= PERSONEL MODAL =============
+function PersonelModal({onClose,onSaved}){
+  const [f,setF]=React.useState({ad_soyad:'',maas:'',durum:'AKTIF',giris_tarihi:new Date().toISOString().slice(0,10),cikis_tarihi:'',telefon:''});
+  const upd=(k,v)=>setF(p=>({...p,[k]:v}));
+  const submit=(e)=>{e.preventDefault();onSaved?.('Personel kaydedildi');};
+  return <div className="scrim" onClick={onClose}>
+    <form className="modal" style={{width:540}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
+      <div className="m-hd">
+        <div style={{width:34,height:34,borderRadius:8,background:'var(--info-soft)',color:'var(--info)',display:'grid',placeItems:'center'}}><IBdg size={15}/></div>
+        <div style={{flex:1}}><div className="m-ttl">Yeni Personel</div><div className="m-sub">Personel kayıt formu</div></div>
+        <button type="button" className="btn btn-icon btn-ghost" onClick={onClose}><IX size={14}/></button>
+      </div>
+      <div className="m-bd">
+        <div className="field"><label>Ad Soyad</label><input value={f.ad_soyad} onChange={e=>upd('ad_soyad',e.target.value)} autoFocus placeholder="Örn: Ahmet Yılmaz"/></div>
+        <div className="field-row">
+          <div className="field"><label>Maaş (₺)</label><input value={f.maas} onChange={e=>upd('maas',e.target.value)} placeholder="0,00" style={{textAlign:'right',fontVariantNumeric:'tabular-nums'}}/></div>
+          <div className="field"><label>Durum</label><select value={f.durum} onChange={e=>upd('durum',e.target.value)}><option value="AKTIF">Aktif</option><option value="PASIF">Pasif</option></select></div>
+        </div>
+        <div className="field-row">
+          <div className="field"><label>Giriş Tarihi</label><input type="date" value={f.giris_tarihi} onChange={e=>upd('giris_tarihi',e.target.value)}/></div>
+          <div className="field"><label>Çıkış Tarihi</label><input type="date" value={f.cikis_tarihi} onChange={e=>upd('cikis_tarihi',e.target.value)}/></div>
+        </div>
+        <div className="field"><label>Telefon</label><input value={f.telefon} onChange={e=>upd('telefon',e.target.value)} placeholder="0532 ..."/></div>
+      </div>
+      <div className="m-ft"><button type="button" className="btn" onClick={onClose}>İptal</button><button type="submit" className="btn btn-primary"><ICk size={13}/>Kaydet</button></div>
+    </form>
+  </div>;
+}
+
+// ============= MESAI MODAL =============
+function MesaiModal({personelId,onClose,onSaved}){
+  const p = PERSONEL.find(x=>x.id===personelId);
+  const [hafta,setHafta]=React.useState('');
+  const [saat,setSaat]=React.useState('');
+  const [tutar,setTutar]=React.useState('');
+  const submit=(e)=>{e.preventDefault();onSaved?.('Mesai kaydedildi');};
+  return <div className="scrim" onClick={onClose}>
+    <form className="modal" style={{width:480}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
+      <div className="m-hd">
+        <div style={{width:34,height:34,borderRadius:8,background:'var(--accent-soft)',color:'var(--accent)',display:'grid',placeItems:'center'}}><ICal size={15}/></div>
+        <div style={{flex:1}}><div className="m-ttl">Mesai Kaydı</div><div className="m-sub">{p?.ad_soyad||'Personel'}</div></div>
+        <button type="button" className="btn btn-icon btn-ghost" onClick={onClose}><IX size={14}/></button>
+      </div>
+      <div className="m-bd">
+        <div className="field"><label>Hafta</label><input value={hafta} onChange={e=>setHafta(e.target.value)} placeholder="2026-W17" className="mono" autoFocus/></div>
+        <div className="field-row">
+          <div className="field"><label>Fazla Mesai (saat)</label><input value={saat} onChange={e=>setSaat(e.target.value)} placeholder="0" style={{textAlign:'right',fontVariantNumeric:'tabular-nums'}}/></div>
+          <div className="field"><label>Tutar (₺)</label><input value={tutar} onChange={e=>setTutar(e.target.value)} placeholder="0,00" style={{textAlign:'right',fontVariantNumeric:'tabular-nums'}}/></div>
+        </div>
+      </div>
+      <div className="m-ft"><button type="button" className="btn" onClick={onClose}>İptal</button><button type="submit" className="btn btn-primary"><ICk size={13}/>Kaydet</button></div>
+    </form>
+  </div>;
+}
+
+// ============= ÇEKLER PAGE =============
+function CeklerPage({onNew}){
+  const [tab,setTab]=React.useState('alinan');
+  const [ls,setLs]=React.useState('');
+  const [durum,setDurum]=React.useState('all');
+  const q=ls.toLowerCase().trim();
+  const list = CEKLER.filter(c=>{
+    if(tab==='alinan' && c.tip!=='ALINAN') return false;
+    if(tab==='verilen' && c.tip!=='VERILEN') return false;
+    if(durum!=='all' && c.durum!==durum) return false;
+    if(q && !((c.evrak_no+' '+c.firma_ad).toLowerCase().includes(q))) return false;
+    return true;
+  });
+  const tTutar = list.reduce((s,c)=>s+(c.tutar||0),0);
+  return <div>
+    <div className="kpi-grid">
+      <div className="kpi"><div className="kpi-icon-wrap" style={{color:'var(--good)'}}><ICek size={14}/></div><div className="kpi-label">Alınan Çek</div><div className="kpi-val num">{CEKLER.filter(c=>c.tip==='ALINAN').length}</div><div className="kpi-delta">{fmtShort(CEKLER.filter(c=>c.tip==='ALINAN').reduce((s,c)=>s+(c.tutar||0),0))} ₺</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap" style={{color:'var(--bad)'}}><ICek size={14}/></div><div className="kpi-label">Verilen Çek</div><div className="kpi-val num">{CEKLER.filter(c=>c.tip==='VERILEN').length}</div><div className="kpi-delta">{fmtShort(CEKLER.filter(c=>c.tip==='VERILEN').reduce((s,c)=>s+(c.tutar||0),0))} ₺</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap" style={{color:'var(--info)'}}><IRcpt size={14}/></div><div className="kpi-label">Portföyde</div><div className="kpi-val num">{CEKLER.filter(c=>c.durum==='portfoyde').length}</div><div className="kpi-delta">Aktif</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap" style={{color:'var(--bad)'}}><IBell size={14}/></div><div className="kpi-label">Karşılıksız</div><div className="kpi-val num">{CEKLER.filter(c=>c.durum==='karsiliksiz').length}</div><div className="kpi-delta">Sorunlu</div></div>
+    </div>
+    <div className="fbar">
+      <div className="seg">
+        <button className={tab==='alinan'?'on':''} onClick={()=>setTab('alinan')}>Alınan Çekler</button>
+        <button className={tab==='verilen'?'on':''} onClick={()=>setTab('verilen')}>Verilen Çekler</button>
+      </div>
+      <div className="flt"><ITag size={13}/><select value={durum} onChange={e=>setDurum(e.target.value)}><option value="all">Tüm Durumlar</option>{Object.keys(CEK_DURUM).map(k=><option key={k} value={k}>{CEK_DURUM[k]}</option>)}</select><IDown size={12}/></div>
+      <div className="grow"/>
+      <div className="input-search"><ISearch size={13}/><input placeholder="Çek no, firma…" value={ls} onChange={e=>setLs(e.target.value)}/></div>
+      <button className="btn btn-sm"><IPdf size={13}/>PDF</button>
+      <button className="btn btn-sm btn-primary" onClick={()=>onNew(tab)}><IPlus size={13}/>Yeni Çek</button>
+    </div>
+    <div className="card">
+      <div className="card-hd"><div className="card-ttl">{tab==='alinan'?'Alınan Çekler':'Verilen Çekler'}</div><span className="muted" style={{fontSize:11.5}}>{list.length} kayıt · {fmt(tTutar)}</span></div>
+      <div className="tbl-wrap"><table className="tbl">
+        <thead><tr><th>Tip</th><th>Evrak No</th><th>Firma</th><th>Kesim</th><th>Vade</th><th className="r">Tutar</th><th>Durum</th><th style={{width:110}}>İşlemler</th></tr></thead>
+        <tbody>
+          {list.length===0&&<tr><td colSpan={8} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>{tab==='alinan'?'Alınan çek yok.':'Verilen çek yok.'}</td></tr>}
+          {list.map(c=><tr key={c.id}>
+            <td><Chip k="info" dot={false}>{c.evrak_tipi||'CEK'}</Chip></td>
+            <td className="tref">{c.evrak_no}</td>
+            <td style={{fontWeight:500}}>{c.firma_ad}</td>
+            <td className="tdate">{fmtD(c.kesim_tarihi)}</td>
+            <td className="tdate">{fmtD(c.vade_tarihi)}</td>
+            <td className="tnum" style={{fontWeight:600}}>{fmt(c.tutar||0)}</td>
+            <td><Chip k={CEK_DURUM_K[c.durum]||'mute'}>{CEK_DURUM[c.durum]||c.durum}</Chip></td>
+            <td><div className="hstack" style={{gap:4}}><button className="btn btn-icon btn-ghost btn-sm"><ISet size={13}/></button><button className="btn btn-icon btn-ghost btn-sm" style={{color:'var(--bad)'}}><IX size={13}/></button></div></td>
+          </tr>)}
+        </tbody>
+      </table></div>
+    </div>
+  </div>;
+}
+
+// ============= ÇEK MODAL =============
+function CekModal({tip='ALINAN',onClose,onSaved}){
+  const [f,setF]=React.useState({evrak_tipi:'CEK',evrak_no:'',firma_id:CUSTOMERS[0]?.id||'',kesim_tarihi:new Date().toISOString().slice(0,10),vade_tarihi:'',tutar:'',notlar:''});
+  const upd=(k,v)=>setF(p=>({...p,[k]:v}));
+  const submit=(e)=>{e.preventDefault();onSaved?.(`${tip==='ALINAN'?'Alınan':'Verilen'} çek kaydedildi`);};
+  return <div className="scrim" onClick={onClose}>
+    <form className="modal" style={{width:560}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
+      <div className="m-hd">
+        <div style={{width:34,height:34,borderRadius:8,background:tip==='ALINAN'?'var(--good-soft)':'var(--bad-soft)',color:tip==='ALINAN'?'var(--good)':'var(--bad)',display:'grid',placeItems:'center'}}><ICek size={15}/></div>
+        <div style={{flex:1}}><div className="m-ttl">Yeni {tip==='ALINAN'?'Alınan':'Verilen'} Çek</div><div className="m-sub">Çek/Senet kaydı</div></div>
+        <button type="button" className="btn btn-icon btn-ghost" onClick={onClose}><IX size={14}/></button>
+      </div>
+      <div className="m-bd">
+        <div className="field"><label>Evrak Tipi</label><div className="tp">
+          <label><input type="radio" name="et" checked={f.evrak_tipi==='CEK'} onChange={()=>upd('evrak_tipi','CEK')}/><div className="tp-ic"><ICek size={14}/></div><div><div className="tp-ttl">Çek</div></div></label>
+          <label><input type="radio" name="et" checked={f.evrak_tipi==='SENET'} onChange={()=>upd('evrak_tipi','SENET')}/><div className="tp-ic"><IDoc size={14}/></div><div><div className="tp-ttl">Senet</div></div></label>
+        </div></div>
+        <div className="field-row">
+          <div className="field"><label>Evrak No</label><input value={f.evrak_no} onChange={e=>upd('evrak_no',e.target.value)} placeholder="Otomatik" className="mono" autoFocus/></div>
+          <div className="field"><label>Firma</label><select value={f.firma_id} onChange={e=>upd('firma_id',e.target.value)}>{CUSTOMERS.length===0&&<option value="">— Cari yok —</option>}{CUSTOMERS.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+        </div>
+        <div className="field-row">
+          <div className="field"><label>Kesim Tarihi</label><input type="date" value={f.kesim_tarihi} onChange={e=>upd('kesim_tarihi',e.target.value)}/></div>
+          <div className="field"><label>Vade Tarihi</label><input type="date" value={f.vade_tarihi} onChange={e=>upd('vade_tarihi',e.target.value)}/></div>
+        </div>
+        <div className="field"><label>Tutar (₺)</label><input value={f.tutar} onChange={e=>upd('tutar',e.target.value)} placeholder="0,00" style={{textAlign:'right',fontSize:16,fontWeight:600,fontVariantNumeric:'tabular-nums'}}/></div>
+        <div className="field"><label>Notlar</label><textarea rows="2" value={f.notlar} onChange={e=>upd('notlar',e.target.value)} placeholder="İsteğe bağlı"/></div>
+      </div>
+      <div className="m-ft"><button type="button" className="btn" onClick={onClose}>İptal</button><button type="submit" className="btn btn-primary"><ICk size={13}/>Kaydet</button></div>
+    </form>
+  </div>;
+}
+
+// ============= ÇEK TAKVİMİ PAGE =============
+function CekTakvim(){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const [ls,setLs]=React.useState('');
+  const q=ls.toLowerCase().trim();
+  const portfoy = CEKLER.filter(c=>c.durum==='portfoyde');
+  const filt = portfoy.filter(c=>q?(c.evrak_no+' '+c.firma_ad).toLowerCase().includes(q):true)
+    .sort((a,b)=>(a.vade_tarihi||'').localeCompare(b.vade_tarihi||''));
+  const gunFark=(d)=>{if(!d)return null;const x=new Date(d);x.setHours(0,0,0,0);return Math.round((x-today)/86400000);};
+  const gecmis = filt.filter(c=>{const g=gunFark(c.vade_tarihi);return g!==null && g<0;}).length;
+  const bugun = filt.filter(c=>gunFark(c.vade_tarihi)===0).length;
+  const uc = filt.filter(c=>{const g=gunFark(c.vade_tarihi);return g>0 && g<=3;}).length;
+  const yedi = filt.filter(c=>{const g=gunFark(c.vade_tarihi);return g>3 && g<=7;}).length;
+
+  return <div>
+    <div className="kpi-grid">
+      <div className="kpi" style={{borderColor:gecmis>0?'var(--bad)':undefined}}><div className="kpi-icon-wrap" style={{color:'var(--bad)'}}><IBell size={14}/></div><div className="kpi-label">Vadesi Geçmiş</div><div className="kpi-val num" style={{color:'var(--bad)'}}>{gecmis}</div><div className="kpi-delta">Acil</div></div>
+      <div className="kpi" style={{borderColor:bugun>0?'var(--warn)':undefined}}><div className="kpi-icon-wrap" style={{color:'var(--warn)'}}><ICal size={14}/></div><div className="kpi-label">Bugün Vadeli</div><div className="kpi-val num" style={{color:'var(--warn)'}}>{bugun}</div><div className="kpi-delta">Bugün</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap" style={{color:'var(--warn)'}}><ICal size={14}/></div><div className="kpi-label">3 Gün İçinde</div><div className="kpi-val num" style={{color:'var(--warn)'}}>{uc}</div><div className="kpi-delta">Yakın</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap" style={{color:'var(--info)'}}><ICal size={14}/></div><div className="kpi-label">7 Gün İçinde</div><div className="kpi-val num" style={{color:'var(--info)'}}>{yedi}</div><div className="kpi-delta">Hafta</div></div>
+    </div>
+    <div className="fbar">
+      <div className="grow"/>
+      <div className="input-search"><ISearch size={13}/><input placeholder="Çek no, firma…" value={ls} onChange={e=>setLs(e.target.value)}/></div>
+    </div>
+    <div className="card">
+      <div className="card-hd"><div className="card-ttl">Vade Sırası</div><span className="muted" style={{fontSize:11.5}}>{filt.length} portföy çeki</span></div>
+      <div className="tbl-wrap"><table className="tbl">
+        <thead><tr><th>Çek No</th><th>Firma</th><th>Vade</th><th className="r">Kalan Gün</th><th className="r">Tutar</th><th>Durum</th></tr></thead>
+        <tbody>
+          {filt.length===0&&<tr><td colSpan={6} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>Portföyde çek yok.</td></tr>}
+          {filt.map(c=>{const g=gunFark(c.vade_tarihi);const k=g===null?'mute':g<0?'bad':g===0?'warn':g<=3?'warn':g<=7?'info':'good';return <tr key={c.id}>
+            <td className="tref">{c.evrak_no}</td>
+            <td style={{fontWeight:500}}>{c.firma_ad}</td>
+            <td className="tdate">{fmtD(c.vade_tarihi)}</td>
+            <td className="tnum" style={{fontWeight:600,color:`var(--${k==='bad'?'bad':k==='warn'?'warn':k==='info'?'info':'good'})`}}>{g===null?'—':g<0?`${Math.abs(g)} gün geçti`:g===0?'Bugün':`${g} gün`}</td>
+            <td className="tnum">{fmt(c.tutar||0)}</td>
+            <td><Chip k={k}>{g===null?'?':g<0?'Geçmiş':g===0?'Bugün':g<=3?'Yakın':g<=7?'Hafta':'Açık'}</Chip></td>
+          </tr>;})}
+        </tbody>
+      </table></div>
+    </div>
+  </div>;
+}
+
+// ============= MUTABAKAT PAGE =============
+function MutabakatPage({onSaved}){
+  const [firmaId,setFirmaId]=React.useState(CUSTOMERS[0]?.id||'');
+  const [tarih,setTarih]=React.useState(new Date().toISOString().slice(0,10));
+  const [firmaBeyan,setFirmaBeyan]=React.useState('');
+  const [not,setNot]=React.useState('');
+  const c = CUSTOMERS.find(x=>x.id===firmaId);
+  const sistemBakiye = c?.balance||0;
+  const fb = parseFloat(firmaBeyan)||0;
+  const fark = sistemBakiye - fb;
+  const tam = Math.abs(fark)<0.01;
+
+  const tamSayi = MUTABAKATLAR.filter(m=>m.durum==='TAM').length;
+  const farkSayi = MUTABAKATLAR.filter(m=>m.durum==='FARKLI').length;
+
+  const submit=(e)=>{e.preventDefault();window.__toast?.('Mutabakat kaydedildi');setFirmaBeyan('');setNot('');};
+
+  return <div>
+    <div className="kpi-grid">
+      <div className="kpi"><div className="kpi-icon-wrap"><ICk size={14}/></div><div className="kpi-label">Toplam Mutabakat</div><div className="kpi-val num">{MUTABAKATLAR.length}</div><div className="kpi-delta">Tüm zamanlar</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap" style={{color:'var(--good)'}}><ICk size={14}/></div><div className="kpi-label">Tam Eşleşme</div><div className="kpi-val num" style={{color:'var(--good)'}}>{tamSayi}</div><div className="kpi-delta">Sorunsuz</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap" style={{color:'var(--bad)'}}><IBell size={14}/></div><div className="kpi-label">Farklı Kayıt</div><div className="kpi-val num" style={{color:'var(--bad)'}}>{farkSayi}</div><div className="kpi-delta">İncelenmeli</div></div>
+    </div>
+
+    <div className="card" style={{marginBottom:14}}>
+      <div className="card-hd"><div><div className="card-ttl">Yeni Mutabakat</div><div className="card-sub">Sistem ve firma beyan bakiyesini karşılaştır</div></div></div>
+      <form onSubmit={submit} style={{padding:'18px 20px'}}>
+        <div className="field-row">
+          <div className="field"><label>Firma</label><select value={firmaId} onChange={e=>setFirmaId(e.target.value)}>{CUSTOMERS.length===0&&<option value="">— Cari yok —</option>}{CUSTOMERS.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+          <div className="field"><label>Mutabakat Tarihi</label><input type="date" value={tarih} onChange={e=>setTarih(e.target.value)}/></div>
+        </div>
+        <div className="field-row">
+          <div className="field"><label>Sistem Bakiyesi (otomatik)</label><input value={fmt(sistemBakiye)} disabled style={{textAlign:'right',fontVariantNumeric:'tabular-nums',color:'var(--text-2)'}}/></div>
+          <div className="field"><label>Firma Beyan Bakiyesi (₺)</label><input value={firmaBeyan} onChange={e=>setFirmaBeyan(e.target.value)} placeholder="0,00" style={{textAlign:'right',fontVariantNumeric:'tabular-nums',fontSize:16,fontWeight:600}}/></div>
+        </div>
+        {firmaBeyan&&<div style={{padding:'12px 16px',background:tam?'var(--good-soft)':'var(--bad-soft)',border:`1px solid ${tam?'rgba(74,222,128,0.3)':'rgba(248,113,113,0.3)'}`,borderRadius:8,marginBottom:14,display:'flex',alignItems:'center',gap:10}}>
+          {tam?<ICk size={20} style={{color:'var(--good)'}}/>:<IBell size={20} style={{color:'var(--bad)'}}/>}
+          <div style={{flex:1}}>
+            <div style={{fontWeight:600,fontSize:13,color:tam?'var(--good)':'var(--bad)'}}>{tam?'Tam Eşleşme':'Fark Var'}</div>
+            <div style={{fontSize:12,color:'var(--text-2)',marginTop:2}}>Fark: <span className="num" style={{fontWeight:600}}>{fmt(fark)}</span></div>
+          </div>
+        </div>}
+        <div className="field"><label>Not</label><textarea rows="2" value={not} onChange={e=>setNot(e.target.value)} placeholder="İsteğe bağlı açıklama"/></div>
+        <div className="hstack" style={{justifyContent:'flex-end'}}><button type="submit" className="btn btn-primary"><ICk size={13}/>Mutabakat Kaydet</button></div>
+      </form>
+    </div>
+
+    <div className="card">
+      <div className="card-hd"><div className="card-ttl">Mutabakat Geçmişi</div><span className="muted" style={{fontSize:11.5}}>{MUTABAKATLAR.length} kayıt</span></div>
+      <div className="tbl-wrap"><table className="tbl">
+        <thead><tr><th>Tarih</th><th>Firma</th><th className="r">Sistem</th><th className="r">Firma Beyan</th><th className="r">Fark</th><th>Durum</th><th>Not</th></tr></thead>
+        <tbody>
+          {MUTABAKATLAR.length===0&&<tr><td colSpan={7} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>Henüz mutabakat kaydı yok.</td></tr>}
+          {MUTABAKATLAR.map(m=><tr key={m.id||m.tarih+m.firma_kod}>
+            <td className="tdate">{fmtD(m.tarih)}</td>
+            <td style={{fontWeight:500}}>{m.firma_ad}</td>
+            <td className="tnum">{fmt(m.sistem_bakiye||0)}</td>
+            <td className="tnum">{fmt(m.firma_beyan||0)}</td>
+            <td className="tnum" style={{fontWeight:600,color:Math.abs(m.fark||0)<0.01?'var(--good)':'var(--bad)'}}>{fmt(m.fark||0)}</td>
+            <td><Chip k={m.durum==='TAM'?'good':'bad'}>{m.durum}</Chip></td>
+            <td style={{color:'var(--text-2)',fontSize:12}}>{m.not}</td>
+          </tr>)}
+        </tbody>
+      </table></div>
+    </div>
+  </div>;
+}
+
+// ============= TAHSILAT ÖNERİSİ PAGE =============
+function TahsilatOneri(){
+  const [ls,setLs]=React.useState('');
+  const q=ls.toLowerCase().trim();
+  const list = TAHSILAT_ONERI.filter(o=>q?(o.kod+' '+o.firma).toLowerCase().includes(q):true)
+    .sort((a,b)=>(b.oncelik||0)-(a.oncelik||0));
+  const tToplam = list.reduce((s,o)=>s+(o.oneri_tutar||0),0);
+  const riskColor=(r)=>r>100?'var(--bad)':r>=80?'var(--warn)':r>=50?'#fbbf24':r>0?'var(--good)':'var(--text-3)';
+
+  return <div>
+    <div className="kpi-grid" style={{gridTemplateColumns:'repeat(2, 1fr)'}}>
+      <div className="kpi"><div className="kpi-icon-wrap"><IIns size={14}/></div><div className="kpi-label">Öneri Sayısı</div><div className="kpi-val num">{list.length}</div><div className="kpi-delta">Risk skoruna göre sıralı</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap" style={{color:'var(--accent)'}}><IRcpt size={14}/></div><div className="kpi-label">Toplam Önerilen Tahsilat</div><div className="kpi-val num" style={{color:'var(--accent)'}}>{fmtShort(tToplam)}<span className="suf">₺</span></div><div className="kpi-delta">Tüm öneriler</div></div>
+    </div>
+    <div className="fbar">
+      <div className="grow"/>
+      <div className="input-search"><ISearch size={13}/><input placeholder="Firma ara…" value={ls} onChange={e=>setLs(e.target.value)}/></div>
+      <button className="btn btn-sm"><IXls size={13}/>Excel</button>
+    </div>
+    <div className="card">
+      <div className="card-hd"><div><div className="card-ttl">Tahsilat Önerileri</div><div className="card-sub">Risk analizi · gecikme süresi · öncelik skoru</div></div></div>
+      <div className="tbl-wrap"><table className="tbl">
+        <thead><tr><th>Kod</th><th>Firma</th><th className="r">Önerilen Tahsilat</th><th className="r">Risk %</th><th>En Eski Satış</th><th className="r">Gecikme</th><th className="r">Öncelik</th></tr></thead>
+        <tbody>
+          {list.length===0&&<tr><td colSpan={7} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>Şu an öneri yok. Tüm cariler kontrol altında.</td></tr>}
+          {list.map(o=><tr key={o.kod}>
+            <td className="mono">{o.kod}</td>
+            <td style={{fontWeight:500}}>{o.firma}</td>
+            <td className="tnum" style={{fontWeight:600,color:'var(--accent)'}}>{fmt(o.oneri_tutar||0)}</td>
+            <td className="tnum" style={{fontWeight:600,color:riskColor(o.risk_yuzdesi||0)}}>%{(o.risk_yuzdesi||0).toFixed(0)}</td>
+            <td className="tdate">{fmtD(o.en_eski_satis)}</td>
+            <td className="tnum">{o.gecikme_gun||0} gün</td>
+            <td className="tnum" style={{fontWeight:600}}>{(o.oncelik||0).toFixed(0)}</td>
+          </tr>)}
+        </tbody>
+      </table></div>
+    </div>
+  </div>;
+}
+
+// ============= ÜRETIM PAGE =============
+function UretimPage({onNew,onView}){
+  const [ls,setLs]=React.useState('');
+  const q=ls.toLowerCase().trim();
+  const list = URETIM.filter(u=>q?(u.aciklama||'').toLowerCase().includes(q):true)
+    .sort((a,b)=>(b.tarih||'').localeCompare(a.tarih||''));
+  const tGirdi = list.reduce((s,u)=>s+(u.girdi_toplam||0),0);
+  const tCikti = list.reduce((s,u)=>s+(u.cikti_toplam||0),0);
+  const tFire = list.reduce((s,u)=>s+(u.fire||0),0);
+  return <div>
+    <div className="kpi-grid">
+      <div className="kpi"><div className="kpi-icon-wrap"><IFct size={14}/></div><div className="kpi-label">Üretim Sayısı</div><div className="kpi-val num">{list.length}</div><div className="kpi-delta">Tüm dönemler</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap" style={{color:'var(--info)'}}><IDn size={14}/></div><div className="kpi-label">Toplam Girdi</div><div className="kpi-val num" style={{color:'var(--info)'}}>{tGirdi.toFixed(1)}<span className="suf"> kg</span></div><div className="kpi-delta">Hammadde</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap" style={{color:'var(--good)'}}><IUp size={14}/></div><div className="kpi-label">Toplam Çıktı</div><div className="kpi-val num" style={{color:'var(--good)'}}>{tCikti.toFixed(1)}<span className="suf"> kg</span></div><div className="kpi-delta">Üretilen</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap" style={{color:'var(--bad)'}}><IBell size={14}/></div><div className="kpi-label">Toplam Fire</div><div className="kpi-val num" style={{color:'var(--bad)'}}>{tFire.toFixed(1)}<span className="suf"> kg</span></div><div className="kpi-delta">{tGirdi>0?`%${((tFire/tGirdi)*100).toFixed(1)}`:'—'}</div></div>
+    </div>
+    <div className="fbar">
+      <div className="grow"/>
+      <div className="input-search"><ISearch size={13}/><input placeholder="Açıklama ara…" value={ls} onChange={e=>setLs(e.target.value)}/></div>
+      <button className="btn btn-sm btn-primary" onClick={onNew}><IPlus size={13}/>Yeni Üretim</button>
+    </div>
+    <div className="card">
+      <div className="card-hd"><div className="card-ttl">Üretim Kayıtları</div><span className="muted" style={{fontSize:11.5}}>{list.length} kayıt</span></div>
+      <div className="tbl-wrap"><table className="tbl">
+        <thead><tr><th>Tarih</th><th>Açıklama</th><th className="r">Girdi (kg)</th><th className="r">Çıktı (kg)</th><th className="r">Fire (kg)</th><th>İşlemler</th></tr></thead>
+        <tbody>
+          {list.length===0&&<tr><td colSpan={6} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>Henüz üretim kaydı yok. <strong style={{color:'var(--accent)',cursor:'pointer'}} onClick={onNew}>Yeni Üretim</strong> ile başla.</td></tr>}
+          {list.map(u=><tr key={u.id}>
+            <td className="tdate">{fmtD(u.tarih)}</td>
+            <td>{u.aciklama}</td>
+            <td className="tnum">{(u.girdi_toplam||0).toFixed(1)}</td>
+            <td className="tnum" style={{color:'var(--good)'}}>{(u.cikti_toplam||0).toFixed(1)}</td>
+            <td className="tnum" style={{color:(u.fire||0)>0?'var(--bad)':'var(--text-3)'}}>{(u.fire||0).toFixed(1)}</td>
+            <td><div className="hstack" style={{gap:4}}><button className="btn btn-sm btn-ghost" onClick={()=>onView(u.id)}>Detay</button><button className="btn btn-icon btn-ghost btn-sm"><ISet size={13}/></button><button className="btn btn-icon btn-ghost btn-sm" style={{color:'var(--bad)'}}><IX size={13}/></button></div></td>
+          </tr>)}
+        </tbody>
+      </table></div>
+    </div>
+  </div>;
+}
+
+// ============= ÜRETIM MODAL (yeni / düzenle) =============
+function UretimModal({onClose,onSaved}){
+  const [tarih,setTarih]=React.useState(new Date().toISOString().slice(0,10));
+  const [aciklama,setAciklama]=React.useState('');
+  const [girdiler,setGirdiler]=React.useState([{urun_kod:STOK[0]?.kod||'',miktar:''}]);
+  const [ciktilar,setCiktilar]=React.useState([{urun_kod:STOK[0]?.kod||'',miktar:''}]);
+  const tGirdi = girdiler.reduce((s,g)=>s+(parseFloat(g.miktar)||0),0);
+  const tCikti = ciktilar.reduce((s,c)=>s+(parseFloat(c.miktar)||0),0);
+  const fire = tGirdi - tCikti;
+  const submit=(e)=>{e.preventDefault();onSaved?.('Üretim kaydedildi');};
+  const updGirdi=(i,k,v)=>setGirdiler(p=>p.map((g,j)=>j===i?{...g,[k]:v}:g));
+  const updCikti=(i,k,v)=>setCiktilar(p=>p.map((c,j)=>j===i?{...c,[k]:v}:c));
+
+  return <div className="scrim" onClick={onClose}>
+    <form className="modal" style={{width:720}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
+      <div className="m-hd">
+        <div style={{width:34,height:34,borderRadius:8,background:'var(--accent-soft)',color:'var(--accent)',display:'grid',placeItems:'center'}}><IFct size={15}/></div>
+        <div style={{flex:1}}><div className="m-ttl">Yeni Üretim Kaydı</div><div className="m-sub">Hammadde girdi-çıktı</div></div>
+        <button type="button" className="btn btn-icon btn-ghost" onClick={onClose}><IX size={14}/></button>
+      </div>
+      <div className="m-bd">
+        <div className="field-row">
+          <div className="field"><label>Tarih</label><input type="date" value={tarih} onChange={e=>setTarih(e.target.value)}/></div>
+          <div className="field"><label>Açıklama</label><input value={aciklama} onChange={e=>setAciklama(e.target.value)} placeholder="Üretim partisi / not"/></div>
+        </div>
+        {/* Girdiler */}
+        <div style={{marginBottom:14}}>
+          <div className="hstack" style={{marginBottom:8}}><div style={{fontSize:11,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.08em',color:'var(--info)'}}>Girdiler (Hammadde)</div><div className="grow"/><button type="button" className="btn btn-sm btn-ghost" onClick={()=>setGirdiler(p=>[...p,{urun_kod:STOK[0]?.kod||'',miktar:''}])}><IPlus size={12}/>Satır Ekle</button></div>
+          {girdiler.map((g,i)=><div key={i} className="hstack" style={{gap:8,marginBottom:6}}>
+            <select value={g.urun_kod} onChange={e=>updGirdi(i,'urun_kod',e.target.value)} style={{flex:1,padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,background:'var(--panel-2)',color:'var(--text)'}}>{STOK.length===0&&<option value="">— Ürün yok —</option>}{STOK.map(s=><option key={s.kod} value={s.kod}>{s.kod} · {s.ad}</option>)}</select>
+            <input value={g.miktar} onChange={e=>updGirdi(i,'miktar',e.target.value)} placeholder="0,00 kg" style={{width:120,padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,background:'var(--panel-2)',textAlign:'right',color:'var(--text)'}}/>
+            <button type="button" className="btn btn-icon btn-ghost btn-sm" style={{color:'var(--bad)'}} onClick={()=>setGirdiler(p=>p.filter((_,j)=>j!==i))}><IX size={13}/></button>
+          </div>)}
+        </div>
+        {/* Çıktılar */}
+        <div style={{marginBottom:14}}>
+          <div className="hstack" style={{marginBottom:8}}><div style={{fontSize:11,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.08em',color:'var(--good)'}}>Çıktılar (Üretilen)</div><div className="grow"/><button type="button" className="btn btn-sm btn-ghost" onClick={()=>setCiktilar(p=>[...p,{urun_kod:STOK[0]?.kod||'',miktar:''}])}><IPlus size={12}/>Satır Ekle</button></div>
+          {ciktilar.map((c,i)=><div key={i} className="hstack" style={{gap:8,marginBottom:6}}>
+            <select value={c.urun_kod} onChange={e=>updCikti(i,'urun_kod',e.target.value)} style={{flex:1,padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,background:'var(--panel-2)',color:'var(--text)'}}>{STOK.length===0&&<option value="">— Ürün yok —</option>}{STOK.map(s=><option key={s.kod} value={s.kod}>{s.kod} · {s.ad}</option>)}</select>
+            <input value={c.miktar} onChange={e=>updCikti(i,'miktar',e.target.value)} placeholder="0,00 kg" style={{width:120,padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,background:'var(--panel-2)',textAlign:'right',color:'var(--text)'}}/>
+            <button type="button" className="btn btn-icon btn-ghost btn-sm" style={{color:'var(--bad)'}} onClick={()=>setCiktilar(p=>p.filter((_,j)=>j!==i))}><IX size={13}/></button>
+          </div>)}
+        </div>
+        {/* Özet */}
+        <div style={{padding:'12px 14px',background:'var(--panel-2)',border:'1px solid var(--border)',borderRadius:8,display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:14}}>
+          <div><div style={{fontSize:10.5,color:'var(--text-3)',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.08em'}}>Toplam Girdi</div><div className="num" style={{fontSize:16,fontWeight:700,color:'var(--info)'}}>{tGirdi.toFixed(1)} kg</div></div>
+          <div><div style={{fontSize:10.5,color:'var(--text-3)',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.08em'}}>Toplam Çıktı</div><div className="num" style={{fontSize:16,fontWeight:700,color:'var(--good)'}}>{tCikti.toFixed(1)} kg</div></div>
+          <div><div style={{fontSize:10.5,color:'var(--text-3)',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.08em'}}>Fire</div><div className="num" style={{fontSize:16,fontWeight:700,color:fire>0?'var(--bad)':'var(--text)'}}>{fire.toFixed(1)} kg {tGirdi>0&&<span style={{fontSize:11,fontWeight:500,color:'var(--text-3)'}}>(%{((fire/tGirdi)*100).toFixed(1)})</span>}</div></div>
+        </div>
+      </div>
+      <div className="m-ft"><button type="button" className="btn" onClick={onClose}>İptal</button><button type="submit" className="btn btn-primary"><ICk size={13}/>Kaydet</button></div>
+    </form>
+  </div>;
+}
+
+// ============= FİRMALAR (MASTER) PAGE =============
+function FirmalarPage({onNew}){
+  const [ls,setLs]=React.useState('');
+  const q=ls.toLowerCase().trim();
+  const list = FIRMALAR_MASTER.filter(f=>q?((f.kod||'')+' '+(f.ad||'')+' '+(f.vkn||'')+' '+(f.email||'')).toLowerCase().includes(q):true);
+  return <div>
+    <div className="kpi-grid" style={{gridTemplateColumns:'repeat(2, 1fr)'}}>
+      <div className="kpi"><div className="kpi-icon-wrap"><IApt size={14}/></div><div className="kpi-label">Toplam Firma</div><div className="kpi-val num">{FIRMALAR_MASTER.length}</div><div className="kpi-delta">Master kayıt</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap"><IBdg size={14}/></div><div className="kpi-label">Risk Limitli</div><div className="kpi-val num">{FIRMALAR_MASTER.filter(f=>(f.risk_limiti||0)>0).length}</div><div className="kpi-delta">Limit tanımlı</div></div>
+    </div>
+    <div className="fbar">
+      <div className="grow"/>
+      <div className="input-search"><ISearch size={13}/><input placeholder="Kod, ad, VKN, e-posta…" value={ls} onChange={e=>setLs(e.target.value)}/></div>
+      <button className="btn btn-sm"><IXls size={13}/>Excel</button>
+      <button className="btn btn-sm btn-primary" onClick={onNew}><IPlus size={13}/>Yeni Firma</button>
+    </div>
+    <div className="card">
+      <div className="card-hd"><div className="card-ttl">Firma Master Listesi</div><span className="muted" style={{fontSize:11.5}}>{list.length} firma</span></div>
+      <div className="tbl-wrap"><table className="tbl">
+        <thead><tr><th>Kod</th><th>Firma Adı</th><th>VKN/TCKN</th><th>Telefon</th><th>E-posta</th><th>NACE</th><th className="r">Risk Limiti</th><th style={{width:110}}>İşlemler</th></tr></thead>
+        <tbody>
+          {list.length===0&&<tr><td colSpan={8} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>Firma yok. <strong style={{color:'var(--accent)',cursor:'pointer'}} onClick={onNew}>Yeni Firma</strong> ile başla.</td></tr>}
+          {list.map(f=><tr key={f.kod}>
+            <td className="mono">{f.kod}</td>
+            <td style={{fontWeight:500}}>{f.ad}</td>
+            <td className="mono">{f.vkn||'—'}</td>
+            <td className="mono">{f.telefon||'—'}</td>
+            <td style={{fontSize:12,color:'var(--text-2)'}}>{f.email||'—'}</td>
+            <td className="mono">{f.nace||'—'}</td>
+            <td className="tnum">{f.risk_limiti?fmt(f.risk_limiti):'—'}</td>
+            <td><div className="hstack" style={{gap:4}}>
+              <button className="btn btn-icon btn-ghost btn-sm" title="Detay"><IDoc size={13}/></button>
+              <button className="btn btn-icon btn-ghost btn-sm" title="Düzenle"><ISet size={13}/></button>
+              <button className="btn btn-icon btn-ghost btn-sm" style={{color:'var(--bad)'}} title="Sil"><IX size={13}/></button>
+            </div></td>
+          </tr>)}
+        </tbody>
+      </table></div>
+    </div>
+  </div>;
+}
+
+// ============= FİRMA MODAL =============
+function FirmaModal({onClose,onSaved}){
+  const [f,setF]=React.useState({kod:'',ad:'',vkn:'',vergi_dairesi:'',telefon:'',email:'',adres:'',nace:'',is_alani:'',risk_limiti:''});
+  const upd=(k,v)=>setF(p=>({...p,[k]:v}));
+  const submit=(e)=>{e.preventDefault();onSaved?.('Firma kaydedildi');};
+  return <div className="scrim" onClick={onClose}>
+    <form className="modal" style={{width:600}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
+      <div className="m-hd">
+        <div style={{width:34,height:34,borderRadius:8,background:'var(--info-soft)',color:'var(--info)',display:'grid',placeItems:'center'}}><IApt size={15}/></div>
+        <div style={{flex:1}}><div className="m-ttl">Yeni Firma (Master)</div><div className="m-sub">Detaylı firma kaydı</div></div>
+        <button type="button" className="btn btn-icon btn-ghost" onClick={onClose}><IX size={14}/></button>
+      </div>
+      <div className="m-bd">
+        <div className="field-row">
+          <div className="field"><label>Firma Kodu</label><input value={f.kod} onChange={e=>upd('kod',e.target.value)} placeholder="Otomatik" className="mono" autoFocus/></div>
+          <div className="field"><label>VKN / TCKN</label><input value={f.vkn} onChange={e=>upd('vkn',e.target.value)} placeholder="0123456789" className="mono"/></div>
+        </div>
+        <div className="field"><label>Firma Adı</label><input value={f.ad} onChange={e=>upd('ad',e.target.value)} placeholder="Tam ünvan"/></div>
+        <div className="field"><label>Vergi Dairesi</label><input value={f.vergi_dairesi} onChange={e=>upd('vergi_dairesi',e.target.value)} placeholder="Pendik V.D."/></div>
+        <div className="field-row">
+          <div className="field"><label>Telefon</label><input value={f.telefon} onChange={e=>upd('telefon',e.target.value)} placeholder="0216 ..."/></div>
+          <div className="field"><label>E-posta</label><input value={f.email} onChange={e=>upd('email',e.target.value)} placeholder="info@firma.com"/></div>
+        </div>
+        <div className="field"><label>Adres</label><textarea rows="2" value={f.adres} onChange={e=>upd('adres',e.target.value)}/></div>
+        <div className="field-row">
+          <div className="field"><label>NACE Kodu</label><input value={f.nace} onChange={e=>upd('nace',e.target.value)} placeholder="46.72.01" className="mono"/></div>
+          <div className="field"><label>İş Alanı</label><input value={f.is_alani} onChange={e=>upd('is_alani',e.target.value)}/></div>
+        </div>
+        <div className="field"><label>Risk Limiti (₺)</label><input value={f.risk_limiti} onChange={e=>upd('risk_limiti',e.target.value)} placeholder="0,00" style={{textAlign:'right',fontVariantNumeric:'tabular-nums'}}/></div>
+      </div>
+      <div className="m-ft"><button type="button" className="btn" onClick={onClose}>İptal</button><button type="submit" className="btn btn-primary"><ICk size={13}/>Kaydet</button></div>
+    </form>
+  </div>;
+}
+
+// ============= KÂRLILIIK PAGE =============
+function KarlilikPage(){
+  const [ls,setLs]=React.useState('');
+  const q=ls.toLowerCase().trim();
+  const list = KARLILIK.filter(k=>q?((k.kod||'')+' '+(k.ad||'')).toLowerCase().includes(q):true)
+    .sort((a,b)=>(b.kar||0)-(a.kar||0));
+  const tKar = list.reduce((s,k)=>s+(k.kar||0),0);
+  const ortMarj = list.length>0 ? list.reduce((s,k)=>s+(k.marj_yuzde||0),0)/list.length : 0;
+  return <div>
+    <div className="kpi-grid" style={{gridTemplateColumns:'repeat(3, 1fr)'}}>
+      <div className="kpi"><div className="kpi-icon-wrap"><IStok size={14}/></div><div className="kpi-label">Ürün Sayısı</div><div className="kpi-val num">{list.length}</div><div className="kpi-delta">Karlılık takipte</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap" style={{color:tKar>=0?'var(--good)':'var(--bad)'}}><ITrend size={14}/></div><div className="kpi-label">Toplam Kâr</div><div className="kpi-val num" style={{color:tKar>=0?'var(--good)':'var(--bad)'}}>{tKar>=0?'+':'−'}{fmtShort(Math.abs(tKar))}<span className="suf">₺</span></div><div className="kpi-delta">Net</div></div>
+      <div className="kpi"><div className="kpi-icon-wrap"><IIns size={14}/></div><div className="kpi-label">Ortalama Marj</div><div className="kpi-val num" style={{color:ortMarj>=0?'var(--good)':'var(--bad)'}}>{ortMarj.toFixed(1)}<span className="suf">%</span></div><div className="kpi-delta">Tüm ürünler</div></div>
+    </div>
+    <div className="fbar">
+      <div className="grow"/>
+      <div className="input-search"><ISearch size={13}/><input placeholder="Ürün ara…" value={ls} onChange={e=>setLs(e.target.value)}/></div>
+      <button className="btn btn-sm"><IXls size={13}/>Excel</button>
+    </div>
+    <div className="card">
+      <div className="card-hd"><div><div className="card-ttl">Ürün Bazında Kârlılık</div><div className="card-sub">Alış · Satış · Kâr · Marj</div></div></div>
+      <div className="tbl-wrap"><table className="tbl">
+        <thead><tr><th>Kod</th><th>Ürün</th><th className="r">Alış Mik.</th><th className="r">Satış Mik.</th><th className="r">Alış Tutar</th><th className="r">Satış Tutar</th><th className="r">Kâr</th><th className="r">Marj %</th></tr></thead>
+        <tbody>
+          {list.length===0&&<tr><td colSpan={8} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>Henüz kârlılık verisi yok.</td></tr>}
+          {list.map(k=><tr key={k.kod}>
+            <td className="mono">{k.kod}</td>
+            <td style={{fontWeight:500}}>{k.ad}</td>
+            <td className="tnum">{(k.alis_miktar||0).toFixed(2)}</td>
+            <td className="tnum">{(k.satis_miktar||0).toFixed(2)}</td>
+            <td className="tnum">{fmt(k.alis_tutar||0)}</td>
+            <td className="tnum">{fmt(k.satis_tutar||0)}</td>
+            <td className="tnum" style={{fontWeight:600,color:(k.kar||0)>=0?'var(--good)':'var(--bad)'}}>{(k.kar||0)>=0?'+':'−'}{fmt(Math.abs(k.kar||0))}</td>
+            <td className="tnum" style={{fontWeight:600,color:(k.marj_yuzde||0)>=0?'var(--good)':'var(--bad)'}}>{(k.marj_yuzde||0).toFixed(1)}%</td>
+          </tr>)}
+        </tbody>
+      </table></div>
+    </div>
+  </div>;
+}
+
+// ============= LOGLAR PAGE =============
+function LoglarPage({onView}){
+  const [islem,setIslem]=React.useState('all');
+  const [varlik,setVarlik]=React.useState('all');
+  const [ls,setLs]=React.useState('');
+  const q=ls.toLowerCase().trim();
+  const list = LOGS.filter(l=>{
+    if(islem!=='all' && l.islem!==islem) return false;
+    if(varlik!=='all' && l.varlik_tipi!==varlik) return false;
+    if(q && !((l.kim+' '+l.detay+' '+l.varlik_id).toLowerCase().includes(q))) return false;
+    return true;
+  }).sort((a,b)=>(b.tarih||'').localeCompare(a.tarih||''));
+  const ISLEMLER = ['CREATE','UPDATE','DELETE'];
+  const VARLIKLAR = ['firmalar','hareketler','kasa','cekler','gelir_gider','personel','urunler','settings_company','users'];
+  return <div>
+    <div className="fbar">
+      <div className={`flt ${islem!=='all'?'on':''}`}><ITag size={13}/><select value={islem} onChange={e=>setIslem(e.target.value)}><option value="all">Tüm İşlemler</option>{ISLEMLER.map(i=><option key={i} value={i}>{i}</option>)}</select><IDown size={12}/></div>
+      <div className={`flt ${varlik!=='all'?'on':''}`}><IDoc size={13}/><select value={varlik} onChange={e=>setVarlik(e.target.value)}><option value="all">Tüm Varlıklar</option>{VARLIKLAR.map(v=><option key={v} value={v}>{v}</option>)}</select><IDown size={12}/></div>
+      <div className="grow"/>
+      <div className="input-search"><ISearch size={13}/><input placeholder="Kullanıcı, detay, ID…" value={ls} onChange={e=>setLs(e.target.value)}/></div>
+    </div>
+    <div className="card">
+      <div className="card-hd"><div><div className="card-ttl">Sistem Logları</div><div className="card-sub">CREATE / UPDATE / DELETE audit · {LOGS.length} kayıt</div></div></div>
+      <div className="tbl-wrap"><table className="tbl">
+        <thead><tr><th style={{width:140}}>Tarih</th><th>Kim</th><th style={{width:90}}>İşlem</th><th>Varlık</th><th>ID</th><th>Detay</th><th style={{width:80}}></th></tr></thead>
+        <tbody>
+          {list.length===0&&<tr><td colSpan={7} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>Log kaydı yok.</td></tr>}
+          {list.map(l=><tr key={l.id}>
+            <td className="tdate">{l.tarih?fmtD(l.tarih):'—'}</td>
+            <td className="mono">{l.kim}</td>
+            <td><Chip k={l.islem==='CREATE'?'good':l.islem==='UPDATE'?'info':'bad'} dot={false}>{l.islem}</Chip></td>
+            <td className="mono" style={{fontSize:12}}>{l.varlik_tipi}</td>
+            <td className="mono" style={{fontSize:11,color:'var(--text-3)'}}>{l.varlik_id}</td>
+            <td style={{fontSize:12,color:'var(--text-2)'}}>{l.detay}</td>
+            <td><button className="btn btn-sm btn-ghost" onClick={()=>onView(l)}>Detay</button></td>
+          </tr>)}
+        </tbody>
+      </table></div>
+    </div>
+  </div>;
+}
+
+// ============= LOG DETAY MODAL =============
+function LogDetayModal({log,onClose}){
+  if(!log) return null;
+  return <div className="scrim" onClick={onClose}>
+    <div className="modal" style={{width:720,maxHeight:'85vh'}} onClick={e=>e.stopPropagation()}>
+      <div className="m-hd">
+        <div style={{width:34,height:34,borderRadius:8,background:'var(--info-soft)',color:'var(--info)',display:'grid',placeItems:'center'}}><IDoc size={15}/></div>
+        <div style={{flex:1}}><div className="m-ttl">Log Detay</div><div className="m-sub">{log.islem} · {log.varlik_tipi} · {log.tarih}</div></div>
+        <button type="button" className="btn btn-icon btn-ghost" onClick={onClose}><IX size={14}/></button>
+      </div>
+      <div className="m-bd">
+        <div className="field-row" style={{gap:14}}>
+          <div className="field"><label>Eski Veri</label><pre style={{padding:'12px',background:'var(--bg-2)',border:'1px solid var(--border)',borderRadius:6,fontSize:11,maxHeight:300,overflow:'auto',fontFamily:'JetBrains Mono, monospace'}}>{log.eski_data?JSON.stringify(log.eski_data,null,2):'—'}</pre></div>
+          <div className="field"><label>Yeni Veri</label><pre style={{padding:'12px',background:'var(--bg-2)',border:'1px solid var(--border)',borderRadius:6,fontSize:11,maxHeight:300,overflow:'auto',fontFamily:'JetBrains Mono, monospace'}}>{log.yeni_data?JSON.stringify(log.yeni_data,null,2):'—'}</pre></div>
+        </div>
+      </div>
+      <div className="m-ft"><button type="button" className="btn btn-primary" onClick={onClose}>Kapat</button></div>
+    </div>
+  </div>;
+}
+
 // ============= APP =============
 function App(){
   const [page,setPage]=React.useState(()=>localStorage.getItem('page_v3')||'dashboard');
@@ -1756,7 +2528,26 @@ function App(){
   // Toast'a global erişim (HaftalikBilanco gibi sayfalardan)
   window.__toast = (m) => setToast(m);
 
-  const meta={dashboard:['Bilgi Ekranı'],cariler:['Cariler'],cari:['Cariler','Cari Kart Detayı'],ekstre:['Cariler','Hesap Ekstresi'],hareketler:['Stok Hareketler'],stok:['Stok'],gelirgider:['Gelir / Gider'],bilanco:['Üretim','Haftalık Bilanço'],rapor:['Finans Analiz','Raporlar'],ayarlar:['Yönetim','Ayarlar']};
+  const meta={
+    dashboard:['Bilgi Ekranı'],
+    cariler:['Cariler'],cari:['Cariler','Cari Kart Detayı'],ekstre:['Cariler','Hesap Ekstresi'],
+    hareketler:['Stok Hareketler'],
+    firmalar:['Firmalar (Master)'],
+    stok:['Stok'],
+    kasa:['Kasa'],
+    gelirgider:['Gelir / Gider'],
+    personel:['Personel'],
+    cekler:['Çek / Senet'],
+    uretim:['Üretim'],
+    bilanco:['Üretim','Haftalık Bilanço'],
+    cektakvim:['Finans Analiz','Çek Takvimi'],
+    mutabakat:['Finans Analiz','Mutabakat'],
+    tahsilatoneri:['Finans Analiz','Tahsilat Önerisi'],
+    karlilik:['Finans Analiz','Kârlılık'],
+    rapor:['Finans Analiz','Raporlar'],
+    ayarlar:['Yönetim','Ayarlar'],
+    loglar:['Yönetim','Loglar']
+  };
   const crumbs=meta[page]||[page];
 
   const render=()=>{
@@ -1765,11 +2556,21 @@ function App(){
     if(page==='cariler')return <CariList onOpen={openCustomer} onNew={()=>setModal({kind:'newcari'})}/>;
     if(page==='cari')return <CustomerDetail customerId={focus||CUSTOMERS[0]?.id} onOpenEkstre={openEkstre} onBack={()=>nav('cariler')} onOpenModal={openModal}/>;
     if(page==='hareketler')return <Hareketler onNew={()=>setModal({kind:'hareket'})}/>;
+    if(page==='firmalar')return <FirmalarPage onNew={()=>setModal({kind:'firma'})}/>;
     if(page==='stok')return <StokPage onNew={()=>setModal({kind:'newstok'})} onNewHrk={()=>setModal({kind:'stokhrk'})}/>;
+    if(page==='kasa')return <Kasa onNew={()=>setModal({kind:'kasa'})}/>;
     if(page==='gelirgider')return <GelirGider onNew={()=>setModal({kind:'newgg'})}/>;
+    if(page==='personel')return <PersonelPage onNew={()=>setModal({kind:'personel'})} onMesai={(id)=>setModal({kind:'mesai',personelId:id})}/>;
+    if(page==='cekler')return <CeklerPage onNew={(tab)=>setModal({kind:'cek',cekTip:tab==='alinan'?'ALINAN':'VERILEN'})}/>;
+    if(page==='uretim')return <UretimPage onNew={()=>setModal({kind:'uretim'})} onView={(id)=>setModal({kind:'uretim',uretimId:id})}/>;
     if(page==='bilanco')return <HaftalikBilanco/>;
+    if(page==='cektakvim')return <CekTakvim/>;
+    if(page==='mutabakat')return <MutabakatPage/>;
+    if(page==='tahsilatoneri')return <TahsilatOneri/>;
+    if(page==='karlilik')return <KarlilikPage/>;
     if(page==='rapor')return <Report/>;
     if(page==='ayarlar')return <Ayarlar/>;
+    if(page==='loglar')return <LoglarPage onView={(log)=>setModal({kind:'logdetay',log})}/>;
     return <div className="card" style={{padding:'72px 36px',textAlign:'center'}}>
       <div style={{fontSize:22,fontWeight:600,letterSpacing:'-0.02em',marginBottom:6}}>{crumbs[crumbs.length-1]}</div>
       <div style={{color:'var(--text-3)',fontSize:13,maxWidth:440,margin:'0 auto'}}>Bu modül henüz tasarıma eklenmedi. Repo'daki <span className="mono" style={{color:'var(--text-2)'}}>pages/{page}.py</span> tabanlı eklenebilir.</div>
@@ -1790,6 +2591,13 @@ function App(){
     {modal&&modal.kind==='stokhrk'&&<StokHrkModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);}}/>}
     {modal&&modal.kind==='newgg'&&<NewGGModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);}}/>}
     {modal&&modal.kind==='hareket'&&<HareketModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);}}/>}
+    {modal&&modal.kind==='kasa'&&<KasaModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);}}/>}
+    {modal&&modal.kind==='personel'&&<PersonelModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);}}/>}
+    {modal&&modal.kind==='mesai'&&<MesaiModal personelId={modal.personelId} onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);}}/>}
+    {modal&&modal.kind==='cek'&&<CekModal tip={modal.cekTip} onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);}}/>}
+    {modal&&modal.kind==='firma'&&<FirmaModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);}}/>}
+    {modal&&modal.kind==='uretim'&&<UretimModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);}}/>}
+    {modal&&modal.kind==='logdetay'&&<LogDetayModal log={modal.log} onClose={()=>setModal(null)}/>}
     {toast&&<Toast m={toast} onDone={()=>setToast(null)}/>}
     {tweaks&&<div className="tw">
       <div><div className="tw-ttl">Tweaks</div><div style={{fontSize:12.5,fontWeight:500,marginTop:2}}>Tema</div></div>
