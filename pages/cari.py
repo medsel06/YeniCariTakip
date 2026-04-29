@@ -15,22 +15,14 @@ def cari_page():
     # --- State ---
     now = datetime.now()
     search_value = {'text': ''}
-    state = {'yil': now.year, 'ay': now.month}
+    # Default: yil=mevcut yil, ay=None (Tumu) — UI ile sync (donem_secici default_ay=0=Tumu)
+    state = {'yil': now.year, 'ay': None}
 
     # --- Data Load ---
     def load_data():
-        bakiyeler = get_cari_bakiye_list(yil=state['yil'], ay=state['ay'])
-        firmalar = get_firma_list()
-        # Bakiyesi olmayan firmalari da ekle
-        bakiye_kodlar = {b['kod'] for b in bakiyeler}
-        for f in firmalar:
-            if f['kod'] not in bakiye_kodlar:
-                bakiyeler.append({
-                    'kod': f['kod'], 'ad': f['ad'], 'tel': f.get('tel', ''),
-                    'alis': 0, 'satis': 0, 'odeme': 0, 'tahsilat': 0, 'devir': 0, 'bakiye': 0
-                })
-        bakiyeler.sort(key=lambda x: x['ad'])
-        return bakiyeler
+        # Backend hareketsiz/sifir bakiyeli firmalari zaten filtreliyor.
+        # UI'da geri ekleme bloğu kaldırıldı (Paket 1) — kapanmış firmalar artık görünmez.
+        return get_cari_bakiye_list(yil=state['yil'], ay=state['ay'])
 
     all_data = load_data()
 

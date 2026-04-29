@@ -136,6 +136,10 @@ BRAND_CSS = '''
     radial-gradient(circle at 8% 8%, rgba(255,255,255,0.35) 0, transparent 28%),
     linear-gradient(180deg, #eef4fb 0%, #dce6f0 100%) !important;
 }
+.alse-drawer .q-drawer__content {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
 .alse-nav-item {
   border-radius: 8px;
   transition: all .2s ease;
@@ -530,7 +534,8 @@ def donem_secici(on_change, include_all=True):
     def _changed(_=None):
         y = sel_yil.value
         a = sel_ay.value
-        on_change(y if a != 0 else None, a if a != 0 else None)
+        # Ay=0 (Tümü) seçilse bile yıl korunur — yıl-only filtreleme için
+        on_change(y, a if a != 0 else None)
 
     sel_ay.on_value_change(_changed)
     sel_yil.on_value_change(_changed)
@@ -558,7 +563,6 @@ def confirm_dialog(message, on_confirm):
             ui.button('İptal', on_click=dlg.close).props('flat color=grey-7')
             ui.button('Evet, Sil', color='negative', on_click=lambda: (on_confirm(), dlg.close())).props('unelevated')
     dlg.open()
-
 
 
 

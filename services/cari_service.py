@@ -240,24 +240,45 @@ def get_alacak_yaslandirma():
 
 
 def _safe_date_parts(yil, ay):
-    """yil/ay'i kesinlikle int'e zorla, SQL injection onle."""
-    if not yil or not ay:
-        return None, None
-    return int(yil), int(ay)
+    """yil/ay'i int'e normalize eder. Yil-only mod desteklenir.
+    - yil ve ay verilirse: aylik mod
+    - sadece yil verilirse: yillik mod (devir = onceki yil sonu)
+    - hicbiri yoksa: tum zamanlar
+    """
+    yil = int(yil) if yil else None
+    ay = int(ay) if ay else None
+    if ay is not None and ay not in range(1, 13):
+        ay = None
+    return yil, ay
+
+
+def _build_date_filter(yil, ay):
+    """Donem icin (date_flt, devir_flt) ciftini uretir.
+    Bos tarih ('') ve NULL kayitlar her durumda dislanir (mali dogruluk).
+    """
+    if yil and ay:
+        prefix = f'{yil:04d}-{ay:02d}'
+        date_flt = f" AND tarih IS NOT NULL AND tarih != '' AND tarih >= '{prefix}-01' AND tarih < '{prefix}-32'"
+        devir_flt = f" AND tarih IS NOT NULL AND tarih != '' AND tarih < '{prefix}-01'"
+    elif yil:
+        # Yillik mod: devir = onceki yil sonu bakiyesi, donem = secili yil hareketleri
+        date_flt = f" AND tarih IS NOT NULL AND tarih != '' AND tarih >= '{yil:04d}-01-01' AND tarih < '{yil + 1:04d}-01-01'"
+        devir_flt = f" AND tarih IS NOT NULL AND tarih != '' AND tarih < '{yil:04d}-01-01'"
+    else:
+        # Tum zamanlar: devir kavrami yok
+        date_flt = " AND tarih IS NOT NULL AND tarih != ''"
+        devir_flt = None
+    return date_flt, devir_flt
 
 
 def get_cari_bakiye_list(yil=None, ay=None):
     """Tum firmalar icin bakiyeleri tek SQL ile getirir (N+1 query fix).
-    yil/ay verilirse: devir (onceki donem) + secili ay hareketi + bakiye.
+    - yil+ay: aylik gorunum, devir = onceki ay sonu
+    - yil only: yillik gorunum, devir = onceki yil sonu
+    - tumu: tum zamanlar, devir = 0
     """
     yil, ay = _safe_date_parts(yil, ay)
-    if yil and ay:
-        prefix = f'{yil:04d}-{ay:02d}'
-        date_flt = f" AND tarih >= '{prefix}-01' AND tarih < '{prefix}-32'"
-        devir_flt = f" AND tarih < '{prefix}-01'"
-    else:
-        date_flt = ''
-        devir_flt = None
+    date_flt, devir_flt = _build_date_filter(yil, ay)
 
     # Secili donem
     sql = f"""
@@ -350,16 +371,12 @@ def get_cari_bakiye_list(yil=None, ay=None):
 
 def get_cari_ekstre(firma_kod, yil=None, ay=None):
     """Cari ekstre - gercek islem sirasinda (insertion order), bakiye kumulatif.
-    yil/ay verilirse: onceki donem devir + secili ay hareketleri.
+    - yil+ay: aylik mod, devir = onceki ay sonu
+    - yil only: yillik mod, devir = onceki yil sonu
+    - tumu: tum zamanlar, devir = 0
     """
     yil, ay = _safe_date_parts(yil, ay)
-    if yil and ay:
-        prefix = f'{yil:04d}-{ay:02d}'
-        date_flt = f" AND tarih >= '{prefix}-01' AND tarih < '{prefix}-32'"
-        devir_flt = f" AND tarih < '{prefix}-01'"
-    else:
-        date_flt = ''
-        devir_flt = None
+    date_flt, devir_flt = _build_date_filter(yil, ay)
 
     sql = f"""
     SELECT * FROM (

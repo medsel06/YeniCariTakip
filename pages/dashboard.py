@@ -43,7 +43,8 @@ def dashboard_page():
         return
 
     now = datetime.now()
-    state = {'yil': now.year, 'ay': now.month}
+    # Default: yil=mevcut, ay=None (Tumu) — UI ile sync (donem_secici default_ay=0=Tumu)
+    state = {'yil': now.year, 'ay': None}
     fx = get_usd_eur_rates() or {}
     clock_label = {'el': None}
 

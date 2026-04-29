@@ -313,18 +313,21 @@ async def api_karlilik(request: Request):
 
 @app.get('/api/dashboard/kpi')
 @api_auth
-async def api_dashboard_kpi(request: Request):
-    """Bilgi Ekranı için toplulaştırılmış KPI'lar."""
-    today = date.today()
-    yil, ay = today.year, today.month
-
-    cariler = cari_service.get_cari_bakiye_list()
+async def api_dashboard_kpi(request: Request, yil: Optional[int] = None, ay: Optional[int] = None):
+    """Bilgi Ekranı için toplulaştırılmış KPI'lar.
+    yil/ay query param destekli: ?yil=2026&ay=4 (aylik) veya ?yil=2026 (yillik)."""
+    cariler = cari_service.get_cari_bakiye_list(yil=yil, ay=ay)
     toplam_alacak = sum(max(0, float(c.get('bakiye') or 0)) for c in cariler)
     toplam_borc = abs(sum(min(0, float(c.get('bakiye') or 0)) for c in cariler))
     aktif_cari = sum(1 for c in cariler if (c.get('aktif') or c.get('durum') in ('AKTIF', 'active')))
 
-    kasa_bakiye = kasa_service.get_kasa_bakiye(yil=yil, ay=ay)
-    bu_ay_tahsilat = float(kasa_bakiye.get('toplam_giris') or 0) if isinstance(kasa_bakiye, dict) else 0
+    # Bu ay tahsilat: yil/ay belirtilmediyse mevcut ay (dashboard widget için)
+    today = date.today()
+    bu_ay_y = yil or today.year
+    bu_ay_a = ay or today.month
+    kasa_bakiye = kasa_service.get_kasa_bakiye(yil=bu_ay_y, ay=bu_ay_a)
+    # NOT: kasa_service.get_kasa_bakiye() 'giris' key'i ile döner (toplam_giris değil)
+    bu_ay_tahsilat = float(kasa_bakiye.get('giris') or 0) if isinstance(kasa_bakiye, dict) else 0
 
     # Risk uyarıları
     risk = cari_service.get_risk_uyarilari()

@@ -26,7 +26,8 @@ def gelir_gider_page():
     lbl_gider = None
     lbl_net = None
     now = datetime.now()
-    state = {'yil': now.year, 'ay': now.month}
+    # Default: yil=mevcut, ay=None (Tumu) — UI donem_secici default_ay=0 ile sync
+    state = {'yil': now.year, 'ay': None}
 
     columns = [
         {'name': 'tarih', 'label': 'Tarih', 'field': 'tarih', 'align': 'center', 'sortable': True},

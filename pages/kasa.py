@@ -18,7 +18,8 @@ def kasa_page():
         ui.run_javascript(f"window.open('{preview_url}', '_blank')")
 
     now = datetime.now()
-    state = {'yil': now.year, 'ay': now.month}
+    # Default: yil=mevcut, ay=None (Tumu) — UI donem_secici default_ay=0 ile sync
+    state = {'yil': now.year, 'ay': None}
 
     table_ref = None
     card_giris = None

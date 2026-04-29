@@ -20,10 +20,18 @@ GIDER_KATEGORILER = [
 
 
 def _date_filter(yil=None, ay=None, col='tarih'):
-    if not yil or not ay:
-        return '', []
-    prefix = f'{yil}-{ay:02d}'
-    return f" AND {col} LIKE ?", [prefix + '%']
+    """Donem filtresi (3 modlu): aylik / yillik / tum zamanlar.
+    Bos tarih ('') ve NULL kayitlari dislar."""
+    yil = int(yil) if yil else None
+    ay = int(ay) if ay else None
+    if ay is not None and ay not in range(1, 13):
+        ay = None
+    base = f" AND {col} IS NOT NULL AND {col} != ''"
+    if yil and ay:
+        return base + f" AND {col} LIKE ?", [f'{yil:04d}-{ay:02d}%']
+    elif yil:
+        return base + f" AND {col} LIKE ?", [f'{yil:04d}-%']
+    return base, []
 
 
 def get_gelir_gider_list(yil=None, ay=None):
