@@ -129,6 +129,11 @@ BRAND_CSS = '''
   background: #ffffff !important;
   border-right: 1px solid #e2e8f0 !important;
 }
+/* NiceGUI default 16px gap'i azalt - menu ogeleri arasi bosluk */
+.alse-drawer .nicegui-expansion-content {
+  gap: 7px !important;
+  row-gap: 7px !important;
+}
 .alse-drawer .q-drawer__content,
 .alse-drawer .scroll {
   background: #ffffff !important;
@@ -186,8 +191,8 @@ BRAND_CSS = '''
   color: #94a3b8 !important;
 }
 .alse-group .q-expansion-item__content {
-  padding-top: 3px !important;
-  padding-bottom: 4px !important;
+  padding-top: 1px !important;
+  padding-bottom: 1px !important;
 }
 .alse-group .q-item__section--avatar {
   min-width: 16px;
@@ -199,12 +204,15 @@ BRAND_CSS = '''
 }
 /* Menü öğeleri */
 .alse-nav-item {
-  border-radius: 6px;
+  border-radius: 5px !important;
   transition: background 0.13s ease;
-  padding: 5px 8px !important;
-  margin: 1px 6px;
-  min-height: 31px;
-  gap: 6px;
+  padding: 0px 8px !important;
+  margin: 0px 5px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  height: 28px !important;
+  gap: 5px;
+  overflow: hidden;
 }
 .alse-nav-item:hover {
   background: #f0f7ff;
@@ -216,7 +224,10 @@ BRAND_CSS = '''
 }
 .alse-nav-item .nav-label {
   font-size: 13px;
-  line-height: 1.3;
+  line-height: 1;
+}
+.alse-group .q-expansion-item__content > div {
+  padding: 0 !important;
 }
 .alse-nav-item .nav-label.active-label {
   font-weight: 600;
