@@ -1863,7 +1863,7 @@ function StokHrkModal({onClose,onSaved}){
   const [miktar,setMiktar]=React.useState('');
   const [fiyat,setFiyat]=React.useState('');
   const [cari,setCari]=React.useState(CUSTOMERS[0]?.id||'');
-  const [date,setDate]=React.useState('2026-04-25');
+  const [date,setDate]=React.useState(new Date().toISOString().slice(0,10));
   const [note,setNote]=React.useState('');
   const s=STOK.find(x=>x.kod===stok);
   React.useEffect(()=>{if(s)setFiyat(String(tip==='giris'?s.alisFiyat:s.satisFiyat));},[stok,tip]);

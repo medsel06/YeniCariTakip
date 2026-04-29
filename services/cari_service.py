@@ -82,14 +82,15 @@ def delete_firma(kod):
         old_row = conn.execute('SELECT * FROM firmalar WHERE kod=?', (kod,)).fetchone()
         old_data = dict(old_row) if old_row else {}
         # Hareket var mi kontrol et
-        hareket_var = conn.execute('''
+        _hv_row = conn.execute('''
             SELECT (
                 (SELECT COUNT(*) FROM hareketler WHERE firma_kod=?) +
                 (SELECT COUNT(*) FROM kasa WHERE firma_kod=?) +
                 (SELECT COUNT(*) FROM gelir_gider WHERE firma_kod=?) +
                 (SELECT COUNT(*) FROM cekler WHERE firma_kod=?)
             ) AS cnt
-        ''', (kod, kod, kod, kod)).fetchone()['cnt']
+        ''', (kod, kod, kod, kod)).fetchone()
+        hareket_var = int(_hv_row['cnt'] or 0) if _hv_row else 0
         if hareket_var > 0:
             # Soft-delete: pasife al
             conn.execute('UPDATE firmalar SET aktif=0 WHERE kod=?', (kod,))
@@ -444,8 +445,8 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
             firma_kod,
             COALESCE(NULLIF(created_at, ''), tarih || ' 00:00:00.000000') AS sort_ts,
             tarih, tur AS tip, 'K' AS kaynak, id AS ref_id,
-            CASE WHEN tur='GIDER' THEN tutar ELSE 0 END AS borc,
-            CASE WHEN tur='GELIR' THEN tutar ELSE 0 END AS alacak,
+            CASE WHEN tur='GELIR' THEN tutar ELSE 0 END AS borc,
+            CASE WHEN tur='GIDER' THEN tutar ELSE 0 END AS alacak,
             aciklama, NULL AS belge_no
         FROM kasa
         WHERE firma_kod IS NOT NULL AND firma_kod != '' AND cek_id IS NULL {firma_clause}{date_flt}
@@ -463,13 +464,13 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
             COALESCE(NULLIF(kesim_tarih, ''), vade_tarih) AS tarih,
             tur AS tip, 'C' AS kaynak, id AS ref_id,
             CASE
-              WHEN tur='VERILEN' AND durum NOT IN ('IADE_EDILDI') THEN tutar
-              WHEN tur='ALINAN' AND durum IN ('KARSILIKSIZ','IADE_EDILDI') THEN tutar
+              WHEN tur='ALINAN' AND durum NOT IN ('KARSILIKSIZ','IADE_EDILDI') THEN tutar
+              WHEN tur='VERILEN' AND durum='IADE_EDILDI' THEN tutar
               ELSE 0
             END AS borc,
             CASE
-              WHEN tur='ALINAN' AND durum NOT IN ('KARSILIKSIZ','IADE_EDILDI') THEN tutar
-              WHEN tur='VERILEN' AND durum='IADE_EDILDI' THEN tutar
+              WHEN tur='VERILEN' AND durum NOT IN ('IADE_EDILDI') THEN tutar
+              WHEN tur='ALINAN' AND durum IN ('KARSILIKSIZ','IADE_EDILDI') THEN tutar
               ELSE 0
             END AS alacak,
             cek_no AS aciklama, cek_no AS belge_no
@@ -487,8 +488,8 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
             COALESCE(NULLIF(kesim_tarih, ''), vade_tarih, '') || ' 00:00:00.000000' AS sort_ts,
             COALESCE(NULLIF(kesim_tarih, ''), vade_tarih) AS tarih,
             'CIRO' AS tip, 'C' AS kaynak, id AS ref_id,
-            tutar AS borc,
-            0 AS alacak,
+            0 AS borc,
+            tutar AS alacak,
             cek_no AS aciklama, cek_no AS belge_no
         FROM cekler
         WHERE durum='CIRO_EDILDI'
@@ -519,21 +520,21 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
         """)
         devir_subqueries.append(f"""
             SELECT firma_kod,
-                   SUM(CASE WHEN tur='GELIR' THEN tutar ELSE 0 END
-                       - CASE WHEN tur='GIDER' THEN tutar ELSE 0 END) AS net
+                    SUM(CASE WHEN tur='GIDER' THEN tutar ELSE 0 END
+                        - CASE WHEN tur='GELIR' THEN tutar ELSE 0 END) AS net
             FROM kasa WHERE firma_kod IS NOT NULL AND firma_kod != '' AND cek_id IS NULL {firma_clause}{devir_flt} GROUP BY firma_kod
         """)
         # cekler devir (durum'a gore net hesap)
         cek_devir_flt = devir_flt.replace('tarih', "COALESCE(NULLIF(kesim_tarih, ''), vade_tarih)")
         devir_subqueries.append(f"""
             SELECT firma_kod,
-                   SUM(CASE
-                       WHEN tur='ALINAN' AND durum NOT IN ('KARSILIKSIZ','IADE_EDILDI') THEN tutar
-                       WHEN tur='VERILEN' AND durum='IADE_EDILDI' THEN tutar
-                       WHEN tur='ALINAN' AND durum IN ('KARSILIKSIZ','IADE_EDILDI') THEN -tutar
-                       WHEN tur='VERILEN' AND durum NOT IN ('IADE_EDILDI') THEN -tutar
-                       ELSE 0
-                   END) AS net
+                    SUM(CASE
+                        WHEN tur='VERILEN' AND durum NOT IN ('IADE_EDILDI') THEN tutar
+                        WHEN tur='ALINAN' AND durum IN ('KARSILIKSIZ','IADE_EDILDI') THEN tutar
+                        WHEN tur='ALINAN' AND durum NOT IN ('KARSILIKSIZ','IADE_EDILDI') THEN -tutar
+                        WHEN tur='VERILEN' AND durum='IADE_EDILDI' THEN -tutar
+                        ELSE 0
+                    END) AS net
             FROM cekler
             WHERE firma_kod IS NOT NULL AND firma_kod != '' {firma_clause}
               AND COALESCE(NULLIF(kesim_tarih, ''), vade_tarih) IS NOT NULL
@@ -542,7 +543,7 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
             GROUP BY firma_kod
         """)
         devir_subqueries.append(f"""
-            SELECT ciro_firma_kod AS firma_kod, -SUM(tutar) AS net
+            SELECT ciro_firma_kod AS firma_kod, SUM(tutar) AS net
             FROM cekler
             WHERE durum='CIRO_EDILDI'
               AND ciro_firma_kod IS NOT NULL AND ciro_firma_kod != ''
@@ -603,8 +604,8 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
                 SUM(CASE WHEN kaynak='H' AND tip='SATIS' THEN alacak ELSE 0 END) AS satis,
                 SUM(CASE WHEN kaynak='G' AND tip='GIDER' THEN borc ELSE 0 END) AS gg_gider,
                 SUM(CASE WHEN kaynak='G' AND tip='GELIR' THEN alacak ELSE 0 END) AS gg_gelir,
-                SUM(CASE WHEN kaynak='K' AND tip='GIDER' THEN borc ELSE 0 END) AS odeme,
-                SUM(CASE WHEN kaynak='K' AND tip='GELIR' THEN alacak ELSE 0 END) AS tahsilat,
+                SUM(CASE WHEN kaynak='K' AND tip='GIDER' THEN alacak ELSE 0 END) AS odeme,
+                SUM(CASE WHEN kaynak='K' AND tip='GELIR' THEN borc ELSE 0 END) AS tahsilat,
                 SUM(CASE WHEN kaynak='C' THEN alacak ELSE 0 END) AS cek_alacak,
                 SUM(CASE WHEN kaynak='C' THEN borc ELSE 0 END) AS cek_borc,
                 SUM(borc) AS donem_borc,
