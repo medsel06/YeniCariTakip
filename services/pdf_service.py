@@ -185,7 +185,17 @@ def _header_footer(canvas, doc, title, show_title=True):
     canvas.restoreState()
 
 
-def generate_cari_ekstre_pdf(firma_ad, ekstre_data):
+def generate_cari_ekstre_pdf(firma_ad, ekstre_data, donem_label=None, devir=None):
+    """Cari ekstre PDF.
+    ekstre_data: list (eski API) VEYA dict (yeni API: {donem_label, devir, satirlar, ...})
+    donem_label / devir: opsiyonel manuel parametreler (geriye uyumluluk).
+    """
+    # Yeni API: dict olarak geldi
+    if isinstance(ekstre_data, dict):
+        donem_label = donem_label or ekstre_data.get('donem_label')
+        devir = devir if devir is not None else ekstre_data.get('devir', 0)
+        ekstre_data = ekstre_data.get('satirlar', [])
+
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=35 * mm, bottomMargin=20*mm,
                             leftMargin=15*mm, rightMargin=15*mm)
@@ -203,9 +213,30 @@ def generate_cari_ekstre_pdf(firma_ad, ekstre_data):
         spaceAfter=0,
     )
     elements.append(Paragraph(f'Cari Ekstre - {firma_ad}', title_style))
+    if donem_label:
+        donem_style = ParagraphStyle(
+            'TRDonem', parent=styles['TRSmall'], fontSize=9, alignment=1, spaceAfter=2,
+            textColor=colors.HexColor('#546E7A'),
+        )
+        elements.append(Paragraph(f'Donem: {donem_label}', donem_style))
     elements.append(Spacer(1, 3 * mm))
 
     data = [['Tarih', 'Tür', 'Açıklama', 'Borç', 'Alacak', 'Bakiye']]
+
+    # Devir satiri (donem secili modda devir tablonun en ustunde)
+    devir_row_idx = None
+    if devir is not None and abs(float(devir or 0)) > 0.005:
+        d = float(devir)
+        devir_row_idx = len(data)
+        data.append([
+            '',
+            'Devir',
+            Paragraph('<b>Onceki donem devir bakiyesi</b>', styles['TRSmall']),
+            _fmt(abs(d) if d < 0 else 0, blank_zero=True),
+            _fmt(d if d > 0 else 0, blank_zero=True),
+            _fmt(d, blank_zero=True),
+        ])
+
     for row in ekstre_data:
         tarih = row['tarih'] or ''
         if '-' in tarih:
@@ -240,7 +271,7 @@ def generate_cari_ekstre_pdf(firma_ad, ekstre_data):
     col_widths = [20*mm, 16*mm, 59*mm, 24*mm, 24*mm, 24*mm]
     t = Table(data, colWidths=col_widths, repeatRows=1)
     t.hAlign = 'CENTER'
-    t.setStyle(TableStyle([
+    style_cmds = [
         ('FONTNAME', (0, 0), (-1, 0), 'ArialTRB'),
         ('FONTNAME', (0, 1), (-1, -1), 'ArialTR'),
         ('FONTSIZE', (0, 0), (-1, -1), 8),
@@ -252,7 +283,12 @@ def generate_cari_ekstre_pdf(firma_ad, ekstre_data):
         ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F5F5F5')]),
         ('TOPPADDING', (0, 0), (-1, -1), 3),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
-    ]))
+    ]
+    if devir_row_idx is not None:
+        # Devir satiri vurgulu (acik mavi arkaplan + bold)
+        style_cmds.append(('BACKGROUND', (0, devir_row_idx), (-1, devir_row_idx), colors.HexColor('#E3F2FD')))
+        style_cmds.append(('FONTNAME', (0, devir_row_idx), (-1, devir_row_idx), 'ArialTRB'))
+    t.setStyle(TableStyle(style_cmds))
     elements.append(t)
 
     title = f'Cari Ekstre - {firma_ad}'

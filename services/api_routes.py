@@ -136,8 +136,8 @@ async def api_cari_detay(request: Request, kod: str):
 @app.get('/api/cariler/{kod}/ekstre')
 @api_auth
 async def api_cari_ekstre(request: Request, kod: str, yil: Optional[int] = None, ay: Optional[int] = None):
-    """Cari ekstresi (tarih, tip, tutar, bakiye)."""
-    return _json(cari_service.get_cari_ekstre(kod, yil=yil, ay=ay))
+    """Cari ekstresi: {donem_label, devir, satirlar, donem_borc, donem_alacak, kapanis_bakiye}."""
+    return _json(cari_service.get_cari_ekstre(kod, yil=yil, ay=ay, with_meta=True))
 
 
 @app.get('/api/cariler/{kod}/hareketler')
@@ -343,6 +343,23 @@ async def api_dashboard_kpi(request: Request, yil: Optional[int] = None, ay: Opt
     })
 
 
+@app.get('/api/orphan-dates')
+@api_auth
+async def api_orphan_dates(request: Request):
+    """Bos/NULL tarihli kayitlar — mali doneme dahil edilmeyen, duzeltilmesi gereken kayitlar."""
+    return _json({
+        'counts': cari_service.get_orphan_date_count(),
+        'records': cari_service.get_orphan_date_records(),
+    })
+
+
+@app.get('/api/orphan-dates/count')
+@api_auth
+async def api_orphan_dates_count(request: Request):
+    """Sadece sayilar (dashboard widget icin hizli)."""
+    return _json(cari_service.get_orphan_date_count())
+
+
 @app.get('/api/dashboard/fx')
 @api_auth
 async def api_fx(request: Request):
@@ -402,8 +419,60 @@ async def api_hareket_create(request: Request):
 @app.post('/api/kasa')
 @api_auth
 async def api_kasa_create(request: Request):
+    """V3 KasaModal cek/ciro alanlarini destekler:
+    - cek_turu='FIRMA' + odeme_sekli='Çek' -> yeni cek + kasa kaydi (cek_id ile)
+    - cek_turu='CIRO' + ciro_cek_id -> sadece change_durum (CIRO_EDILDI), kasa yok
+    - Diger: normal kasa kaydi
+    """
     data = await request.json()
-    new_id = kasa_service.add_kasa(data)
+
+    # Tur normalize (V3 'GELIR'/'GIDER' beklenir, eger 'gelir'/'gider' geldiyse uppercase)
+    if 'tur' in data and isinstance(data['tur'], str):
+        data['tur'] = data['tur'].upper()
+
+    odeme_sekli = data.get('odeme_sekli', '')
+    cek_turu = data.get('cek_turu', '')
+
+    # CIRO senaryosu: kasa kaydi olusmaz, sadece change_durum
+    if cek_turu == 'CIRO' and data.get('ciro_cek_id'):
+        ok, msg = cek_service.change_durum(
+            int(data['ciro_cek_id']), 'CIRO_EDILDI',
+            aciklama=data.get('aciklama', ''),
+            ciro_firma_kod=data.get('firma_kod', ''),
+            ciro_firma_ad=data.get('firma_ad', ''),
+        )
+        if not ok:
+            return _json({'error': 'cek_ciro_failed', 'message': msg}, status=400)
+        return _json({'ok': True, 'mode': 'ciro'})
+
+    # Firma çeki senaryosu: yeni cek olustur, kasa kaydı bağla
+    if cek_turu == 'FIRMA' and (odeme_sekli == 'Çek' or odeme_sekli == 'CEK'):
+        cek_turu_db = 'ALINAN' if data.get('tur') == 'GELIR' else 'VERILEN'
+        cek_id = cek_service.add_cek({
+            'cek_no': data.get('cek_no', ''),
+            'firma_kod': data.get('firma_kod', ''),
+            'firma_ad': data.get('firma_ad', ''),
+            'kesim_tarih': data.get('tarih', ''),
+            'vade_tarih': data.get('cek_vade_tarih', ''),
+            'tutar': data.get('tutar', 0),
+            'cek_turu': cek_turu_db,
+            'notlar': data.get('aciklama', ''),
+            'tur': cek_turu_db,
+            'evrak_tipi': data.get('evrak_tipi', 'CEK'),
+        })
+        data['cek_id'] = cek_id
+
+    # Normal/cek_id'li kasa kaydı
+    new_id = kasa_service.add_kasa({
+        'tarih': data.get('tarih'),
+        'firma_kod': data.get('firma_kod', ''),
+        'firma_ad': data.get('firma_ad', ''),
+        'tur': data.get('tur', 'GELIR'),
+        'tutar': data.get('tutar', 0),
+        'odeme_sekli': odeme_sekli,
+        'aciklama': data.get('aciklama', ''),
+        'cek_id': data.get('cek_id'),
+    })
     return _json({'ok': True, 'id': new_id})
 
 
@@ -418,7 +487,13 @@ async def api_cek_create(request: Request):
 @app.post('/api/gelir-gider')
 @api_auth
 async def api_gelir_gider_create(request: Request):
+    """V3 'gelir'/'gider' lowercase gondereceginden tur ve odeme_durumu normalize edilir.
+    Odendi durumunda otomatik kasa kaydi gelir_gider_service icinde olusturulur."""
     data = await request.json()
+    if 'tur' in data and isinstance(data['tur'], str):
+        data['tur'] = data['tur'].upper()
+    if 'odeme_durumu' in data and isinstance(data['odeme_durumu'], str):
+        data['odeme_durumu'] = data['odeme_durumu'].upper()
     new_id = gelir_gider_service.add_gelir_gider(data)
     return _json({'ok': True, 'id': new_id})
 
@@ -522,14 +597,31 @@ async def api_settings_update(request: Request):
 @app.delete('/api/cariler/{kod}')
 @api_auth
 async def api_cari_delete(request: Request, kod: str):
-    cari_service.delete_firma(kod)
+    """Soft-delete: hareket varsa pasife al, yoksa sil. Mode: 'pasif' / 'silindi'."""
+    sonuc = cari_service.delete_firma(kod)
+    return _json({'ok': True, **(sonuc or {})})
+
+
+@app.put('/api/cariler/{kod}/reactivate')
+@api_auth
+async def api_cari_reactivate(request: Request, kod: str):
+    """Pasife alinmis firmayi tekrar aktif et."""
+    cari_service.reactivate_firma(kod)
     return _json({'ok': True})
 
 
 @app.delete('/api/stok/urunler/{kod}')
 @api_auth
 async def api_urun_delete(request: Request, kod: str):
-    stok_service.delete_urun(kod)
+    """Soft-delete: hareket varsa pasife al, yoksa sil."""
+    sonuc = stok_service.delete_urun(kod)
+    return _json({'ok': True, **(sonuc or {})})
+
+
+@app.put('/api/stok/urunler/{kod}/reactivate')
+@api_auth
+async def api_urun_reactivate(request: Request, kod: str):
+    stok_service.reactivate_urun(kod)
     return _json({'ok': True})
 
 

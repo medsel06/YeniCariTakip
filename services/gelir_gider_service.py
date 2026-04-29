@@ -81,10 +81,51 @@ def _add_gelir_gider_conn(conn, data):
 
 def add_gelir_gider(data):
     with get_db() as conn:
-        return _add_gelir_gider_conn(conn, data)
+        rec_id = _add_gelir_gider_conn(conn, data)
+        # Odendi ise bagli kasa kaydi da olustur (cari kapama icin)
+        if data.get('odeme_durumu') == 'ODENDI' and float(data.get('toplam', 0) or 0) > 0:
+            _create_or_update_kasa_for_gg(conn, rec_id, data)
+        return rec_id
+
+
+def _create_or_update_kasa_for_gg(conn, rec_id, data):
+    """GG kaydi 'ODENDI' ise bagli kasa kaydini olusturur veya gunceller.
+    Mevcut bagli kasa varsa update, yoksa insert."""
+    tutar = float(data.get('toplam', 0) or 0)
+    if tutar <= 0:
+        return
+    # GG GIDER -> kasa GIDER (para cikis), GG GELIR -> kasa GELIR (para giris)
+    kasa_tur = data.get('tur', 'GIDER')
+    bagli = conn.execute('SELECT id FROM kasa WHERE gelir_gider_id=?', (rec_id,)).fetchone()
+    if bagli:
+        conn.execute('''
+            UPDATE kasa
+            SET tarih=?, firma_kod=?, firma_ad=?, tur=?, tutar=?, odeme_sekli=?, aciklama=?
+            WHERE id=?
+        ''', (
+            data['tarih'], data.get('firma_kod', ''), data.get('firma_ad', ''),
+            kasa_tur, tutar, data.get('odeme_sekli', ''),
+            f"GG: {data.get('aciklama', '') or data.get('kategori', '')}",
+            bagli['id']
+        ))
+    else:
+        conn.execute('''
+            INSERT INTO kasa (tarih, firma_kod, firma_ad, tur, tutar, odeme_sekli, aciklama, gelir_gider_id)
+            VALUES (?,?,?,?,?,?,?,?)
+        ''', (
+            data['tarih'], data.get('firma_kod', ''), data.get('firma_ad', ''),
+            kasa_tur, tutar, data.get('odeme_sekli', ''),
+            f"GG: {data.get('aciklama', '') or data.get('kategori', '')}",
+            rec_id,
+        ))
 
 
 def update_gelir_gider(rec_id, data):
+    """GG kaydini gunceller VE bagli kasa kaydini da senkronize eder.
+    - odeme_durumu degistiyse: kasa kaydi olusturulur/silinir
+    - tutar/firma/tarih degistiyse: bagli kasa da guncellenir
+    Codex flow audit bulgu 4 fix.
+    """
     with get_db() as conn:
         conn.execute('''
             UPDATE gelir_gider
@@ -102,6 +143,12 @@ def update_gelir_gider(rec_id, data):
             data.get('vade_tarih', ''),
             rec_id,
         ))
+        # Bagli kasa senkronizasyonu
+        if data.get('odeme_durumu') == 'ODENDI':
+            _create_or_update_kasa_for_gg(conn, rec_id, data)
+        else:
+            # ODENMEDI veya KISMEN -> bagli kasa varsa sil
+            conn.execute('DELETE FROM kasa WHERE gelir_gider_id=?', (rec_id,))
 
 
 def delete_gelir_gider(rec_id):

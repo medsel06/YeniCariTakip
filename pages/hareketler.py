@@ -186,7 +186,7 @@ def hareketler_page():
 
                     # KDV Oranı
                     inp_kdv = ui.select(
-                        options={0: '%0', 1: '%1', 10: '%10', 20: '%20'},
+                        options={0: '%0', 1: '%1', 8: '%8', 10: '%10', 18: '%18', 20: '%20'},
                         label='KDV Oranı', value=20
                     ).props('outlined dense').classes('col')
 

@@ -865,7 +865,7 @@ function Ekstre({initialCustomerId,search,onOpenCustomer,onOpenModal}){
         <div className={`flt ${tf!=='all'?'on':''}`}><ITag size={13}/><select value={tf} onChange={e=>setTf(e.target.value)}>
           <option value="all">Tüm Belgeler</option>{Object.keys(DOC_LBL).map(k=><option key={k} value={k}>{DOC_LBL[k]}</option>)}
         </select><IDown size={12}/></div>
-        <div className="flt"><ICal size={13}/><span className="mono" style={{fontSize:11}}>01.01.2026 — 24.04.2026</span></div>
+        <div className="flt"><ICal size={13}/><span className="mono" style={{fontSize:11}}>{(()=>{const n=new Date();return `01.01.${n.getFullYear()} — ${String(n.getDate()).padStart(2,'0')}.${String(n.getMonth()+1).padStart(2,'0')}.${n.getFullYear()}`;})()}</span></div>
         <div className="grow"/>
         <div className="input-search"><ISearch size={13}/><input placeholder="Belge/açıklama…" value={ls} onChange={e=>setLs(e.target.value)}/></div>
         <button className="btn btn-sm" onClick={()=>openPdf('cari',{id:c.id})} title="Cari Ekstre PDF Dökümü"><IPdf size={13}/>PDF</button>
@@ -1290,7 +1290,7 @@ function GelirGider({onNew}){
   const [ls,setLs]=React.useState('');
   const q=ls.toLowerCase().trim();
   let items=GG;
-  if(rg!=='all'){const days=parseInt(rg,10);const cu=new Date('2026-04-24');cu.setDate(cu.getDate()-days);items=items.filter(t=>new Date(t.date)>=cu);}
+  if(rg!=='all'){const days=parseInt(rg,10);const cu=new Date();cu.setDate(cu.getDate()-days);items=items.filter(t=>new Date(t.date)>=cu);}
   if(tip!=='all')items=items.filter(t=>t.tip===tip);
   if(kat!=='all')items=items.filter(t=>t.kat===kat);
   if(q)items=items.filter(t=>(t.aciklama+' '+t.kat).toLowerCase().includes(q));
@@ -1366,7 +1366,7 @@ function GelirGider({onNew}){
 // ============= STOK HAREKETLER DATA =============
 let HAREKETLER = [];
 // TODO Faz 2/3: const r = await fetch('/api/stok-hareketler?yil=&ay='); HAREKETLER = await r.json();
-const KDV_OPTIONS = [{v:0,l:'%0'},{v:1,l:'%1'},{v:10,l:'%10'},{v:20,l:'%20'}];
+const KDV_OPTIONS = [{v:0,l:'%0'},{v:1,l:'%1'},{v:8,l:'%8'},{v:10,l:'%10'},{v:18,l:'%18'},{v:20,l:'%20'}];
 const TEVKIFAT_OPTIONS = [{v:'0',l:'Yok'},{v:'2/10',l:'2/10'},{v:'5/10',l:'5/10'},{v:'7/10',l:'7/10'},{v:'9/10',l:'9/10'}];
 
 function hesaplaHareket(miktar, birimFiyat, kdvOrani, tevkifatStr) {
@@ -1984,7 +1984,7 @@ function Report(){
     <div className="card" style={{marginBottom:14,padding:'12px 16px'}}>
       <div className="hstack" style={{gap:10,flexWrap:'wrap'}}>
         <div className="seg">{[['week','Hafta'],['month','Ay'],['quarter','Çeyrek'],['year','2026']].map(([k,l])=>(<button key={k} className={k==='month'?'on':''}>{l}</button>))}</div>
-        <div className="flt"><ICal size={13}/><span className="mono" style={{fontSize:11}}>01.04.2026 — 30.04.2026</span></div>
+        <div className="flt"><ICal size={13}/><span className="mono" style={{fontSize:11}}>{(()=>{const n=new Date();const m=String(n.getMonth()+1).padStart(2,'0');const lastDay=new Date(n.getFullYear(),n.getMonth()+1,0).getDate();return `01.${m}.${n.getFullYear()} — ${String(lastDay).padStart(2,'0')}.${m}.${n.getFullYear()}`;})()}</span></div>
         <div className="grow"/>
         <button className="btn btn-sm"><IPdf size={13}/>PDF</button><button className="btn btn-sm"><IXls size={13}/>Excel</button>
       </div>
@@ -2027,7 +2027,7 @@ function TxModal({kind,customerId,onClose,onSaved}){
   const [cust,setCust]=React.useState(customerId||CUSTOMERS[0]?.id||'');
   const [amount,setAmount]=React.useState('');
   const [method,setMethod]=React.useState('havale');
-  const [date,setDate]=React.useState('2026-04-24');
+  const [date,setDate]=React.useState(new Date().toISOString().slice(0,10));
   const [note,setNote]=React.useState('');
   const c=CUSTOMERS.find(x=>x.id===cust);
   const isC=type==='collection';

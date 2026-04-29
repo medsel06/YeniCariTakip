@@ -85,14 +85,34 @@ def update_urun(kod, data):
 
 
 def delete_urun(kod):
+    """Urun silme — Paket 8 soft-delete:
+    - Hareket varsa pasife al (aktif=0), gecmis korunur
+    - Hareket yoksa fiziksel sil"""
     with get_db() as conn:
         old_row = conn.execute('SELECT * FROM urunler WHERE kod=?', (kod,)).fetchone()
         old_data = dict(old_row) if old_row else {}
+        hareket_var = conn.execute(
+            "SELECT COUNT(*) AS cnt FROM hareketler WHERE urun_kod=?", (kod,)
+        ).fetchone()['cnt']
+        if hareket_var > 0:
+            conn.execute('UPDATE urunler SET aktif=0 WHERE kod=?', (kod,))
+            log_action_conn(
+                conn, 'UPDATE', 'urunler', kod, old_data=old_data, new_data={'aktif': 0},
+                detail=f"Urun pasife alindi (hareket var): {kod}"
+            )
+            return {'mode': 'pasif', 'hareket_sayisi': hareket_var}
         conn.execute('DELETE FROM urunler WHERE kod=?', (kod,))
         log_action_conn(
             conn, 'DELETE', 'urunler', kod, old_data=old_data,
             detail=f"Urun silindi: {kod}"
         )
+        return {'mode': 'silindi'}
+
+
+def reactivate_urun(kod):
+    """Pasife alinmis urunu tekrar aktif et."""
+    with get_db() as conn:
+        conn.execute('UPDATE urunler SET aktif=1 WHERE kod=?', (kod,))
 
 
 def get_urun_stok(urun_kod):

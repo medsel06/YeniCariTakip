@@ -194,7 +194,9 @@ def kasa_page():
                                 })
 
                             elif cek_turu_val == 'CIRO':
-                                # Ciro çeki: portföydeki çeki ciro et
+                                # Ciro çeki: portföydeki çeki ciro et — KASA KAYDI OLUŞTURULMAZ
+                                # Ciro nakit hareketi değil, sadece çek el değiştirir.
+                                # Cari etki (yeni firmaya ödeme) merkezi ledger'dan otomatik gelir.
                                 secili_cek_id = inp_ciro_cek.value
                                 if not secili_cek_id:
                                     notify_err('Ciro edilecek çek seçmelisiniz')
@@ -209,6 +211,11 @@ def kasa_page():
                                 if not ok:
                                     notify_err(f'Çek ciro hatası: {msg}')
                                     return
+                                # Ciro: kasa kaydı yok, dialog kapat
+                                notify_ok('Çek ciro edildi (cari etkisi otomatik)')
+                                dlg.close()
+                                load_data()
+                                return
 
                         kasa_data = {
                             'tarih': inp_tarih.value,

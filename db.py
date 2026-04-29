@@ -328,7 +328,8 @@ def _create_business_tables(conn):
             ad TEXT NOT NULL,
             kategori TEXT DEFAULT '',
             birim TEXT DEFAULT 'KG',
-            desi_degeri NUMERIC(10,2) DEFAULT 0
+            desi_degeri NUMERIC(10,2) DEFAULT 0,
+            aktif INTEGER DEFAULT 1
         )
     ''')
     conn.execute('''
@@ -341,7 +342,8 @@ def _create_business_tables(conn):
             nace TEXT DEFAULT '',
             is_alani TEXT DEFAULT '',
             email TEXT DEFAULT '',
-            risk_limiti NUMERIC(15,2) DEFAULT 0
+            risk_limiti NUMERIC(15,2) DEFAULT 0,
+            aktif INTEGER DEFAULT 1
         )
     ''')
     conn.execute('''
@@ -643,6 +645,11 @@ def _create_business_tables(conn):
     # Irsaliye/Fatura numarasi
     if not _col_exists(conn, 'hareketler', 'belge_no'):
         conn.execute("ALTER TABLE hareketler ADD COLUMN belge_no TEXT DEFAULT ''")
+    # Soft-delete (Paket 8): firma/urun pasife alma
+    if not _col_exists(conn, 'firmalar', 'aktif'):
+        conn.execute("ALTER TABLE firmalar ADD COLUMN aktif INTEGER DEFAULT 1")
+    if not _col_exists(conn, 'urunler', 'aktif'):
+        conn.execute("ALTER TABLE urunler ADD COLUMN aktif INTEGER DEFAULT 1")
 
     # --- HAFTALIK BILANCO TABLOLARI ---
     conn.execute('''

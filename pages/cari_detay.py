@@ -180,7 +180,14 @@ def cari_detay_page(firma_kod: str):
                         cekler_tab = ui.tab('Çekler').classes('text-weight-medium')
 
                 def _pdf_ekstre_top():
-                    _open_pdf(generate_cari_ekstre_pdf(firma['ad'], ekstre_src), f"cari_ekstre_{firma_kod}.pdf")
+                    # Donem secimine gore meta bilgili ekstre cek (donem_label + devir + satirlar)
+                    ekstre_meta = get_cari_ekstre(
+                        firma_kod, yil=donem_state['yil'], ay=donem_state['ay'], with_meta=True
+                    )
+                    _open_pdf(
+                        generate_cari_ekstre_pdf(firma['ad'], ekstre_meta),
+                        f"cari_ekstre_{firma_kod}.pdf"
+                    )
 
                 def _open_odeme_dialog(is_tahsilat=False):
                     """is_tahsilat=True → Tahsilat (firma bize oder), False → Odeme (biz firmaya oderiz)"""

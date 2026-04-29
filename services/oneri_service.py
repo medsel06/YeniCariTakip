@@ -2,37 +2,27 @@
 from datetime import datetime
 
 from db import get_db
+from services import cari_service
 
 
 def get_tahsilat_onerileri():
+    """Cari liste ile ayni bakiye formulu (cek dahil) — merkezi ledger uzerinden.
+    Risk uyarisi, cari liste ve tahsilat onerisi tutarli sonuclar uretir."""
+    bakiyeler = cari_service.get_cari_ledger(firma_kod=None)
     with get_db() as conn:
-        firms = conn.execute('SELECT kod, ad, risk_limiti FROM firmalar ORDER BY ad').fetchall()
+        risk_map = {}
+        for f in conn.execute('SELECT kod, risk_limiti FROM firmalar').fetchall():
+            risk_map[f['kod']] = float(f['risk_limiti'] or 0)
+
         out = []
-        for f in firms:
-            kod = f['kod']
-            risk_limiti = float(f['risk_limiti'] or 0)
-            alis = conn.execute(
-                "SELECT COALESCE(SUM(kdvli_toplam),0) FROM hareketler WHERE firma_kod=? AND tur='ALIS'",
-                (kod,),
-            ).fetchone()[0]
-            satis = conn.execute(
-                "SELECT COALESCE(SUM(kdvli_toplam),0) FROM hareketler WHERE firma_kod=? AND tur='SATIS'",
-                (kod,),
-            ).fetchone()[0]
-            odeme = conn.execute(
-                "SELECT COALESCE(SUM(tutar),0) FROM kasa WHERE firma_kod=? AND tur='GIDER'",
-                (kod,),
-            ).fetchone()[0]
-            tahsilat = conn.execute(
-                "SELECT COALESCE(SUM(tutar),0) FROM kasa WHERE firma_kod=? AND tur='GELIR'",
-                (kod,),
-            ).fetchone()[0]
-            bakiye = (satis - tahsilat) - (alis - odeme)
+        for b in bakiyeler:
+            bakiye = b['bakiye']
             if bakiye <= 0:
                 continue
-
+            kod = b['kod']
+            risk_limiti = risk_map.get(kod, 0)
             oldest_sale = conn.execute(
-                "SELECT MIN(tarih) FROM hareketler WHERE firma_kod=? AND tur='SATIS'",
+                "SELECT MIN(tarih) FROM hareketler WHERE firma_kod=? AND tur='SATIS' AND tarih IS NOT NULL AND tarih != ''",
                 (kod,),
             ).fetchone()[0]
             gun = 0
@@ -42,19 +32,18 @@ def get_tahsilat_onerileri():
                 except Exception:
                     gun = 0
 
-            # Risk limiti carpani
             risk_yuzde = (float(bakiye) / risk_limiti * 100) if risk_limiti > 0 else 0
             if risk_limiti > 0 and float(bakiye) > risk_limiti:
-                risk_carpan = 10  # Limit asimi - en yuksek oncelik
+                risk_carpan = 10
             elif risk_yuzde >= 80:
-                risk_carpan = 3  # Limitin %80+ - yuksek oncelik
+                risk_carpan = 3
             else:
                 risk_carpan = 1
 
             oncelik = (gun * 1000 + float(bakiye)) * risk_carpan
             out.append({
                 'firma_kod': kod,
-                'firma_ad': f['ad'],
+                'firma_ad': b['ad'],
                 'onerilen_tahsilat': float(bakiye),
                 'en_eski_satis': oldest_sale or '',
                 'gecikme_gun': gun,
