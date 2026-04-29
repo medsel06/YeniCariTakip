@@ -1,4 +1,4 @@
-﻿"""PDF rapor uretimi - ReportLab"""
+"""PDF rapor uretimi - ReportLab"""
 import os
 import io
 import tempfile
@@ -185,11 +185,30 @@ def _header_footer(canvas, doc, title, show_title=True):
     canvas.restoreState()
 
 
-def generate_cari_ekstre_pdf(firma_ad, ekstre_data, donem_label=None, devir=None):
+def generate_cari_ekstre_pdf(firma_ad, ekstre_data, donem_label=None, devir=None, firma=None):
     """Cari ekstre PDF.
     ekstre_data: list (eski API) VEYA dict (yeni API: {donem_label, devir, satirlar, ...})
     donem_label / devir: opsiyonel manuel parametreler (geriye uyumluluk).
+    firma: opsiyonel firma dict ({kod, ad, vkn_tckn, vergi_dairesi, tel, adres}).
+        Verilirse ve WeasyPrint kuruluysa modern v3 PDF tasarimi uygulanir.
+
+    Onceki donem icin reportlab fallback otomatik calisir.
     """
+    # V3 modern PDF (WeasyPrint) tercihen denenir
+    try:
+        from services import pdf_v3_service
+        if pdf_v3_service.WEASYPRINT_AVAILABLE and isinstance(ekstre_data, dict):
+            from services.settings_service import get_company_settings
+            try:
+                sirket = get_company_settings()
+            except Exception:
+                sirket = {'firma_adi': firma_ad}
+            firma_dict = firma or {'ad': firma_ad}
+            return pdf_v3_service.render_cari_ekstre(firma_dict, ekstre_data, sirket)
+    except Exception:
+        # WeasyPrint render basarisiz - reportlab fallback'e dus
+        pass
+
     # Yeni API: dict olarak geldi
     if isinstance(ekstre_data, dict):
         donem_label = donem_label or ekstre_data.get('donem_label')
@@ -301,7 +320,20 @@ def generate_cari_ekstre_pdf(firma_ad, ekstre_data, donem_label=None, devir=None
     return buf.getvalue()
 
 
-def generate_stok_raporu_pdf(stok_data):
+def generate_stok_raporu_pdf(stok_data, donem_label=None):
+    # V3 modern PDF (WeasyPrint) tercihen denenir
+    try:
+        from services import pdf_v3_service
+        if pdf_v3_service.WEASYPRINT_AVAILABLE:
+            from services.settings_service import get_company_settings
+            try:
+                sirket = get_company_settings()
+            except Exception:
+                sirket = {'firma_adi': 'Firma'}
+            return pdf_v3_service.render_stok_raporu(stok_data, sirket, donem_label=donem_label or '')
+    except Exception:
+        pass
+
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=PDF_TOP_MARGIN_MM * mm, bottomMargin=20*mm,
                             leftMargin=15*mm, rightMargin=15*mm)
@@ -565,6 +597,42 @@ def generate_hizli_mutabakat_pdf(firma_ad, ekstre_rows, cek_rows, kasa_rows):
     )
     buf.seek(0)
     return buf.getvalue()
+
+
+def generate_gelir_gider_pdf(gg_data, donem_label=None):
+    """Gelir/Gider rapor PDF. WeasyPrint varsa v3 modern tasarim, yoksa generic tablo."""
+    # V3 modern PDF (WeasyPrint) tercihen denenir
+    try:
+        from services import pdf_v3_service
+        if pdf_v3_service.WEASYPRINT_AVAILABLE:
+            from services.settings_service import get_company_settings
+            try:
+                sirket = get_company_settings()
+            except Exception:
+                sirket = {'firma_adi': 'Firma'}
+            return pdf_v3_service.render_gelir_gider(gg_data, sirket, donem_label=donem_label or '')
+    except Exception:
+        pass
+
+    # Fallback: generic tablo PDF
+    headers = ['Tarih', 'Kategori', 'Açıklama', 'Tür', 'Tutar']
+    rows = []
+    for r in gg_data:
+        tarih = r.get('tarih', '') or ''
+        if '-' in tarih:
+            p = tarih.split('-')
+            tarih = f"{p[2]}.{p[1]}.{p[0]}"
+        rows.append([
+            tarih,
+            r.get('kategori', ''),
+            str(r.get('aciklama', ''))[:40],
+            r.get('tur', ''),
+            float(r.get('tutar', 0) or 0),
+        ])
+    title = 'Gelir / Gider Raporu'
+    if donem_label:
+        title += f' — {donem_label}'
+    return generate_table_pdf(title, headers, rows)
 
 
 def save_pdf_preview(pdf_bytes, filename):

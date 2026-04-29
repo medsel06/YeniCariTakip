@@ -783,4 +783,109 @@ async def api_logout(request: Request):
     return _json({'ok': True})
 
 
-print("[API] services.api_routes yüklendi - /api/* endpoint'leri aktif (GET+POST+PUT+DELETE)")
+# ============= PDF EXPORT (V3 frontend) =============
+
+@app.get('/api/export/cari-ekstre/{kod}')
+@api_auth
+async def api_export_cari_ekstre(request: Request, kod: str, yil: Optional[int] = None, ay: Optional[int] = None):
+    """Cari ekstre PDF indirme. WeasyPrint varsa modern v3, yoksa reportlab."""
+    from fastapi.responses import Response
+    from services.pdf_service import generate_cari_ekstre_pdf
+
+    firma = cari_service.get_firma(kod)
+    if not firma:
+        return _json({'error': 'not_found'}, status=404)
+    firma_ad = firma.get('ad') or firma.get('firma_adi') or kod
+
+    ekstre = cari_service.get_cari_ekstre(kod, yil=yil, ay=ay, with_meta=True)
+    pdf_bytes = generate_cari_ekstre_pdf(firma_ad, ekstre, firma=firma)
+
+    filename = f"cari_ekstre_{kod}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type='application/pdf',
+        headers={'Content-Disposition': f'attachment; filename="{filename}"'},
+    )
+
+
+@app.get('/api/export/stok-raporu')
+@api_auth
+async def api_export_stok_raporu(request: Request):
+    """Stok durum raporu PDF."""
+    from fastapi.responses import Response
+    from services.pdf_service import generate_stok_raporu_pdf
+
+    stok_data = stok_service.get_stok_list()
+    pdf_bytes = generate_stok_raporu_pdf(stok_data)
+
+    return Response(
+        content=pdf_bytes,
+        media_type='application/pdf',
+        headers={'Content-Disposition': 'attachment; filename="stok_raporu.pdf"'},
+    )
+
+
+@app.get('/api/export/gelir-gider')
+@api_auth
+async def api_export_gelir_gider(request: Request, yil: Optional[int] = None, ay: Optional[int] = None):
+    """Gelir/Gider rapor PDF."""
+    from fastapi.responses import Response
+    from services.pdf_service import generate_gelir_gider_pdf
+
+    gg_data = gelir_gider_service.get_gelir_gider_list(yil=yil, ay=ay)
+    # Dönem etiketi oluştur
+    if yil and ay:
+        import calendar
+        ay_adi = ['', 'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+                  'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'][ay]
+        donem_label = f'{ay_adi} {yil}'
+    elif yil:
+        donem_label = f'{yil} Yılı'
+    else:
+        donem_label = 'Tüm Zamanlar'
+
+    pdf_bytes = generate_gelir_gider_pdf(gg_data, donem_label=donem_label)
+
+    return Response(
+        content=pdf_bytes,
+        media_type='application/pdf',
+        headers={'Content-Disposition': 'attachment; filename="gelir_gider_raporu.pdf"'},
+    )
+
+
+@app.get('/api/export/kasa-raporu')
+@api_auth
+async def api_export_kasa_raporu(request: Request, yil: Optional[int] = None, ay: Optional[int] = None):
+    """Kasa raporu PDF."""
+    from fastapi.responses import Response
+    from services.pdf_service import generate_kasa_raporu_pdf
+
+    kasa_data = kasa_service.get_kasa_list(yil=yil, ay=ay)
+    bakiye_info = kasa_service.get_kasa_bakiye(yil=yil, ay=ay)
+    pdf_bytes = generate_kasa_raporu_pdf(kasa_data, bakiye_info)
+
+    return Response(
+        content=pdf_bytes,
+        media_type='application/pdf',
+        headers={'Content-Disposition': 'attachment; filename="kasa_raporu.pdf"'},
+    )
+
+
+@app.get('/api/export/cek-raporu')
+@api_auth
+async def api_export_cek_raporu(request: Request, tur: Optional[str] = None):
+    """Çek portföy raporu PDF."""
+    from fastapi.responses import Response
+    from services.pdf_service import generate_cek_raporu_pdf
+
+    cek_data = cek_service.list_cekler(cek_turu=tur)
+    pdf_bytes = generate_cek_raporu_pdf(cek_data)
+
+    return Response(
+        content=pdf_bytes,
+        media_type='application/pdf',
+        headers={'Content-Disposition': 'attachment; filename="cek_portfoy_raporu.pdf"'},
+    )
+
+
+print("[API] services.api_routes yüklendi - /api/* endpoint'leri aktif (GET+POST+PUT+DELETE+EXPORT)")

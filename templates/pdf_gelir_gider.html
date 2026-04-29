@@ -1,0 +1,163 @@
+{% extends "pdf_base.html" %}
+{% block content %}
+
+<section class="sheet">
+  <header class="pdf-hd">
+    <div class="brand-mark">{{ brand_initials }}</div>
+    <div class="brand-block">
+      <div class="brand-name">{{ sirket.firma_adi or 'Firma Adı' }}</div>
+      <div class="brand-tag">Mali Kontrol Departmanı · Dönemsel Rapor</div>
+      <div class="brand-meta">
+        {% if sirket.adres %}{{ sirket.adres }}{% endif %}
+        {% if sirket.telefon %}<span class="sep">·</span><span class="mono">{{ sirket.telefon }}</span>{% endif %}
+      </div>
+    </div>
+    <div class="doc-meta">
+      <div class="doc-kind">Gelir / Gider Raporu</div>
+      <div class="doc-num">No: {{ doc_no }}</div>
+      <div class="doc-date">{{ donem_label or 'Tüm Zamanlar' }}</div>
+    </div>
+  </header>
+
+  <div class="section-block">
+    <h2 class="section">Mali Özet</h2>
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-label">Toplam Gelir</div>
+        <div class="stat-value num pos">{{ format_money(stat.gelir_top) }} ₺</div>
+        <div class="stat-sub">{{ stat.gelir_adet }} işlem</div>
+      </div>
+      <div class="stat-box bad">
+        <div class="stat-label">Toplam Gider</div>
+        <div class="stat-value num neg">{{ format_money(stat.gider_top) }} ₺</div>
+        <div class="stat-sub">{{ stat.gider_adet }} işlem</div>
+      </div>
+      <div class="stat-box ink">
+        <div class="stat-label">Net Sonuç</div>
+        <div class="stat-value num {% if stat.net >= 0 %}pos{% else %}neg{% endif %}">
+          {% if stat.net >= 0 %}+{% endif %}{{ format_money(stat.net) }} ₺
+        </div>
+        <div class="stat-sub">{% if stat.net >= 0 %}Kâr{% else %}Zarar{% endif %}</div>
+      </div>
+      <div class="stat-box info">
+        <div class="stat-label">Gider/Gelir Oranı</div>
+        <div class="stat-value num">{{ stat.oran }}</div>
+        <div class="stat-sub">
+          {% if stat.gelir_top > 0 and (stat.gider_top / stat.gelir_top) < 0.75 %}Hedef altında ✓{% else %}Yüksek{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-block">
+    <h2 class="section">Gelir / Gider Hareketleri</h2>
+    <table class="t">
+      <thead>
+        <tr>
+          <th style="width:65px;">Tarih</th>
+          <th style="width:90px;">Kategori</th>
+          <th>Açıklama</th>
+          <th style="width:75px;">Firma</th>
+          <th style="width:70px;">Ödeme</th>
+          <th style="width:55px;">Tip</th>
+          <th class="r" style="width:90px;">Tutar</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td class="dt">{% if r.tarih %}{{ format_date(r.tarih) }}{% else %}<span class="pill bad" style="font-size:7.5pt;">?</span>{% endif %}</td>
+          <td>{{ r.kategori or '—' }}</td>
+          <td>{{ (r.aciklama or '')[:60] }}</td>
+          <td style="font-size:8.5pt;color:var(--ink-3);">{{ r.firma_ad or '—' }}</td>
+          <td style="font-size:8.5pt;">{{ r.odeme_sekli or '—' }}</td>
+          <td>
+            {% if r.tur == 'GELIR' %}<span class="pill good">Gelir</span>
+            {% else %}<span class="pill bad">Gider</span>{% endif %}
+          </td>
+          <td class="tnum {% if r.tur == 'GIDER' %}neg{% endif %}">
+            <strong>{% if r.tur == 'GELIR' %}+{% else %}−{% endif %}{{ format_money(r.tutar) }}</strong>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="6" class="lbl">DÖNEM TOPLAMI · {{ rows|length }} KAYIT</td>
+          <td class="r num"><strong class="{% if stat.net >= 0 %}pos{% else %}neg{% endif %}">{% if stat.net >= 0 %}+{% endif %}{{ format_money(stat.net) }} ₺</strong></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  {% if kategori_dagilim %}
+  <div class="section-block">
+    <h2 class="section">Kategori Bazlı Gider Dağılımı</h2>
+    <div class="gg-split">
+      <table class="t">
+        <thead>
+          <tr><th>Gider Kategorisi</th><th class="r">Tutar</th><th class="r">Pay</th></tr>
+        </thead>
+        <tbody>
+          {% for k in kategori_dagilim %}
+          <tr>
+            <td><strong>{{ k.kategori }}</strong></td>
+            <td class="tnum">{{ format_money(k.tutar) }}</td>
+            <td class="tnum">{{ k.pct|round(0, 'floor') }}%</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="gg-side">
+        <div>
+          <div class="gg-label">Sabit Giderler</div>
+          <div class="gg-val num">{{ format_money(stat.sabit) }} ₺
+            <span class="small">/ {{ stat.sabit_pct }}</span>
+          </div>
+          <div class="gg-detail">Kira · Maaş · SGK · Telefon</div>
+        </div>
+        <div class="gg-divider">
+          <div class="gg-label">Değişken Giderler</div>
+          <div class="gg-val num">{{ format_money(stat.degisken) }} ₺
+            <span class="small">/ {{ stat.degisken_pct }}</span>
+          </div>
+          <div class="gg-detail">Vergi · Yakıt · Bakım · Diğer</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="pay-block">
+    <div class="pay-cell">
+      <div class="pay-l">Net Sonuç</div>
+      <div class="pay-v num {% if stat.net >= 0 %}pos{% else %}neg{% endif %}">
+        {% if stat.net >= 0 %}+{% endif %}{{ format_money(stat.net) }} ₺
+      </div>
+    </div>
+    <div class="pay-cell total">
+      <div class="pay-l">{% if stat.net >= 0 %}Kâr Marjı{% else %}Zarar Oranı{% endif %} (Net / Gelir)</div>
+      <div class="pay-v num">{{ stat.kar_marji }}</div>
+    </div>
+  </div>
+
+  <div class="signature-row">
+    <div class="sig">Hazırlayan<br/><br/>Mali Kontrol</div>
+    <div class="sig">Onaylayan<br/><br/>Yetkili İmza</div>
+  </div>
+
+  <div class="watermark">GG</div>
+
+  <footer class="pdf-ft">
+    <div class="pdf-ft-block">
+      <div><strong>Bu rapor yönetim raporlama amaçlı düzenlenmiştir.</strong></div>
+      <div>Resmi muhasebe kayıtları yeminli mali müşavir denetimine tabidir.</div>
+    </div>
+    <div class="pdf-ft-block right">
+      <div>Sayfa <strong>1 / 1</strong></div>
+      <div class="mono">{{ doc_datetime }}</div>
+    </div>
+  </footer>
+</section>
+
+{% endblock %}

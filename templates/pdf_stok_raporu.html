@@ -1,0 +1,136 @@
+{% extends "pdf_base.html" %}
+{% block content %}
+
+<section class="sheet">
+  <header class="pdf-hd">
+    <div class="brand-mark">{{ brand_initials }}</div>
+    <div class="brand-block">
+      <div class="brand-name">{{ sirket.firma_adi or 'Firma Adı' }}</div>
+      <div class="brand-tag">Stok Yönetim Departmanı · Dönemsel Rapor</div>
+      <div class="brand-meta">
+        {% if sirket.adres %}{{ sirket.adres }}{% endif %}
+        {% if sirket.telefon %}<span class="sep">·</span><span class="mono">{{ sirket.telefon }}</span>{% endif %}
+      </div>
+    </div>
+    <div class="doc-meta">
+      <div class="doc-kind">Stok Durum Raporu</div>
+      <div class="doc-num">No: {{ doc_no }}</div>
+      <div class="doc-date">{{ donem_label or 'Tüm Zamanlar' }}</div>
+    </div>
+  </header>
+
+  <div class="section-block">
+    <h2 class="section">Genel Stok Durumu</h2>
+    <div class="stat-row">
+      <div class="stat-box ink">
+        <div class="stat-label">Stok Çeşidi</div>
+        <div class="stat-value num">{{ stat.cesit }}</div>
+        <div class="stat-sub">{{ stat.kategori_sayisi }} kategori</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Toplam Alış Tutarı</div>
+        <div class="stat-value num">{{ format_money_short(stat.alis_tutar) }} ₺</div>
+        <div class="stat-sub">KDV dahil</div>
+      </div>
+      <div class="stat-box info">
+        <div class="stat-label">Toplam Satış Tutarı</div>
+        <div class="stat-value num pos">{{ format_money_short(stat.satis_tutar) }} ₺</div>
+        <div class="stat-sub">KDV dahil</div>
+      </div>
+      <div class="stat-box {% if stat.kritik > 0 %}bad{% else %}warn{% endif %}">
+        <div class="stat-label">Kritik / Pasif</div>
+        <div class="stat-value num {% if stat.kritik > 0 %}neg{% endif %}">{{ stat.kritik }}</div>
+        <div class="stat-sub">{% if stat.kritik > 0 %}Stoğu az ürün{% else %}Tümü yeterli{% endif %}</div>
+      </div>
+    </div>
+  </div>
+
+  {% if kategoriler %}
+  <div class="section-block">
+    <h2 class="section">Kategori Dağılımı</h2>
+    <table class="t">
+      <thead>
+        <tr>
+          <th>Kategori</th>
+          <th class="r" style="width:60px;">Çeşit</th>
+          <th class="r" style="width:120px;">Toplam Stok</th>
+          <th class="r" style="width:120px;">Alış Tutarı</th>
+          <th style="width:32%;">Pay</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for k in kategoriler %}
+        <tr>
+          <td><strong>{{ k.kategori or 'Diğer' }}</strong></td>
+          <td class="tnum">{{ k.cesit }}</td>
+          <td class="tnum">{{ format_money(k.toplam_stok) }}</td>
+          <td class="tnum"><strong>{{ format_money(k.alis_tutar) }} ₺</strong></td>
+          <td>
+            <div class="pbar">
+              <div class="pbar-track"><div class="pbar-fill" style="width:{{ k.pct }}%;"></div></div>
+              <span class="pbar-pct">{{ k.pct|round(0, 'floor') }}%</span>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td class="lbl">TOPLAM</td>
+          <td class="r num">{{ stat.cesit }}</td>
+          <td class="r num">—</td>
+          <td class="r num"><strong>{{ format_money(stat.alis_tutar) }} ₺</strong></td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  {% endif %}
+
+  <div class="section-block">
+    <h2 class="section">Detaylı Stok Listesi</h2>
+    <table class="t">
+      <thead>
+        <tr>
+          <th style="width:70px;">Kod</th>
+          <th>Ürün</th>
+          <th style="width:80px;">Kategori</th>
+          <th class="r" style="width:75px;">Stok</th>
+          <th style="width:38px;">Brm</th>
+          <th class="r" style="width:65px;">Alış</th>
+          <th class="r" style="width:65px;">Satış</th>
+          <th class="r" style="width:90px;">Net Hareket</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in stok_data %}
+        <tr>
+          <td class="ref">{{ r.kod }}</td>
+          <td><strong>{{ r.ad }}</strong></td>
+          <td style="color:var(--ink-3);font-size:8.5pt;">{{ r.kategori or '—' }}</td>
+          <td class="tnum {% if r.stok < 0 %}neg{% endif %}"><strong>{{ format_money(r.stok) }}</strong></td>
+          <td>{{ r.birim or 'KG' }}</td>
+          <td class="tnum">{{ format_money(r.alis) if r.alis else '—' }}</td>
+          <td class="tnum">{{ format_money(r.satis) if r.satis else '—' }}</td>
+          <td class="tnum"><strong>{{ format_money((r.satis or 0) - (r.alis or 0)) }}</strong></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="watermark">STK</div>
+
+  <footer class="pdf-ft">
+    <div class="pdf-ft-block">
+      <div><strong>Stok Yönetim Sistemi</strong> · Otomatik düzenlenmiştir</div>
+      <div>Net Hareket = Satış miktarı − Alış miktarı (dönem içi).</div>
+    </div>
+    <div class="pdf-ft-block right">
+      <div>Sayfa <strong>1 / 1</strong></div>
+      <div class="mono">{{ doc_datetime }}</div>
+    </div>
+  </footer>
+</section>
+
+{% endblock %}

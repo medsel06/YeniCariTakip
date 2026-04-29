@@ -4,7 +4,7 @@ from nicegui import ui
 from layout import create_layout, fmt_para, PARA_SLOT, TARIH_SLOT, donem_secici
 from db import get_db
 from services.cek_service import get_vade_uyarilari
-from services.cari_service import get_risk_uyarilari
+from services.cari_service import get_risk_uyarilari, get_orphan_date_count
 from services.kasa_service import get_kasa_bakiye
 from services.gelir_gider_service import get_gelir_gider_ozet
 from services.personel_service import get_personel_dashboard_ozet
@@ -79,6 +79,18 @@ def dashboard_page():
                         with ui.column().classes('gap-0').style('line-height:1'):
                             ui.label(label).classes('text-grey-7').style('font-size: 10px; line-height: 12px')
                             ui.label(f'{fmt_para(value)} TL').classes('text-weight-bold').style('font-size: 13px; line-height: 15px')
+
+        # --- Bos Tarih Uyarisi (Paket 3) ---
+        orphan = get_orphan_date_count()
+        if orphan:
+            total = sum(orphan.values())
+            with ui.card().classes('w-full q-pa-xs q-mt-xs').style('background: #FFF3E0; border-left: 3px solid #FB8C00'):
+                with ui.row().classes('items-center gap-2'):
+                    ui.icon('event_busy', color='orange-9').style('font-size: 22px')
+                    with ui.column().classes('gap-0'):
+                        ui.label(f'TARIH BELIRSIZ: {total} kayit').classes('text-weight-bold text-orange-10')
+                        detay = ', '.join(f"{k}: {v}" for k, v in orphan.items())
+                        ui.label(f'Bu kayitlar donem raporlarina dahil edilmiyor. Detay: {detay}').classes('text-caption text-orange-9')
 
         # --- Risk Limiti Uyarilari ---
         risk_list = get_risk_uyarilari()

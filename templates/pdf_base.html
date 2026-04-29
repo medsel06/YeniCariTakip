@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<title>{{ doc_kind }} - {{ sirket.firma_adi }}</title>
+<style>
+  @page {
+    size: A4;
+    margin: 0;
+  }
+  :root {
+    --ink: #0f172a;
+    --ink-2: #334155;
+    --ink-3: #64748b;
+    --ink-4: #94a3b8;
+    --line: #e2e8f0;
+    --line-2: #cbd5e1;
+    --bg: #f1f5f9;
+    --paper: #ffffff;
+    --tint: #f8fafc;
+    --accent: #65a30d;
+    --accent-soft: #ecfccb;
+    --accent-ink: #365314;
+    --good: #16a34a;
+    --good-soft: #dcfce7;
+    --bad: #dc2626;
+    --bad-soft: #fee2e2;
+    --warn: #ca8a04;
+    --warn-soft: #fef3c7;
+    --info: #2563eb;
+    --info-soft: #dbeafe;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #fff;
+    color: var(--ink);
+    font-family: 'DejaVu Sans', 'Liberation Sans', 'Arial', sans-serif;
+    font-size: 11pt; line-height: 1.5;
+    letter-spacing: -0.005em;
+  }
+  .num { font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  .mono { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; font-variant-numeric: tabular-nums; }
+
+  .sheet {
+    width: 210mm; min-height: 297mm;
+    background: var(--paper);
+    padding: 16mm 16mm 14mm;
+    display: flex; flex-direction: column;
+    position: relative;
+    color: var(--ink);
+  }
+
+  /* HEADER */
+  .pdf-hd {
+    display: flex; align-items: flex-start; gap: 16px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 22px;
+  }
+  .brand-mark {
+    width: 56px; height: 56px;
+    background: var(--ink);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    font-size: 18px; letter-spacing: -0.04em;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .brand-mark::after {
+    content: ''; position: absolute; top: 0; right: 0; bottom: 0;
+    width: 4px; background: var(--accent);
+  }
+  .brand-block { flex: 1; }
+  .brand-name {
+    font-size: 18px; font-weight: 700; letter-spacing: -0.025em;
+    line-height: 1.15;
+  }
+  .brand-name .accent { color: var(--accent); }
+  .brand-tag {
+    font-size: 9pt; font-weight: 500; color: var(--ink-3);
+    text-transform: uppercase; letter-spacing: 0.18em;
+    margin-top: 4px;
+  }
+  .brand-meta {
+    margin-top: 8px; font-size: 9pt; color: var(--ink-3);
+    line-height: 1.5;
+  }
+  .brand-meta .sep { margin: 0 6px; color: var(--line-2); }
+  .doc-meta {
+    text-align: right;
+    border-left: 1px solid var(--line);
+    padding-left: 16px;
+    min-width: 180px;
+  }
+  .doc-kind {
+    display: inline-block;
+    font-size: 9px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.16em;
+    background: var(--ink); color: var(--paper);
+    padding: 4px 9px;
+  }
+  .doc-num {
+    font-family: 'DejaVu Sans Mono', monospace;
+    font-size: 11px; color: var(--ink-3);
+    margin-top: 8px;
+  }
+  .doc-date {
+    font-size: 9pt; color: var(--ink-4);
+    margin-top: 3px;
+  }
+
+  /* SECTIONS */
+  h2.section {
+    font-size: 9pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.18em;
+    color: var(--ink-3); margin: 0 0 10px;
+    padding-bottom: 5px; border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 8px;
+  }
+  h2.section::before {
+    content: ''; width: 3px; height: 11px; background: var(--accent);
+    display: inline-block;
+  }
+  .section-block { margin-bottom: 22px; }
+  .section-block:last-child { margin-bottom: 0; }
+
+  /* INFO STRIP */
+  .cari-strip {
+    display: flex; align-items: stretch; gap: 18px;
+    background: var(--tint);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    padding: 12px 16px;
+  }
+  .cari-strip-cell { flex: 1; min-width: 0; }
+  .cari-strip-cell.fixed {
+    flex: 0 0 auto;
+    border-left: 1px solid var(--line);
+    padding-left: 14px;
+  }
+  .cari-strip-name {
+    font-size: 13.5px; font-weight: 700; letter-spacing: -0.015em;
+    color: var(--ink); line-height: 1.2;
+    margin-top: 3px;
+  }
+  .info-label {
+    font-size: 8pt; color: var(--ink-3); font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    margin-bottom: 3px;
+  }
+
+  /* STAT BOXES */
+  .stat-row {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 22px;
+  }
+  .stat-box {
+    border: 1px solid var(--line);
+    padding: 11px 13px;
+    background: var(--paper);
+    position: relative;
+  }
+  .stat-box::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+    width: 3px; background: var(--accent);
+  }
+  .stat-box.bad::before { background: var(--bad); }
+  .stat-box.warn::before { background: var(--warn); }
+  .stat-box.info::before { background: var(--info); }
+  .stat-box.ink::before { background: var(--ink); }
+  .stat-label {
+    font-size: 8pt; color: var(--ink-3); font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.1em;
+  }
+  .stat-value {
+    font-size: 17px; font-weight: 700;
+    margin-top: 6px;
+    letter-spacing: -0.025em; line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-sub {
+    font-size: 9px; color: var(--ink-4);
+    margin-top: 3px; font-weight: 500;
+  }
+  .stat-value.pos { color: var(--good); }
+  .stat-value.neg { color: var(--bad); }
+
+  /* TABLES */
+  table.t {
+    width: 100%; border-collapse: collapse;
+    font-size: 9pt;
+  }
+  table.t thead th {
+    background: var(--ink); color: var(--paper);
+    text-align: left; padding: 8px 10px;
+    font-size: 9px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.07em;
+    white-space: nowrap;
+  }
+  table.t thead th.r { text-align: right; }
+  table.t tbody td {
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  table.t tbody tr:nth-child(2n) td { background: var(--tint); }
+  table.t tbody tr.devir td {
+    background: #dbeafe !important;
+    font-weight: 700;
+    border-bottom: 2px solid var(--info);
+  }
+  table.t tbody td.r { text-align: right; }
+  table.t tbody td.tnum { text-align: right; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  table.t tbody td.dt { color: var(--ink-3); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  table.t tbody td.ref { font-family: 'DejaVu Sans Mono', monospace; color: var(--ink-3); font-size: 8.5pt; }
+  table.t tfoot td {
+    padding: 9px 10px;
+    border-top: 2px solid var(--ink);
+    background: var(--tint);
+    font-weight: 600;
+  }
+  table.t tfoot td.r { text-align: right; font-variant-numeric: tabular-nums; }
+  table.t tfoot td.lbl {
+    font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 600;
+  }
+
+  /* PILLS */
+  .pill {
+    display: inline-block;
+    padding: 1.5px 7px;
+    font-size: 8.5pt; font-weight: 600;
+    border: 1px solid;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
+  .pill.good { background: var(--good-soft); color: var(--good); border-color: #86efac; }
+  .pill.bad { background: var(--bad-soft); color: var(--bad); border-color: #fca5a5; }
+  .pill.warn { background: var(--warn-soft); color: var(--warn); border-color: #fcd34d; }
+  .pill.info { background: var(--info-soft); color: var(--info); border-color: #93c5fd; }
+  .pill.accent { background: var(--accent-soft); color: var(--accent-ink); border-color: #bef264; }
+  .pill.mute { background: var(--tint); color: var(--ink-3); border-color: var(--line-2); }
+
+  /* SUMMARY ROW */
+  .pay-block {
+    display: grid; grid-template-columns: 1fr 1fr;
+    border: 1px solid var(--ink);
+    margin-top: 10px;
+  }
+  .pay-cell { padding: 10px 14px; }
+  .pay-cell.total { background: var(--ink); color: #fff; }
+  .pay-cell.total .pay-l { color: rgba(255,255,255,0.7); }
+  .pay-l { font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-3); font-weight: 600; }
+  .pay-v { font-size: 16pt; font-weight: 700; margin-top: 3px; font-variant-numeric: tabular-nums; letter-spacing: -0.025em; }
+
+  /* AÇIK BAKİYE BOX */
+  .balance-box {
+    display: flex; justify-content: flex-end; margin-top: 6px;
+  }
+  .balance-box-inner {
+    border: 1px solid var(--ink);
+    padding: 14px 22px;
+    min-width: 280px;
+    background: var(--paper);
+  }
+  .balance-box-inner .pay-v { text-align: right; }
+
+  /* SIGNATURE */
+  .signature-row {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-top: 24px; padding-top: 8px;
+  }
+  .sig {
+    border-top: 1px solid var(--ink);
+    padding-top: 5px;
+    text-align: center;
+    font-size: 9pt; color: var(--ink-3);
+    font-weight: 500;
+  }
+
+  /* WATERMARK */
+  .watermark {
+    position: absolute; bottom: 28mm; right: 16mm;
+    font-size: 90px; font-weight: 800;
+    color: rgba(15,23,42,0.04);
+    letter-spacing: -0.06em;
+    transform: rotate(-8deg);
+    z-index: 0;
+  }
+  .sheet > *:not(.watermark) { position: relative; z-index: 1; }
+
+  /* FOOTER */
+  .pdf-ft {
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: flex-end;
+    font-size: 8.5pt; color: var(--ink-4);
+  }
+  .pdf-ft strong { color: var(--ink-2); }
+  .pdf-ft-block { display: flex; flex-direction: column; gap: 2px; }
+  .pdf-ft-block.right { text-align: right; }
+
+  /* STOCK BAR */
+  .stock-bar { display: flex; align-items: center; gap: 6px; }
+  .stock-bar-track { flex: 1; min-width: 50px; height: 6px; background: var(--line); position: relative; overflow: hidden; }
+  .stock-bar-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); }
+  .stock-bar-fill.low { background: var(--bad); }
+  .stock-bar-fill.warn { background: var(--warn); }
+  .stock-bar-pct { font-size: 8pt; color: var(--ink-3); font-variant-numeric: tabular-nums; min-width: 32px; text-align: right; }
+
+  /* PROGRESS BAR (kategori dagılım) */
+  .pbar { display: flex; align-items: center; gap: 6px; }
+  .pbar-track { flex: 1; height: 6px; background: var(--line); position: relative; }
+  .pbar-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); }
+  .pbar-pct { font-size: 9pt; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+  /* CRITICAL STOCK ALERT */
+  .alert-crit {
+    background: var(--bad-soft);
+    border: 1px solid #fca5a5;
+    border-left: 4px solid var(--bad);
+    padding: 12px 16px;
+    display: flex; gap: 14px; align-items: flex-start;
+  }
+  .alert-crit-icon {
+    font-size: 18px; line-height: 1;
+    color: var(--bad); font-weight: 700;
+  }
+  .alert-crit-body { flex: 1; font-size: 9pt; }
+  .alert-crit-title { font-weight: 700; color: var(--bad); margin-bottom: 4px; }
+
+  /* GG SUMMARY */
+  .gg-split {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+  }
+  .gg-side {
+    background: var(--tint); border: 1px solid var(--line);
+    padding: 14px;
+  }
+  .gg-side .gg-label {
+    font-size: 8pt; color: var(--ink-3); font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .gg-side .gg-val {
+    font-size: 14pt; font-weight: 700; letter-spacing: -0.02em;
+    color: var(--ink); margin-top: 2px;
+  }
+  .gg-side .gg-val .small {
+    font-size: 9pt; color: var(--ink-3); font-weight: 500;
+  }
+  .gg-side .gg-detail {
+    font-size: 9pt; color: var(--ink-3); margin-top: 2px;
+  }
+  .gg-divider {
+    border-top: 1px solid var(--line);
+    padding-top: 10px;
+    margin-top: 10px;
+  }
+
+  /* TEXT UTIL */
+  .neg { color: var(--bad); }
+  .pos { color: var(--good); }
+  .strong { font-weight: 700; }
+  .right { text-align: right; }
+  .nowrap { white-space: nowrap; }
+</style>
+</head>
+<body>
+{% block content %}{% endblock %}
+</body>
+</html>
