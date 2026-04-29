@@ -8,28 +8,28 @@ from db import set_tenant_schema
 
 
 MENU_GROUPS = [
-    ('Operasyon', 'business_center', [
-        ('/', 'dashboard', 'Bilgi Ekranı'),
-        ('/hareketler', 'swap_horiz', 'Stok Hareketler'),
-        ('/cari', 'people', 'Cari Hesaplar'),
-        ('/firma-master', 'apartment', 'Firmalar'),
+    ('Operasyon', 'grid_view', [
+        ('/', 'space_dashboard', 'Bilgi Ekranı'),
+        ('/hareketler', 'sync_alt', 'Stok Hareketler'),
+        ('/cari', 'groups', 'Cari Hesaplar'),
+        ('/firma-master', 'domain', 'Firmalar'),
         ('/stok', 'inventory_2', 'Stok'),
-        ('/kasa', 'account_balance_wallet', 'Kasa'),
-        ('/gelir-gider', 'payments', 'Gelir / Gider'),
+        ('/kasa', 'account_balance', 'Kasa'),
+        ('/gelir-gider', 'receipt', 'Gelir / Gider'),
         ('/personel', 'badge', 'Personel'),
-        ('/cekler', 'receipt_long', 'Çek / Senet'),
+        ('/cekler', 'description', 'Çek / Senet'),
         ('/uretim', 'precision_manufacturing', 'Üretim'),
     ]),
-    ('Finans Analiz', 'insights', [
-        ('/cek-takvim', 'event_note', 'Çek Takvimi'),
+    ('Finans Analiz', 'bar_chart', [
+        ('/cek-takvim', 'calendar_month', 'Çek Takvimi'),
         ('/mutabakat', 'fact_check', 'Mutabakat'),
-        ('/tahsilat-oneri', 'tips_and_updates', 'Tahsilat Öneri'),
+        ('/tahsilat-oneri', 'bolt', 'Tahsilat Öneri'),
         ('/karlilik', 'query_stats', 'Karlılık'),
         ('/raporlar', 'assessment', 'Raporlar'),
     ]),
-    ('Yönetim', 'admin_panel_settings', [
+    ('Yönetim', 'tune', [
         ('/ayarlar', 'settings', 'Ayarlar'),
-        ('/loglar', 'history', 'Loglar'),
+        ('/loglar', 'manage_history', 'Loglar'),
     ]),
 ]
 
@@ -126,35 +126,24 @@ BRAND_CSS = '''
   display: block;
 }
 .alse-drawer {
-  background:
-    radial-gradient(circle at 8% 8%, rgba(255,255,255,0.35) 0, transparent 28%),
-    linear-gradient(180deg, #eef4fb 0%, #dce6f0 100%) !important;
+  background: #ffffff !important;
+  border-right: 1px solid #e2e8f0 !important;
 }
 .alse-drawer .q-drawer__content,
 .alse-drawer .scroll {
-  background:
-    radial-gradient(circle at 8% 8%, rgba(255,255,255,0.35) 0, transparent 28%),
-    linear-gradient(180deg, #eef4fb 0%, #dce6f0 100%) !important;
+  background: #ffffff !important;
 }
 .alse-drawer .q-drawer__content {
   overflow-y: auto !important;
   overflow-x: hidden !important;
 }
-.alse-nav-item {
-  border-radius: 8px;
-  transition: all .2s ease;
-  padding: 8px 10px !important;
-  margin: 1px 8px;
-  min-height: 36px;
+/* Drawer brand alanı */
+.alse-drawer-brand {
+  height: 70px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 4px;
 }
-.alse-nav-item:hover {
-  background: rgba(26, 92, 140, 0.08);
-}
-.alse-nav-item.bg-blue-2 {
-  background: rgba(25, 118, 210, 0.12) !important;
-  border-left: 3px solid #1976D2;
-  padding-left: 7px !important;
-}
+/* Grup başlığı (accordion trigger) */
 .alse-group {
   background: transparent;
   border: none;
@@ -170,30 +159,77 @@ BRAND_CSS = '''
 }
 .alse-drawer .q-expansion-item + .q-expansion-item {
   margin-top: 0 !important;
+  border-top: 1px solid #f1f5f9;
 }
 .alse-group .q-expansion-item__container {
   margin: 0 !important;
   padding: 0 !important;
 }
 .alse-group .q-expansion-item__container > .q-item {
-  min-height: 42px;
-  height: 42px;
+  min-height: 34px;
+  height: 34px;
   margin: 0 !important;
-  padding-left: 16px;
-  padding-right: 12px;
-  border-bottom: 1px solid rgba(140, 164, 186, 0.15);
+  padding-left: 14px;
+  padding-right: 10px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e9eef4;
+}
+.alse-group .q-expansion-item__container > .q-item .q-item__label {
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b !important;
+}
+.alse-group .q-expansion-item__container > .q-item .q-icon {
+  font-size: 16px !important;
+  color: #94a3b8 !important;
 }
 .alse-group .q-expansion-item__content {
-  padding-top: 2px !important;
-  padding-bottom: 6px !important;
+  padding-top: 3px !important;
+  padding-bottom: 4px !important;
 }
 .alse-group .q-item__section--avatar {
-  min-width: 18px;
+  min-width: 16px;
 }
 .alse-group .q-item__label {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+/* Menü öğeleri */
+.alse-nav-item {
+  border-radius: 6px;
+  transition: background 0.13s ease;
+  padding: 5px 8px !important;
+  margin: 1px 6px;
+  min-height: 31px;
+  gap: 6px;
+}
+.alse-nav-item:hover {
+  background: #f0f7ff;
+}
+.alse-nav-item.active-nav {
+  background: #eff6ff !important;
+  border-left: 3px solid #1976D2;
+  padding-left: 5px !important;
+}
+.alse-nav-item .nav-label {
+  font-size: 13px;
+  line-height: 1.3;
+}
+.alse-nav-item .nav-label.active-label {
+  font-weight: 600;
+  color: #1565c0;
+}
+.alse-nav-item .nav-label.inactive-label {
+  color: #334155;
+}
+.alse-nav-item .nav-icon-active {
+  color: #1976D2;
+}
+.alse-nav-item .nav-icon-inactive {
+  color: #64748b;
 }
 
 /* Global table look */
@@ -267,18 +303,19 @@ BRAND_CSS = '''
     max-height: calc(clamp(250px, calc(100vh - 255px), 500px) + (var(--table-extra-rows, 0) * 38px));
   }
   .alse-group {
-    margin: 0 6px !important;
-    width: calc(100% - 12px);
-  }
-  .alse-drawer .q-expansion-item + .q-expansion-item {
-    margin-top: 0 !important;
-    border-top: 1px solid rgba(140, 164, 186, 0.45);
+    margin: 0 !important;
+    width: 100%;
   }
   .alse-group .q-expansion-item__container > .q-item {
     min-height: 30px;
     height: 30px;
-    padding-left: 6px;
-    padding-right: 6px;
+    padding-left: 10px;
+    padding-right: 8px;
+  }
+  .alse-nav-item {
+    min-height: 28px;
+    padding: 3px 6px !important;
+    margin: 1px 4px;
   }
 }
 @media (max-width: 900px) {
@@ -423,14 +460,10 @@ def create_layout(active_path='/', page_title=''):
             with ui.expansion(group_title, icon=group_icon, value=(i == active_group_index)).classes('alse-group').props('group=navgrp dense'):
                 for path, icon, text in items:
                     is_active = active_path == path
-                    bg = 'bg-blue-2' if is_active else ''
-                    tc = 'text-primary text-weight-bold' if is_active else 'text-grey-9'
-                    ic = 'text-primary' if is_active else 'text-grey-7'
-                    with ui.row().classes(
-                        f'w-full items-center no-wrap cursor-pointer {bg} alse-nav-item'
-                    ).on('click', lambda p=path: ui.navigate.to(p)):
-                        ui.icon(icon, size='20px').classes(ic)
-                        ui.label(text).classes(f'q-ml-sm {tc}').style('font-size: 13.5px')
+                    row_cls = 'w-full items-center no-wrap cursor-pointer alse-nav-item' + (' active-nav' if is_active else '')
+                    with ui.row().classes(row_cls).on('click', lambda p=path: ui.navigate.to(p)):
+                        ui.icon(icon, size='18px').classes('nav-icon-active' if is_active else 'nav-icon-inactive')
+                        ui.label(text).classes('nav-label ' + ('active-label' if is_active else 'inactive-label'))
 
     return drawer
 
