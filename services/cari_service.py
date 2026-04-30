@@ -462,15 +462,15 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
             firma_kod,
             COALESCE(NULLIF(kesim_tarih, ''), vade_tarih, '') || ' 00:00:00.000000' AS sort_ts,
             COALESCE(NULLIF(kesim_tarih, ''), vade_tarih) AS tarih,
-            tur AS tip, 'C' AS kaynak, id AS ref_id,
+            cek_turu AS tip, 'C' AS kaynak, id AS ref_id,
             CASE
-              WHEN tur='ALINAN' AND durum NOT IN ('KARSILIKSIZ','IADE_EDILDI') THEN tutar
-              WHEN tur='VERILEN' AND durum='IADE_EDILDI' THEN tutar
+              WHEN cek_turu='ALINAN' AND durum NOT IN ('KARSILIKSIZ','IADE_EDILDI') THEN tutar
+              WHEN cek_turu='VERILEN' AND durum='IADE_EDILDI' THEN tutar
               ELSE 0
             END AS borc,
             CASE
-              WHEN tur='VERILEN' AND durum NOT IN ('IADE_EDILDI') THEN tutar
-              WHEN tur='ALINAN' AND durum IN ('KARSILIKSIZ','IADE_EDILDI') THEN tutar
+              WHEN cek_turu='VERILEN' AND durum NOT IN ('IADE_EDILDI') THEN tutar
+              WHEN cek_turu='ALINAN' AND durum IN ('KARSILIKSIZ','IADE_EDILDI') THEN tutar
               ELSE 0
             END AS alacak,
             cek_no AS aciklama, cek_no AS belge_no
@@ -529,10 +529,10 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
         devir_subqueries.append(f"""
             SELECT firma_kod,
                     SUM(CASE
-                        WHEN tur='VERILEN' AND durum NOT IN ('IADE_EDILDI') THEN tutar
-                        WHEN tur='ALINAN' AND durum IN ('KARSILIKSIZ','IADE_EDILDI') THEN tutar
-                        WHEN tur='ALINAN' AND durum NOT IN ('KARSILIKSIZ','IADE_EDILDI') THEN -tutar
-                        WHEN tur='VERILEN' AND durum='IADE_EDILDI' THEN -tutar
+                        WHEN cek_turu='VERILEN' AND durum NOT IN ('IADE_EDILDI') THEN tutar
+                        WHEN cek_turu='ALINAN' AND durum IN ('KARSILIKSIZ','IADE_EDILDI') THEN tutar
+                        WHEN cek_turu='ALINAN' AND durum NOT IN ('KARSILIKSIZ','IADE_EDILDI') THEN -tutar
+                        WHEN cek_turu='VERILEN' AND durum='IADE_EDILDI' THEN -tutar
                         ELSE 0
                     END) AS net
             FROM cekler
