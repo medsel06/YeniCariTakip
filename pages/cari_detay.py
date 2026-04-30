@@ -167,11 +167,11 @@ def cari_detay_page(firma_kod: str):
             with ui.row().classes('w-full items-center gap-1 q-px-xs q-py-xs cari-topbar').style('flex-wrap: nowrap; overflow: hidden;'):
                 with ui.row().classes('items-center gap-2 no-wrap'):
                     ui.button(icon='arrow_back', on_click=lambda: ui.navigate.to('/cari')).props('flat round dense')
-                    with ui.column().classes('gap-0'):
-                        ui.label(firma['ad']).style('font-size:15px;font-weight:700;line-height:1.2;color:#1e293b;')
-                        bakiye_color = '#16a34a' if son_bakiye > 0 else '#dc2626' if son_bakiye < 0 else '#64748b'
-                        bakiye_desc = 'Alacak' if son_bakiye > 0 else 'Borç' if son_bakiye < 0 else ''
-                        ui.label(f'{fmt_para(son_bakiye)} TL · {bakiye_desc}').style(f'font-size:12px;font-weight:600;color:{bakiye_color};line-height:1.2;')
+                    ui.label(firma['ad']).style('font-size:15px;font-weight:700;color:#1e293b;')
+                    bakiye_bg = '#dcfce7' if son_bakiye > 0 else '#fee2e2' if son_bakiye < 0 else '#f1f5f9'
+                    bakiye_color = '#15803d' if son_bakiye > 0 else '#b91c1c' if son_bakiye < 0 else '#64748b'
+                    bakiye_desc = 'Alacak' if son_bakiye > 0 else 'Borç' if son_bakiye < 0 else ''
+                    ui.label(f'{fmt_para(son_bakiye)} TL · {bakiye_desc}').style(f'font-size:12px;font-weight:700;color:{bakiye_color};background:{bakiye_bg};padding:2px 10px;border-radius:12px;')
 
                 with ui.row().classes('items-center justify-center').style('min-width:0; flex:1;'):
                     with ui.tabs().classes('q-px-xs q-py-1 rounded-borders bg-blue-1 text-primary cari-top-tabs').style('max-width: 360px;').props('dense no-caps inline-label') as tabs:
