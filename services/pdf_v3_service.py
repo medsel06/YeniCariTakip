@@ -144,7 +144,7 @@ def _render(template_name: str, ctx: dict) -> bytes:
     html = template.render(**ctx)
     if not WEASYPRINT_AVAILABLE:
         raise RuntimeError(f'WeasyPrint kurulu degil: {WEASYPRINT_ERROR}')
-    return HTML(string=html, base_url=str(_TEMPLATE_DIR)).write_pdf()
+    return HTML(string=html, base_url=str(_TEMPLATE_DIR)).write_pdf(presentational_hints=False)
 
 
 # ---------- Public API ----------
@@ -167,7 +167,7 @@ def render_cari_ekstre(firma: dict, ekstre_meta: dict, sirket: dict) -> bytes:
         'firma': firma or {},
         'donem_label': ekstre_meta.get('donem_label') or 'Tüm Zamanlar',
         'devir': ekstre_meta.get('devir', 0) or 0,
-        'satirlar': satirlar,
+        'satirlar': list(reversed(satirlar)),
         'donem_borc': ekstre_meta.get('donem_borc', 0) or 0,
         'donem_alacak': ekstre_meta.get('donem_alacak', 0) or 0,
         'kapanis_bakiye': ekstre_meta.get('kapanis_bakiye', 0) or 0,

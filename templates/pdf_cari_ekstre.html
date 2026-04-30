@@ -97,19 +97,6 @@
 
   <div class="watermark">{{ brand_initials }}</div>
 
-  <footer class="pdf-ft">
-    <div class="pdf-ft-block">
-      <div><strong>{{ sirket.firma_adi or '' }}</strong>
-        {% if sirket.vkn_tckn %} · VKN: {{ sirket.vkn_tckn }}{% endif %}
-        {% if sirket.vergi_dairesi %} · {{ sirket.vergi_dairesi }} V.D.{% endif %}
-      </div>
-      <div>Bu belge 6102 sayılı TTK çerçevesinde elektronik ortamda düzenlenmiştir.</div>
-    </div>
-    <div class="pdf-ft-block right">
-      <div>Sayfa <span class="page-num"></span></div>
-      <div class="mono">{{ doc_datetime }}</div>
-    </div>
-  </footer>
 </section>
 
 {% endblock %}
