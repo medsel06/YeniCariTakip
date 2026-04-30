@@ -1,6 +1,7 @@
 """ALSE Plastik Hammadde - Stok Detay Sayfası"""
 from nicegui import ui
-from layout import create_layout, fmt_miktar, MIKTAR_SLOT, PARA_SLOT, TARIH_SLOT, normalize_search, donem_secici
+from datetime import datetime
+from layout import create_layout, fmt_miktar, MIKTAR_SLOT, PARA_SLOT, TARIH_SLOT, normalize_search, _get_min_year
 from services.stok_service import get_urun_stok, get_urun_hareketleri, get_urun_uretim_hareketleri
 from services.pdf_service import generate_table_pdf, save_pdf_preview
 
@@ -25,7 +26,8 @@ def stok_detay_page(urun_kod: str):
 
     all_hareketler = get_urun_hareketleri(urun_kod)
     uretim_hareketleri = get_urun_uretim_hareketleri(urun_kod)
-    state = {'yil': None}
+    current_year = datetime.now().year
+    state = {'yil': current_year}
     h_table_ref = [None]
 
     def _get_filtered_hareketler():
@@ -56,11 +58,11 @@ def stok_detay_page(urun_kod: str):
         result.reverse()
         return result
 
-    hareket_rows = _make_rows(all_hareketler)
+    hareket_rows = _make_rows(_get_filtered_hareketler())
     uretim_rows = [{**r, '_rid': f"u{i}"} for i, r in enumerate(uretim_hareketleri)]
 
-    def _on_yil_change(yil, ay):
-        state['yil'] = yil
+    def _on_yil_change(e):
+        state['yil'] = e.value if e.value != 0 else None
         filtered = _get_filtered_hareketler()
         nonlocal hareket_rows
         hareket_rows = _make_rows(filtered)
@@ -96,7 +98,11 @@ def stok_detay_page(urun_kod: str):
                 with ui.row().classes('items-center no-wrap gap-1'):
                     ui.button(icon='arrow_back', on_click=lambda: ui.navigate.to('/stok')).props('flat round dense')
                     search = ui.input(placeholder='Ara (firma, tür, tip)...').props('outlined dense clearable').classes('w-72')
-                    donem_secici(_on_yil_change, include_all=True)
+                    min_yr = _get_min_year()
+                    yil_opts = {0: 'Tümü'}
+                    for y in range(min_yr, current_year + 2):
+                        yil_opts[y] = str(y)
+                    ui.select(options=yil_opts, value=current_year, label='Yıl', on_change=_on_yil_change).props('outlined dense').style('min-width:90px')
 
                 with ui.row().classes('items-center justify-center no-wrap gap-1').style('flex:1; min-width:0;'):
                     with ui.element('q-chip').props('icon="badge" dense outline color="grey-7"'):
