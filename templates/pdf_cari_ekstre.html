@@ -86,7 +86,6 @@
       <tr>
         <th style="width:58px;">TARİH</th>
         <th>AÇIKLAMA</th>
-        <th style="width:55px;">TİP</th>
         <th class="r" style="width:90px;">BORÇ</th>
         <th class="r" style="width:90px;">ALACAK</th>
         <th class="r" style="width:95px;">BAKİYE</th>
@@ -96,8 +95,7 @@
       {% if devir is not none and (devir|abs) > 0.005 %}
       <tr class="devir">
         <td class="dt">—</td>
-        <td class="ack">Önceki dönem devir</td>
-        <td class="tip tip-devir">Devir</td>
+        <td class="ack">Devir · Önceki dönem bakiyesi</td>
         <td class="num">{% if devir < 0 %}{{ format_money(-devir) }}{% else %}—{% endif %}</td>
         <td class="num">{% if devir > 0 %}{{ format_money(devir) }}{% else %}—{% endif %}</td>
         <td class="num {% if devir >= 0 %}bky-pos{% else %}bky-neg{% endif %}"><strong>{{ format_money(devir) }}</strong></td>
@@ -106,8 +104,7 @@
       {% for r in satirlar %}
       <tr>
         <td class="dt">{% if r.tarih %}{{ format_date(r.tarih) }}{% endif %}</td>
-        <td class="ack">{{ r.aciklama_clean }}</td>
-        <td class="tip {% if r.kaynak == 'H' and r.tip == 'ALIS' %}tip-alis{% elif r.kaynak == 'H' and r.tip == 'SATIS' %}tip-satis{% elif r.kaynak == 'K' and r.tip == 'GELIR' %}tip-tahsilat{% elif r.kaynak == 'K' and r.tip == 'GIDER' %}tip-odeme{% elif r.kaynak == 'G' and r.tip == 'GELIR' %}tip-gelir{% elif r.kaynak == 'G' and r.tip == 'GIDER' %}tip-gider{% elif r.kaynak == 'C' and r.tip == 'CIRO' %}tip-ciro{% elif r.kaynak == 'C' %}tip-cek{% else %}tip-diger{% endif %}">{{ tip_label(r.tip, r.kaynak) }}</td>
+        <td class="ack">{{ r.aciklama_clean }} <span style="color:#64748b;font-size:7.5pt;">· {{ tip_label(r.tip, r.kaynak) }}</span></td>
         <td class="num">{% if r.borc and r.borc > 0.005 %}{{ format_money(r.borc) }}{% else %}—{% endif %}</td>
         <td class="num">{% if r.alacak and r.alacak > 0.005 %}{{ format_money(r.alacak) }}{% else %}—{% endif %}</td>
         <td class="num {% if r.bakiye >= 0 %}bky-pos{% else %}bky-neg{% endif %}"><strong>{{ format_money(r.bakiye) }}</strong></td>
@@ -116,7 +113,7 @@
     </tbody>
     <tfoot>
       <tr>
-        <td colspan="3">{{ satirlar|length }} kayıt</td>
+        <td colspan="2">{{ satirlar|length }} kayıt</td>
         <td class="r">{{ format_money(donem_borc) }} ₺</td>
         <td class="r">{{ format_money(donem_alacak) }} ₺</td>
         <td class="r {% if kapanis_bakiye >= 0 %}bky-pos{% else %}bky-neg{% endif %}"><strong>{{ format_money(kapanis_bakiye) }} ₺</strong></td>
