@@ -96,7 +96,7 @@ def cari_detay_page(firma_kod: str):
             ui.button('Geri Dön', icon='arrow_back', on_click=lambda: ui.navigate.to('/cari')).props('flat')
         return
 
-    if not create_layout(active_path='/cari', page_title=firma['ad']):
+    if not create_layout(active_path='/cari', page_title='Cari Detay'):
         return
 
     def _with_ids(rows):
