@@ -1,7 +1,7 @@
 """ALSE Plastik Hammadde - Cari Detay Sayfası"""
 from datetime import date, datetime
 from nicegui import ui
-from layout import create_layout, fmt_para, PARA_SLOT, TARIH_SLOT, notify_ok, notify_err, normalize_search, donem_secici
+from layout import create_layout, fmt_para, PARA_SLOT, TARIH_SLOT, notify_ok, notify_err, normalize_search, donem_secici, _get_min_year
 from services.cari_service import (
     get_firma, get_cari_ekstre, get_firma_hareketler, get_firma_kasa, get_firma_cekler,
 )
@@ -120,7 +120,7 @@ def cari_detay_page(firma_kod: str):
         ]
 
     _now = datetime.now()
-    donem_state = {'yil': None, 'ay': None}  # default: Tumu
+    donem_state = {'yil': None, 'ay': None}
 
     def _load_ekstre():
         src = get_cari_ekstre(firma_kod, yil=donem_state['yil'], ay=donem_state['ay'])
