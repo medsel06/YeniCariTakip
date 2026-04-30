@@ -449,16 +449,15 @@ def create_layout(active_path='/', page_title=''):
             if toplam_uyari > 0:
                 with btn_bell:
                     ui.badge(str(toplam_uyari), color='red').props('floating')
-                with ui.menu().props('anchor="bottom right" self="top right"') as bell_menu:
-                    with ui.column().classes('q-pa-sm').style('min-width: 320px; max-height: 400px; overflow-y: auto'):
-                        ui.label('Vade Uyarıları').classes('text-subtitle2 text-weight-bold q-mb-xs')
-                        if uyari_list:
-                            for u in uyari_list:
-                                with ui.row().classes('items-center no-wrap q-py-xs').style(f'border-left: 3px solid {u["color"]}; padding-left: 8px'):
-                                    ui.label(u['text']).classes('text-caption')
-                        else:
-                            ui.label('Uyarı yok').classes('text-caption text-grey')
-                btn_bell.on('click', bell_menu.open)
+                    with ui.menu().props('auto-close') as bell_menu:
+                        with ui.column().classes('q-pa-sm').style('min-width: 320px; max-height: 400px; overflow-y: auto'):
+                            ui.label('Vade Uyarıları').classes('text-subtitle2 text-weight-bold q-mb-xs')
+                            if uyari_list:
+                                for u in uyari_list:
+                                    with ui.row().classes('items-center no-wrap q-py-xs').style(f'border-left: 3px solid {u["color"]}; padding-left: 8px'):
+                                        ui.label(u['text']).classes('text-caption')
+                            else:
+                                ui.label('Uyarı yok').classes('text-caption text-grey')
 
             auth_user = app.storage.user.get('auth_user', {})
             if auth_user:

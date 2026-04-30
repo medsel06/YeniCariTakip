@@ -167,11 +167,12 @@ def cari_detay_page(firma_kod: str):
             with ui.row().classes('w-full items-center gap-1 q-px-xs q-py-xs cari-topbar').style('flex-wrap: nowrap; overflow: hidden;'):
                 with ui.row().classes('items-center gap-2 no-wrap'):
                     ui.button(icon='arrow_back', on_click=lambda: ui.navigate.to('/cari')).props('flat round dense')
-                    ui.label(firma['ad']).style('font-size:15px;font-weight:700;color:#1e293b;')
-                    bakiye_bg = '#dcfce7' if son_bakiye > 0 else '#fee2e2' if son_bakiye < 0 else '#f1f5f9'
-                    bakiye_color = '#15803d' if son_bakiye > 0 else '#b91c1c' if son_bakiye < 0 else '#64748b'
-                    bakiye_desc = 'Alacak' if son_bakiye > 0 else 'Borç' if son_bakiye < 0 else ''
-                    ui.label(f'{fmt_para(son_bakiye)} TL · {bakiye_desc}').style(f'font-size:12px;font-weight:700;color:{bakiye_color};background:{bakiye_bg};padding:2px 10px;border-radius:12px;')
+                    ui.label(firma['ad']).style('font-size:15px;font-weight:700;color:#ffffff;background:#334155;padding:2px 12px;border-radius:6px;')
+                    with ui.column().classes('gap-0'):
+                        bakiye_color = 'positive' if son_bakiye > 0 else 'negative' if son_bakiye < 0 else 'grey-7'
+                        bakiye_desc = ' (Alacak)' if son_bakiye > 0 else ' (Borç)' if son_bakiye < 0 else ''
+                        with ui.element('q-chip').props(f'icon="account_balance" dense color="{bakiye_color}" text-color="white"'):
+                            ui.label(f'Bakiye: {fmt_para(son_bakiye)} TL{bakiye_desc}').classes('text-weight-bold')
 
                 with ui.row().classes('items-center justify-center').style('min-width:0; flex:1;'):
                     with ui.tabs().classes('q-px-xs q-py-1 rounded-borders bg-blue-1 text-primary cari-top-tabs').style('max-width: 360px;').props('dense no-caps inline-label') as tabs:
@@ -285,10 +286,10 @@ def cari_detay_page(firma_kod: str):
                             ui.button('Kaydet', color=renk, on_click=_save_odeme).props('unelevated')
                     odlg.open()
 
-                ui.button('Ödeme Yap', icon='arrow_upward', color='negative',
-                          on_click=lambda: _open_odeme_dialog(False)).props('dense')
-                ui.button('Tahsilat Yap', icon='arrow_downward', color='positive',
-                          on_click=lambda: _open_odeme_dialog(True)).props('dense')
+                ui.button('Ödeme', color='negative',
+                          on_click=lambda: _open_odeme_dialog(False)).props('dense no-caps')
+                ui.button('Tahsilat', color='positive',
+                          on_click=lambda: _open_odeme_dialog(True)).props('dense no-caps')
                 ui.button('PDF', icon='picture_as_pdf', color='primary', on_click=_pdf_ekstre_top).props('dense')
 
         with ui.tab_panels(tabs, value=ekstre_tab).classes('w-full'):
