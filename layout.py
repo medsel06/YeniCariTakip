@@ -3,6 +3,7 @@ Cari Takip - Ortak Layout
 Header, navigation drawer, format yardimcilari
 """
 import unicodedata
+from datetime import datetime
 from nicegui import ui, app
 from db import set_tenant_schema
 
@@ -10,7 +11,7 @@ from db import set_tenant_schema
 MENU_GROUPS = [
     ('Operasyon', 'grid_view', [
         ('/', 'space_dashboard', 'Bilgi Ekranı'),
-        ('/hareketler', 'sync_alt', 'Stok Hareketler'),
+        ('/hareketler', 'sync_alt', 'İşlemler'),
         ('/cari', 'groups', 'Cari Hesaplar'),
         ('/firma-master', 'domain', 'Firmalar'),
         ('/stok', 'inventory_2', 'Stok'),
@@ -35,6 +36,20 @@ MENU_GROUPS = [
 
 BRAND_CSS = '''
 .alse-root { font-family: "Bahnschrift", "Segoe UI Variable", sans-serif; }
+body, html, .q-page-container, .q-page, .q-layout,
+.q-card, .q-card__section,
+.q-table, .q-table__container, .q-table__middle, .q-table__bottom,
+.q-tab-panels, .q-tab-panel,
+.q-expansion-item__content,
+.q-item, .q-list,
+.q-toolbar,
+.q-banner,
+.q-separator { background: #f0f1f3 !important; }
+.q-dialog .q-card { background: #f3f4f6 !important; }
+.q-dialog .q-field--outlined .q-field__label { color: #0097a7 !important; }
+.q-dialog .q-field--outlined.q-field--focused .q-field__label { color: #00838f !important; }
+.q-dialog .nicegui-column, .q-dialog .alse-dialog-body { background: #f3f4f6; padding: 16px; border-radius: 8px; }
+.q-field__control { background: #f7f7f8 !important; }
 .alse-header {
   background: linear-gradient(120deg, #0f2232 0%, #1c4461 48%, #2a6b8f 100%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.15);
@@ -126,7 +141,7 @@ BRAND_CSS = '''
   display: block;
 }
 .alse-drawer {
-  background: #ffffff !important;
+  background: #f3f4f6 !important;
   border-right: 1px solid #e2e8f0 !important;
 }
 /* NiceGUI default 16px gap'i azalt - menu ogeleri arasi bosluk */
@@ -136,7 +151,7 @@ BRAND_CSS = '''
 }
 .alse-drawer .q-drawer__content,
 .alse-drawer .scroll {
-  background: #ffffff !important;
+  background: #f3f4f6 !important;
 }
 .alse-drawer .q-drawer__content {
   overflow-y: auto !important;
@@ -176,7 +191,7 @@ BRAND_CSS = '''
   margin: 0 !important;
   padding-left: 14px;
   padding-right: 10px;
-  background: #f8fafc;
+  background: #edeef0;
   border-bottom: 1px solid #e9eef4;
 }
 .alse-group .q-expansion-item__container > .q-item .q-item__label {
@@ -215,10 +230,10 @@ BRAND_CSS = '''
   overflow: hidden;
 }
 .alse-nav-item:hover {
-  background: #f0f7ff;
+  background: #e8eaed;
 }
 .alse-nav-item.active-nav {
-  background: #eff6ff !important;
+  background: #e3e5e8 !important;
   border-left: 3px solid #1976D2;
   padding-left: 5px !important;
 }
@@ -259,10 +274,10 @@ BRAND_CSS = '''
   line-height: 1.15;
 }
 .q-table tbody tr:nth-child(odd) {
-  background: #f8fbff;
+  background: #f3f4f6;
 }
 .q-table tbody tr:nth-child(even) {
-  background: #edf4fb;
+  background: #ecedef;
 }
 .q-table tbody tr {
   transition: transform .16s ease, box-shadow .16s ease, background-color .16s ease;
@@ -272,7 +287,7 @@ BRAND_CSS = '''
   padding-bottom: 5px !important;
 }
 .q-table tbody tr:hover {
-  background: #d8e9f8 !important;
+  background: #dfe0e3 !important;
   transform: translateY(-1px);
   box-shadow: inset 0 0 0 1px #9cc2e3;
 }
@@ -302,10 +317,10 @@ BRAND_CSS = '''
 .q-table__middle::-webkit-scrollbar-thumb {
   background: #9fb8cf;
   border-radius: 8px;
-  border: 2px solid #e9f1f8;
+  border: 2px solid #e8e9eb;
 }
 .q-table__middle::-webkit-scrollbar-track {
-  background: #e9f1f8;
+  background: #e8e9eb;
   border-radius: 8px;
 }
 @media (max-width: 1200px) {
@@ -403,6 +418,8 @@ def create_layout(active_path='/', page_title=''):
             ui.button(on_click=lambda: drawer.toggle(), icon='menu').props('flat color=white round')
             ui.label(page_title).classes('text-subtitle1 text-weight-medium text-white q-ml-sm')
             ui.space()
+            lbl_clock = ui.label('').classes('text-caption text-white').style('opacity:0.7;letter-spacing:0.5px;')
+            ui.timer(1.0, lambda: lbl_clock.set_text(datetime.now().strftime('%d.%m.%Y  %H:%M:%S')))
 
             # Vade uyari bildirimi (zil ikonu + dropdown)
             toplam_uyari = 0

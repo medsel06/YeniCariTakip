@@ -15,29 +15,43 @@ def hareketler_page():
     if not create_layout(active_path='/hareketler', page_title='Hareketler'):
         return
 
+    ui.add_css('''
+    .hrk-alis { background: #eff6ff !important; }
+    .hrk-satis { background: #f0fdf4 !important; }
+    .hrk-tahsilat { background: #fefce8 !important; }
+    .hrk-odeme { background: #fef2f2 !important; }
+    tr:hover .hrk-alis { background: #dbeafe !important; }
+    tr:hover .hrk-satis { background: #dcfce7 !important; }
+    tr:hover .hrk-tahsilat { background: #fef9c3 !important; }
+    tr:hover .hrk-odeme { background: #fee2e2 !important; }
+    .hrk-table td { border-right: 1px solid #e8edf2; }
+    .hrk-table td:last-child { border-right: none; }
+    .hrk-table th { border-right: 1px solid rgba(255,255,255,0.15); text-align: center !important; }
+    .hrk-table th:last-child { border-right: none; }
+    ''')
+
     table_ref = None
     all_rows = []
-    now = datetime.now()
-    state = {'yil': now.year, 'ay': now.month}
+    state = {'yil': None, 'ay': None}
 
     columns = [
-        {'name': 'tarih', 'label': 'Tarih', 'field': 'tarih', 'align': 'center', 'sortable': True},
-        {'name': 'belge_no', 'label': 'Belge No', 'field': 'belge_no', 'align': 'left', 'sortable': True},
-        {'name': 'firma_ad', 'label': 'Firma', 'field': 'firma_ad', 'align': 'left', 'sortable': True},
-        {'name': 'tur', 'label': 'Tür', 'field': 'tur', 'align': 'center', 'sortable': True},
-        {'name': 'urun_ad', 'label': 'Ürün', 'field': 'urun_ad', 'align': 'left', 'sortable': True},
-        {'name': 'miktar', 'label': 'Miktar', 'field': 'miktar', 'align': 'right', 'sortable': True},
-        {'name': 'birim_fiyat', 'label': 'Birim Fiyat', 'field': 'birim_fiyat', 'align': 'right', 'sortable': True},
-        {'name': 'toplam', 'label': 'Toplam', 'field': 'toplam', 'align': 'right', 'sortable': True},
-        {'name': 'kdvli_toplam', 'label': 'KDV\'li Toplam', 'field': 'kdvli_toplam', 'align': 'right', 'sortable': True},
-        {'name': 'tevkifat_orani', 'label': 'Tevkifat', 'field': 'tevkifat_orani', 'align': 'center', 'sortable': True},
-        {'name': 'aciklama', 'label': 'Açıklama', 'field': 'aciklama', 'align': 'left', 'sortable': False},
-        {'name': 'actions', 'label': 'İşlemler', 'field': 'actions', 'align': 'center', 'sortable': False},
+        {'name': 'tarih', 'label': 'TARİH', 'field': 'tarih', 'align': 'center', 'sortable': True},
+        {'name': 'belge_no', 'label': 'BELGE NO', 'field': 'belge_no', 'align': 'left', 'sortable': True},
+        {'name': 'firma_ad', 'label': 'FİRMA', 'field': 'firma_ad', 'align': 'left', 'sortable': True},
+        {'name': 'tur', 'label': 'TÜR', 'field': 'tur', 'align': 'center', 'sortable': True},
+        {'name': 'urun_ad', 'label': 'ÜRÜN', 'field': 'urun_ad', 'align': 'left', 'sortable': True},
+        {'name': 'miktar', 'label': 'MİKTAR', 'field': 'miktar', 'align': 'right', 'sortable': True},
+        {'name': 'birim_fiyat', 'label': 'BİRİM FİYAT', 'field': 'birim_fiyat', 'align': 'right', 'sortable': True},
+        {'name': 'toplam', 'label': 'TOPLAM', 'field': 'toplam', 'align': 'right', 'sortable': True},
+        {'name': 'kdvli_toplam', 'label': 'KDV\'Lİ TOPLAM', 'field': 'kdvli_toplam', 'align': 'right', 'sortable': True},
+        {'name': 'tevkifat_orani', 'label': 'TEVKİFAT', 'field': 'tevkifat_orani', 'align': 'center', 'sortable': True},
+        {'name': 'aciklama', 'label': 'AÇIKLAMA', 'field': 'aciklama', 'align': 'left', 'sortable': False},
+        {'name': 'actions', 'label': 'İŞLEMLER', 'field': 'actions', 'align': 'center', 'sortable': False},
     ]
 
     def load_data():
         nonlocal all_rows
-        all_rows = get_hareketler(yil=state['yil'], ay=state['ay'])
+        all_rows = get_hareketler(yil=None, ay=None)
         if table_ref:
             table_ref.rows = all_rows
             table_ref.update()
@@ -158,16 +172,16 @@ def hareketler_page():
         urun_options = {u['kod']: u['ad'] for u in urunler}
 
         is_edit = edit_row is not None
-        title = 'Hareket Düzenle' if is_edit else 'Yeni Hareket'
+        title = 'İşlem Düzenle' if is_edit else 'Yeni İşlem'
 
         with ui.dialog() as dlg, ui.card().classes('alse-dialog').style('width: 90vw; max-width: 800px'):
             with ui.element('div').classes('alse-dialog-header'):
-                ui.icon('swap_horiz' if not is_edit else 'edit')
+                ui.icon('drive_file_rename_outline' if is_edit else 'add_circle_outline')
                 ui.label(title).classes('dialog-title')
 
-            with ui.column().classes('w-full q-mt-sm gap-sm'):
+            with ui.column().classes('w-full q-mt-sm gap-sm').style('background:#f3f4f6;padding:16px;border-radius:8px;'):
                 # Tarih
-                inp_tarih = ui.input('Tarih', value=date.today().isoformat()).props('outlined dense').classes('w-full')
+                inp_tarih = ui.input('Tarih', value=date.today().isoformat()).props('outlined dense label-color=cyan-8').classes('w-full')
                 with inp_tarih.add_slot('append'):
                     icon_t = ui.icon('event').classes('cursor-pointer')
                     with ui.menu() as menu_t:
@@ -175,32 +189,32 @@ def hareketler_page():
                     icon_t.on('click', menu_t.open)
 
                 # Irsaliye / Fatura No
-                inp_belge = ui.input('İrsaliye/Fatura No').classes('w-full').props('outlined dense')
+                inp_belge = ui.input('İrsaliye/Fatura No').classes('w-full').props('outlined dense label-color=cyan-8')
 
                 with ui.row().classes('w-full gap-md'):
                     # Tur
                     inp_tur = ui.select(
                         options={'ALIS': 'Alış', 'SATIS': 'Satış'},
                         label='Tür', value='ALIS'
-                    ).props('outlined dense').classes('col')
+                    ).props('outlined dense label-color=cyan-8').classes('col')
 
                     # KDV Oranı
                     inp_kdv = ui.select(
                         options={0: '%0', 1: '%1', 8: '%8', 10: '%10', 18: '%18', 20: '%20'},
                         label='KDV Oranı', value=20
-                    ).props('outlined dense').classes('col')
+                    ).props('outlined dense label-color=cyan-8').classes('col')
 
                     # Tevkifat Oranı
                     inp_tevkifat = ui.select(
                         options={'0': 'Yok', '2/10': '2/10', '5/10': '5/10', '7/10': '7/10', '9/10': '9/10'},
                         label='Tevkifat', value='0'
-                    ).props('outlined dense').classes('col')
+                    ).props('outlined dense label-color=cyan-8').classes('col')
 
                 # Firma secimi + Yeni firma ekleme butonu
                 with ui.row().classes('w-full items-center gap-1'):
                     inp_firma = ui.select(
                         options=firma_options, label='Firma', with_input=True
-                    ).props('outlined dense').classes('col')
+                    ).props('outlined dense label-color=cyan-8').classes('col')
                     ui.button(icon='add', on_click=lambda: open_mini_firma_dialog(inp_firma)).props(
                         'round dense flat color=primary').tooltip('Yeni Firma Ekle')
 
@@ -249,15 +263,15 @@ def hareketler_page():
                 with ui.row().classes('w-full items-center gap-1'):
                     inp_urun = ui.select(
                         options=urun_options, label='Ürün', with_input=True
-                    ).props('outlined dense').classes('col')
+                    ).props('outlined dense label-color=cyan-8').classes('col')
                     ui.button(icon='add', on_click=lambda: open_mini_urun_dialog(inp_urun)).props(
                         'round dense flat color=primary').tooltip('Yeni Ürün Ekle')
 
                 with ui.row().classes('w-full gap-md'):
-                    inp_miktar = ui.number(label='Miktar', value=0, format='%.2f').props('outlined dense').classes('col')
-                    inp_birim_fiyat = ui.number(label='Birim Fiyat', value=0, format='%.2f').props('outlined dense').classes('col')
+                    inp_miktar = ui.number(label='Miktar', value=0, format='%.2f').props('outlined dense label-color=cyan-8 type=text').classes('col')
+                    inp_birim_fiyat = ui.number(label='Birim Fiyat', value=0, format='%.2f').props('outlined dense label-color=cyan-8 type=text').classes('col')
 
-                inp_aciklama = ui.input('Açıklama').props('outlined dense').classes('w-full')
+                inp_aciklama = ui.input('Açıklama').props('outlined dense label-color=cyan-8').classes('w-full')
 
                 # Hesaplama alani
                 ui.separator()
@@ -397,35 +411,58 @@ def hareketler_page():
         confirm_dialog('Bu hareketi silmek istediğinize emin misiniz?', confirmed)
 
     # --- Slot template'leri ---
+    # Satir arka plan rengi: tur'e gore cok hafif tint
+    _rcls = "props.row.tur==='ALIS'?'hrk-alis':props.row.tur==='SATIS'?'hrk-satis':props.row.tur==='TAHSILAT'?'hrk-tahsilat':props.row.tur==='ODEME'?'hrk-odeme':''"
+
+    _tarih_slot = r'''
+        <q-td :props="props" :class="%s">
+            {{ props.value ? props.value.split('-').reverse().join('.') : '' }}
+        </q-td>
+    ''' % _rcls
+
     tur_slot = r'''
-        <q-td :props="props">
-            <q-chip dense text-color="white" size="sm"
-                :color="props.value === 'ALIS' ? 'blue' :
-                        props.value === 'SATIS' ? 'green' :
-                        props.value === 'TAHSILAT' ? 'positive' :
-                        props.value === 'ODEME' ? 'negative' : 'grey'">
+        <q-td :props="props" :class="%s">
+            <span style="font-weight:600;"
+                :style="props.value === 'ALIS' ? 'color:#1d4ed8;' :
+                        props.value === 'SATIS' ? 'color:#15803d;' :
+                        props.value === 'TAHSILAT' ? 'color:#b45309;' :
+                        props.value === 'ODEME' ? 'color:#b91c1c;' : 'color:#64748b;'">
                 {{ props.value === 'ALIS' ? 'Alış' :
                    props.value === 'SATIS' ? 'Satış' :
                    props.value === 'TAHSILAT' ? 'Tahsilat' :
                    props.value === 'ODEME' ? 'Ödeme' : props.value }}
-            </q-chip>
+            </span>
         </q-td>
-    '''
+    ''' % _rcls
+
+    _para_slot = r'''
+        <q-td :props="props" :class="%s">
+            {{ props.value != null && props.value !== 0
+                ? (props.value < 0 ? '-' : '') + Math.abs(props.value).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' TL'
+                : '' }}
+        </q-td>
+    ''' % _rcls
 
     miktar_slot = r'''
-        <q-td :props="props">
+        <q-td :props="props" :class="%s">
             {{ props.value != null && props.value !== 0 ? props.value.toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) : '' }}
         </q-td>
-    '''
+    ''' % _rcls
+
+    _default_slot = r'''
+        <q-td :props="props" :class="%s">
+            {{ props.value }}
+        </q-td>
+    ''' % _rcls
 
     actions_slot = r'''
-        <q-td :props="props">
+        <q-td :props="props" :class="%s">
             <template v-if="props.row.source === 'STOK' || !props.row.source">
-                <q-btn flat round dense icon="edit" color="primary" size="sm"
+                <q-btn flat round dense icon="drive_file_rename_outline" color="primary" size="sm"
                     @click="$parent.$emit('edit', props.row)">
                     <q-tooltip>Düzenle</q-tooltip>
                 </q-btn>
-                <q-btn flat round dense icon="delete" color="negative" size="sm"
+                <q-btn flat round dense icon="delete_outline" color="negative" size="sm"
                     @click="$parent.$emit('delete', props.row)">
                     <q-tooltip>Sil</q-tooltip>
                 </q-btn>
@@ -434,43 +471,70 @@ def hareketler_page():
                 <q-chip dense color="grey-4" text-color="grey-9" size="sm">Kasa</q-chip>
             </template>
         </q-td>
-    '''
-
-    def on_donem_change(yil, ay):
-        state['yil'] = yil
-        state['ay'] = ay
-        load_data()
+    ''' % _rcls
 
     # --- PAGE CONTENT ---
     with ui.column().classes('w-full q-pa-sm'):
-        all_rows = get_hareketler(yil=state['yil'], ay=state['ay'])
+        all_rows = get_hareketler(yil=None, ay=None)
+
+        tur_filter = {'value': None}
+
+        def apply_tur_filter(tur):
+            if tur_filter['value'] == tur:
+                tur_filter['value'] = None
+            else:
+                tur_filter['value'] = tur
+            for btn_t, btn_ref in tur_buttons:
+                is_active = tur_filter['value'] == btn_t
+                btn_ref.props(f'{"" if is_active else "outline"}')
+            filtered = [r for r in all_rows if r.get('tur') == tur_filter['value']] if tur_filter['value'] else all_rows
+            table_ref.rows = filtered
+            table_ref.update()
+
+        tur_buttons = []
 
         with ui.row().classes('w-full items-center gap-2 q-mb-xs'):
             search_input = ui.input(
                 placeholder='Ara (firma, urun, tur)...',
                 on_change=lambda e: (setattr(table_ref, 'rows', do_filter(e.value)), table_ref.update()),
             ).props('outlined dense clearable').classes('w-64')
-            donem_secici(on_donem_change)
+            ui.element('div').style('width:16px')
+            _tur_badge_styles = {
+                'ALIS': ('Alış', '#dbeafe', '#1d4ed8', '#93c5fd'),
+                'SATIS': ('Satış', '#dcfce7', '#15803d', '#86efac'),
+                'TAHSILAT': ('Tah.', '#fef9c3', '#b45309', '#fcd34d'),
+                'ODEME': ('Ödm.', '#fee2e2', '#b91c1c', '#fca5a5'),
+            }
+            for tur_key, (label, bg, fg, border) in _tur_badge_styles.items():
+                b = ui.button(label, on_click=lambda t=tur_key: apply_tur_filter(t)).props('unelevated dense size=sm no-caps').style(f'background:{bg} !important;color:{fg} !important;border:1px solid {border};border-radius:999px;padding:2px 14px;')
+                tur_buttons.append((tur_key, b))
+
             ui.space()
-            ui.button('Yeni Hareket', icon='add', color='primary',
+            ui.button('Yeni İşlem', icon='add', color='primary',
                       on_click=lambda: open_hareket_dialog())
 
         # Tablo
         table_ref = ui.table(
             columns=columns, rows=all_rows, row_key='id',
             pagination={'rowsPerPage': 50, 'sortBy': 'tarih', 'descending': True}
-        ).classes('w-full').style('--table-extra-rows: 2;')
+        ).classes('w-full hrk-table').style('--table-extra-rows: 2;')
         table_ref.props('flat bordered dense')
 
         # Slot'lar
-        table_ref.add_slot('body-cell-tarih', TARIH_SLOT)
+        table_ref.add_slot('body-cell-tarih', _tarih_slot)
         table_ref.add_slot('body-cell-tur', tur_slot)
         table_ref.add_slot('body-cell-miktar', miktar_slot)
-        table_ref.add_slot('body-cell-birim_fiyat', PARA_SLOT)
-        table_ref.add_slot('body-cell-toplam', PARA_SLOT)
-        table_ref.add_slot('body-cell-kdvli_toplam', PARA_SLOT)
+        table_ref.add_slot('body-cell-birim_fiyat', _para_slot)
+        table_ref.add_slot('body-cell-toplam', _para_slot)
+        table_ref.add_slot('body-cell-kdvli_toplam', _para_slot)
+        table_ref.add_slot('body-cell-belge_no', _default_slot)
+        table_ref.add_slot('body-cell-urun_ad', _default_slot)
+        table_ref.add_slot('body-cell-firma_ad', _default_slot)
+        table_ref.add_slot('body-cell-aciklama', _default_slot)
+        table_ref.add_slot('body-cell-birim', _default_slot)
+        table_ref.add_slot('body-cell-kdv_orani', _default_slot)
         table_ref.add_slot('body-cell-tevkifat_orani', r'''
-            <q-td :props="props">
+            <q-td :props="props" :class="''' + _rcls + r'''">
                 <q-badge v-if="props.value && props.value !== '0'" color="orange-8" text-color="white" dense>
                     {{ props.value }}
                 </q-badge>

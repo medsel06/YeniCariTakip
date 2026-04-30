@@ -23,16 +23,24 @@ def cekler_page():
     verilen_table = None
     today_str = datetime.now().strftime('%Y-%m-%d')
 
-    columns = [
+    _base_cols = [
         {'name': 'evrak_tipi', 'label': 'Tip', 'field': 'evrak_tipi', 'align': 'center', 'sortable': True},
         {'name': 'cek_no', 'label': 'Evrak No', 'field': 'cek_no', 'align': 'left', 'sortable': True},
-        {'name': 'firma_ad', 'label': 'Firma', 'field': 'firma_ad', 'align': 'left', 'sortable': True},
+    ]
+    _end_cols = [
         {'name': 'kesim_tarih', 'label': 'Kesim Tarihi', 'field': 'kesim_tarih', 'align': 'center', 'sortable': True},
         {'name': 'vade_tarih', 'label': 'Vade Tarihi', 'field': 'vade_tarih', 'align': 'center', 'sortable': True},
         {'name': 'tutar', 'label': 'Tutar', 'field': 'tutar', 'align': 'right', 'sortable': True},
         {'name': 'durum', 'label': 'Durum', 'field': 'durum', 'align': 'center', 'sortable': True},
         {'name': 'actions', 'label': 'İşlemler', 'field': 'actions', 'align': 'center', 'sortable': False},
     ]
+    alinan_columns = _base_cols + [
+        {'name': 'firma_ad', 'label': 'Alındığı Firma', 'field': 'firma_ad', 'align': 'left', 'sortable': True},
+        {'name': 'ciro_firma_ad', 'label': 'Ciro Edildiği Firma', 'field': 'ciro_firma_ad', 'align': 'left', 'sortable': True},
+    ] + _end_cols
+    verilen_columns = _base_cols + [
+        {'name': 'firma_ad', 'label': 'Verildiği Firma', 'field': 'firma_ad', 'align': 'left', 'sortable': True},
+    ] + _end_cols
 
     def load_data():
         if alinan_table:
@@ -50,6 +58,7 @@ def cekler_page():
             r for r in rows
             if q in normalize_search(r.get('cek_no', ''))
             or q in normalize_search(r.get('firma_ad', ''))
+            or q in normalize_search(r.get('ciro_firma_ad', ''))
             or q in normalize_search(r.get('durum', ''))
         ]
 
@@ -221,6 +230,7 @@ def cekler_page():
             info_pairs = [
                 ('Çek No', cek.get('cek_no', '-')),
                 ('Firma', cek.get('firma_ad', '-') or '-'),
+                ('Ciro Firması', cek.get('ciro_firma_ad', '') or '-'),
                 ('Kesim Tarihi', kesim or '-'),
                 ('Vade Tarihi', vade or '-'),
                 ('Tutar', f'{fmt_para(cek.get("tutar", 0))} TL'),
@@ -417,15 +427,15 @@ def cekler_page():
 
     durum_slot = r'''
         <q-td :props="props">
-            <q-chip dense text-color="white" size="sm"
-                :color="props.value === 'PORTFOYDE' ? 'blue' :
-                        props.value === 'TAHSILE_VERILDI' ? 'orange' :
-                        props.value === 'TAHSIL_EDILDI' ? 'green' :
-                        props.value === 'CIRO_EDILDI' ? 'purple' :
-                        props.value === 'IADE_EDILDI' ? 'grey' :
-                        props.value === 'KARSILIKSIZ' ? 'red' :
-                        props.value === 'KESILDI' ? 'blue' :
-                        props.value === 'ODENDI' ? 'green' : 'grey'">
+            <span style="display:inline-block;min-width:100px;text-align:center;padding:3px 10px;border-radius:4px;font-size:11.5px;font-weight:600;letter-spacing:0.3px;"
+                :style="props.value === 'PORTFOYDE' ? 'background:#dbeafe;color:#1d4ed8;' :
+                        props.value === 'TAHSILE_VERILDI' ? 'background:#fef3c7;color:#92400e;' :
+                        props.value === 'TAHSIL_EDILDI' ? 'background:#dcfce7;color:#15803d;' :
+                        props.value === 'CIRO_EDILDI' ? 'background:#ede9fe;color:#6d28d9;' :
+                        props.value === 'IADE_EDILDI' ? 'background:#f1f5f9;color:#475569;' :
+                        props.value === 'KARSILIKSIZ' ? 'background:#fee2e2;color:#b91c1c;' :
+                        props.value === 'KESILDI' ? 'background:#dbeafe;color:#1d4ed8;' :
+                        props.value === 'ODENDI' ? 'background:#dcfce7;color:#15803d;' : 'background:#f1f5f9;color:#64748b;'">
                 {{ props.value === 'PORTFOYDE' ? 'Portföyde' :
                    props.value === 'TAHSILE_VERILDI' ? 'Tahsile Verildi' :
                    props.value === 'TAHSIL_EDILDI' ? 'Tahsil Edildi' :
@@ -434,7 +444,7 @@ def cekler_page():
                    props.value === 'KARSILIKSIZ' ? 'Karşılıksız' :
                    props.value === 'KESILDI' ? 'Kesildi' :
                    props.value === 'ODENDI' ? 'Ödendi' : props.value }}
-            </q-chip>
+            </span>
         </q-td>
     '''
 
@@ -501,7 +511,7 @@ def cekler_page():
                                   on_click=lambda: open_add_dialog('ALINAN')).props('dense')
 
                 alinan_table = ui.table(
-                    columns=columns, rows=alinan_rows, row_key='id',
+                    columns=alinan_columns, rows=alinan_rows, row_key='id',
                     pagination={'rowsPerPage': 50, 'sortBy': 'vade_tarih', 'descending': True}
                 ).classes('w-full')
                 setup_table(alinan_table, 'ALINAN')
@@ -523,7 +533,7 @@ def cekler_page():
                                   on_click=lambda: open_add_dialog('VERILEN')).props('dense')
 
                 verilen_table = ui.table(
-                    columns=columns, rows=verilen_rows, row_key='id',
+                    columns=verilen_columns, rows=verilen_rows, row_key='id',
                     pagination={'rowsPerPage': 50, 'sortBy': 'vade_tarih', 'descending': True}
                 ).classes('w-full')
                 setup_table(verilen_table, 'VERILEN')
