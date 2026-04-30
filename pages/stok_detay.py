@@ -40,7 +40,21 @@ def stok_detay_page(urun_kod: str):
         return [r for r in rows if any(q in normalize_search(r.get(f, '')) for f in fields)]
 
     def _make_rows(rows):
-        return [{**r, '_rid': f"h{i}"} for i, r in enumerate(rows)]
+        sorted_rows = sorted(rows, key=lambda r: (r.get('tarih', ''), r.get('id', 0)))
+        result = []
+        kalan = 0
+        for i, r in enumerate(sorted_rows):
+            miktar = float(r.get('miktar', 0) or 0)
+            toplam = float(r.get('toplam', 0) or 0)
+            if r.get('tur') == 'SATIS':
+                miktar = -miktar
+                toplam = -toplam
+                kalan += miktar
+            else:
+                kalan += miktar
+            result.append({**r, '_rid': f"h{i}", 'miktar': miktar, 'toplam': toplam, 'kalan': round(kalan, 2)})
+        result.reverse()
+        return result
 
     hareket_rows = _make_rows(all_hareketler)
     uretim_rows = [{**r, '_rid': f"u{i}"} for i, r in enumerate(uretim_hareketleri)]
@@ -57,12 +71,14 @@ def stok_detay_page(urun_kod: str):
     def _pdf_stok_hareket():
         filtered = _get_filtered_hareketler()
         yil_label = f" ({state['yil']})" if state['yil'] else ""
+        pdf_rows = _make_rows(filtered)
+        pdf_rows.reverse()
         _open_pdf(
             generate_table_pdf(
                 f"Stok Hareketleri - {urun['ad']}{yil_label}",
-                ['Tarih', 'Tür', 'Firma', 'Miktar', 'Birim Fiyat', 'Toplam'],
-                [[r.get('tarih', ''), r.get('tur', ''), r.get('firma_ad', ''),
-                  r.get('miktar', 0), r.get('birim_fiyat', 0), r.get('toplam', 0)] for r in filtered],
+                ['Tarih', 'Tür', 'Firma', 'Miktar', 'Birim Fiyat', 'Toplam', 'Kalan'],
+                [[r.get('tarih', ''), 'Alış' if r.get('tur') == 'ALIS' else 'Satış', r.get('firma_ad', ''),
+                  r.get('miktar', 0), r.get('birim_fiyat', 0), r.get('toplam', 0), r.get('kalan', 0)] for r in pdf_rows],
             ),
             f"stok_hareket_{urun_kod}.pdf",
         )
@@ -104,7 +120,7 @@ def stok_detay_page(urun_kod: str):
 
             with ui.tab_panels(tabs, value=stok_tab).classes('w-full').props('animated'):
                 with ui.tab_panel(stok_tab).classes('q-pa-sm'):
-                    if hareketler:
+                    if all_hareketler:
                         hareket_cols = [
                             {'name': 'tarih', 'label': 'Tarih', 'field': 'tarih', 'align': 'center', 'sortable': True},
                             {'name': 'tur', 'label': 'Tür', 'field': 'tur', 'align': 'center', 'sortable': True},
@@ -112,6 +128,7 @@ def stok_detay_page(urun_kod: str):
                             {'name': 'miktar', 'label': 'Miktar', 'field': 'miktar', 'align': 'right', 'sortable': True},
                             {'name': 'birim_fiyat', 'label': 'Birim Fiyat', 'field': 'birim_fiyat', 'align': 'right', 'sortable': True},
                             {'name': 'toplam', 'label': 'Toplam', 'field': 'toplam', 'align': 'right', 'sortable': True},
+                            {'name': 'kalan', 'label': 'Kalan Stok', 'field': 'kalan', 'align': 'right', 'sortable': False},
                         ]
                         _rc = "props.row.tur==='ALIS'?'stk-alis':'stk-satis'"
                         h_table = ui.table(
@@ -152,6 +169,14 @@ def stok_detay_page(urun_kod: str):
                                 <span style="font-weight:600;"
                                     :style="props.value === 'ALIS' ? 'color:#1d4ed8;' : 'color:#15803d;'">
                                     {{ props.value === 'ALIS' ? 'Alış' : 'Satış' }}
+                                </span>
+                            </q-td>
+                        ''' % _rc)
+                        h_table.add_slot('body-cell-kalan', r'''
+                            <q-td :props="props" :class="%s">
+                                <span style="font-weight:700;"
+                                    :style="props.value < 0 ? 'color:#b91c1c;' : 'color:#1e40af;'">
+                                    {{ props.value != null ? props.value.toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) : '' }}
                                 </span>
                             </q-td>
                         ''' % _rc)
