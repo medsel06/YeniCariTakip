@@ -167,12 +167,10 @@ def cari_detay_page(firma_kod: str):
             with ui.row().classes('w-full items-center gap-1 q-px-xs q-py-xs cari-topbar').style('flex-wrap: nowrap; overflow: hidden;'):
                 with ui.row().classes('items-center gap-2 no-wrap'):
                     ui.button(icon='arrow_back', on_click=lambda: ui.navigate.to('/cari')).props('flat round dense')
-                    ui.label(firma['ad']).style('font-size:15px;font-weight:700;color:#ffffff;background:#334155;padding:2px 12px;border-radius:6px;')
-                    with ui.column().classes('gap-0'):
-                        bakiye_color = 'positive' if son_bakiye > 0 else 'negative' if son_bakiye < 0 else 'grey-7'
-                        bakiye_desc = ' (Alacak)' if son_bakiye > 0 else ' (Borç)' if son_bakiye < 0 else ''
-                        with ui.element('q-chip').props(f'icon="account_balance" dense color="{bakiye_color}" text-color="white"'):
-                            ui.label(f'Bakiye: {fmt_para(son_bakiye)} TL{bakiye_desc}').classes('text-weight-bold')
+                    ui.label(firma['ad']).style('font-size:15px;font-weight:700;color:#1e293b;')
+                    bakiye_color = '#16a34a' if son_bakiye > 0 else '#dc2626' if son_bakiye < 0 else '#64748b'
+                    bakiye_desc = 'Alacak' if son_bakiye > 0 else 'Borç' if son_bakiye < 0 else ''
+                    ui.label(f'{fmt_para(son_bakiye)} TL ({bakiye_desc})').style(f'font-size:13px;font-weight:600;color:{bakiye_color};')
 
                 with ui.row().classes('items-center justify-center').style('min-width:0; flex:1;'):
                     with ui.tabs().classes('q-px-xs q-py-1 rounded-borders bg-blue-1 text-primary cari-top-tabs').style('max-width: 360px;').props('dense no-caps inline-label') as tabs:
