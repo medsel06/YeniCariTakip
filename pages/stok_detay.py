@@ -104,29 +104,35 @@ def stok_detay_page(urun_kod: str):
                         yil_opts[y] = str(y)
                     ui.select(options=yil_opts, value=current_year, label='Yıl', on_change=_on_yil_change).props('outlined dense').style('min-width:90px')
 
-                with ui.row().classes('items-center justify-center no-wrap gap-1').style('flex:1; min-width:0;'):
-                    with ui.element('q-chip').props('icon="badge" dense outline color="grey-7"'):
-                        ui.label(f"Kod: {urun['kod']}")
+                    sekme_state = {'aktif': 'stok'}
+                    btn_stok = ui.button('Stok Hrkt.', on_click=lambda: _sekme_degistir('stok')).props('unelevated dense size=sm no-caps').style('background:#334155 !important;color:#fff;border-radius:999px;padding:2px 14px;')
+                    btn_uretim = ui.button('Üretim Hrkt.', on_click=lambda: _sekme_degistir('uretim')).props('outline dense size=sm no-caps').style('border-radius:999px;padding:2px 14px;')
+
+                ui.space()
+                with ui.row().classes('items-center no-wrap gap-1'):
                     if urun.get('kategori'):
                         with ui.element('q-chip').props('icon="category" dense outline color="grey-7"'):
-                            ui.label(f"Kategori: {urun['kategori']}")
+                            ui.label(f"{urun['kategori']}")
                     with ui.element('q-chip').props('icon="inventory_2" dense color="primary" text-color="white"'):
                         ui.label(f"Net: {fmt_miktar(urun.get('stok', 0))} {urun.get('birim','KG')}")
+                    ui.button('PDF', icon='picture_as_pdf', color='primary', on_click=_pdf_stok_hareket).props('dense')
 
-                ui.button(
-                    'PDF', icon='picture_as_pdf', color='primary',
-                    on_click=_pdf_stok_hareket
-                ).props('dense')
+        with ui.card().classes('w-full q-pa-sm'):
+            stok_panel = ui.column().classes('w-full')
+            uretim_panel = ui.column().classes('w-full')
+            uretim_panel.set_visibility(False)
 
-        # Sekmeli yapi: Stok Hareketleri | Uretim Hareketleri
-        with ui.card().classes('w-full q-pa-none'):
-            with ui.tabs().classes('w-full').props('dense no-caps') as tabs:
-                stok_tab = ui.tab('Stok Hareketleri', icon='swap_horiz')
-                uretim_tab = ui.tab('Üretim Hareketleri', icon='precision_manufacturing')
+            def _sekme_degistir(sekme):
+                sekme_state['aktif'] = sekme
+                stok_panel.set_visibility(sekme == 'stok')
+                uretim_panel.set_visibility(sekme == 'uretim')
+                btn_stok.props('unelevated' if sekme == 'stok' else 'outline')
+                btn_stok.style('background:#334155 !important;color:#fff;border-radius:999px;padding:2px 14px;' if sekme == 'stok' else 'border-radius:999px;padding:2px 14px;')
+                btn_uretim.props('unelevated' if sekme == 'uretim' else 'outline')
+                btn_uretim.style('background:#334155 !important;color:#fff;border-radius:999px;padding:2px 14px;' if sekme == 'uretim' else 'border-radius:999px;padding:2px 14px;')
 
-            with ui.tab_panels(tabs, value=stok_tab).classes('w-full').props('animated'):
-                with ui.tab_panel(stok_tab).classes('q-pa-sm'):
-                    if all_hareketler:
+            with stok_panel:
+                if all_hareketler:
                         hareket_cols = [
                             {'name': 'tarih', 'label': 'Tarih', 'field': 'tarih', 'align': 'center', 'sortable': True},
                             {'name': 'tur', 'label': 'Tür', 'field': 'tur', 'align': 'center', 'sortable': True},
@@ -190,8 +196,8 @@ def stok_detay_page(urun_kod: str):
                     else:
                         ui.label('Hareket bulunamadı').classes('text-grey-5 q-pa-md')
 
-                with ui.tab_panel(uretim_tab).classes('q-pa-sm'):
-                    if uretim_hareketleri:
+            with uretim_panel:
+                if uretim_hareketleri:
                         uretim_cols = [
                             {'name': 'tarih', 'label': 'Tarih', 'field': 'tarih', 'align': 'center', 'sortable': True},
                             {'name': 'tip', 'label': 'Tip', 'field': 'tip', 'align': 'center', 'sortable': True},

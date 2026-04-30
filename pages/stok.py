@@ -15,7 +15,6 @@ def stok_page():
     search_val = {'text': ''}
 
     columns = [
-        {'name': 'kod', 'label': 'Kod', 'field': 'kod', 'align': 'left', 'sortable': True},
         {'name': 'ad', 'label': 'Ürün Adı', 'field': 'ad', 'align': 'left', 'sortable': True},
         {'name': 'kategori', 'label': 'Kategori', 'field': 'kategori', 'align': 'left', 'sortable': True},
         {'name': 'alis', 'label': 'Alış (KG)', 'field': 'alis', 'align': 'right', 'sortable': True},

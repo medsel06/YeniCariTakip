@@ -43,7 +43,6 @@ def karlilik_page():
             ui.space()
 
         cols = [
-            {'name': 'urun_kod', 'label': 'Kod', 'field': 'urun_kod', 'align': 'left', 'sortable': True},
             {'name': 'urun_ad', 'label': 'Urun', 'field': 'urun_ad', 'align': 'left', 'sortable': True},
             {'name': 'alis_miktar', 'label': 'Alis Miktar', 'field': 'alis_miktar', 'align': 'right', 'sortable': True},
             {'name': 'satis_miktar', 'label': 'Satis Miktar', 'field': 'satis_miktar', 'align': 'right', 'sortable': True},

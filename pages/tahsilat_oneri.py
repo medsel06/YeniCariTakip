@@ -36,7 +36,6 @@ def tahsilat_oneri_page():
             ui.label(f'Kayit: {len(rows)}').classes('text-caption text-grey-7')
 
         cols = [
-            {'name': 'firma_kod', 'label': 'Kod', 'field': 'firma_kod', 'align': 'left', 'sortable': True},
             {'name': 'firma_ad', 'label': 'Firma', 'field': 'firma_ad', 'align': 'left', 'sortable': True},
             {'name': 'onerilen_tahsilat', 'label': 'Önerilen Tahsilat', 'field': 'onerilen_tahsilat', 'align': 'right', 'sortable': True},
             {'name': 'risk_yuzdesi', 'label': 'Risk %', 'field': 'risk_yuzdesi', 'align': 'center', 'sortable': True},

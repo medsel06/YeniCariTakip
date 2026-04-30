@@ -155,7 +155,6 @@ def firma_master_page():
             ui.button('Yeni Firma', icon='add', color='primary', on_click=_open_add).props('dense')
 
         columns = [
-            {'name': 'kod', 'label': 'Kod', 'field': 'kod', 'align': 'left', 'sortable': True},
             {'name': 'ad', 'label': 'Firma', 'field': 'ad', 'align': 'left', 'sortable': True},
             {'name': 'vkn_tckn', 'label': 'VKN/TCKN', 'field': 'vkn_tckn', 'align': 'left', 'sortable': True},
             {'name': 'tel', 'label': 'Telefon', 'field': 'tel', 'align': 'left', 'sortable': True},

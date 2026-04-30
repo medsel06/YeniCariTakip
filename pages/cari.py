@@ -55,7 +55,6 @@ def cari_page():
 
         # Tablo
         columns = [
-            {'name': 'kod', 'label': 'Kod', 'field': 'kod', 'align': 'left', 'sortable': True},
             {'name': 'ad', 'label': 'Firma Ad\u0131', 'field': 'ad', 'align': 'left', 'sortable': True},
             {'name': 'devir', 'label': 'Devir', 'field': 'devir', 'align': 'right', 'sortable': True},
             {'name': 'alis', 'label': 'Al\u0131\u015f', 'field': 'alis', 'align': 'right', 'sortable': True},
