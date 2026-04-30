@@ -133,91 +133,91 @@ def stok_detay_page(urun_kod: str):
 
             with stok_panel:
                 if all_hareketler:
-                        hareket_cols = [
-                            {'name': 'tarih', 'label': 'Tarih', 'field': 'tarih', 'align': 'center', 'sortable': True},
-                            {'name': 'tur', 'label': 'Tür', 'field': 'tur', 'align': 'center', 'sortable': True},
-                            {'name': 'firma_ad', 'label': 'Firma', 'field': 'firma_ad', 'align': 'left', 'sortable': True},
-                            {'name': 'miktar', 'label': 'Miktar', 'field': 'miktar', 'align': 'right', 'sortable': True},
-                            {'name': 'birim_fiyat', 'label': 'Birim Fiyat', 'field': 'birim_fiyat', 'align': 'right', 'sortable': True},
-                            {'name': 'toplam', 'label': 'Toplam', 'field': 'toplam', 'align': 'right', 'sortable': True},
-                            {'name': 'kalan', 'label': 'Kalan Stok', 'field': 'kalan', 'align': 'right', 'sortable': False},
-                        ]
-                        _rc = "props.row.tur==='ALIS'?'stk-alis':'stk-satis'"
-                        h_table = ui.table(
-                            columns=hareket_cols, rows=hareket_rows, row_key='_rid',
-                            pagination={'rowsPerPage': 50, 'sortBy': 'tarih', 'descending': True}
-                        ).classes('w-full')
-                        h_table.props('flat bordered dense')
-                        h_table_ref[0] = h_table
-                        h_table.add_slot('body-cell-tarih', r'''
-                            <q-td :props="props" :class="%s">
-                                {{ props.value ? props.value.split('-').reverse().join('.') : '' }}
-                            </q-td>
-                        ''' % _rc)
-                        h_table.add_slot('body-cell-miktar', r'''
-                            <q-td :props="props" :class="%s">
-                                {{ props.value != null && props.value !== 0 ? props.value.toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) : '' }}
-                            </q-td>
-                        ''' % _rc)
-                        h_table.add_slot('body-cell-birim_fiyat', r'''
-                            <q-td :props="props" :class="%s">
-                                {{ props.value != null && props.value !== 0
-                                    ? (props.value < 0 ? '-' : '') + Math.abs(props.value).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' TL'
-                                    : '' }}
-                            </q-td>
-                        ''' % _rc)
-                        h_table.add_slot('body-cell-toplam', r'''
-                            <q-td :props="props" :class="%s">
-                                {{ props.value != null && props.value !== 0
-                                    ? (props.value < 0 ? '-' : '') + Math.abs(props.value).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' TL'
-                                    : '' }}
-                            </q-td>
-                        ''' % _rc)
-                        h_table.add_slot('body-cell-firma_ad', r'''
-                            <q-td :props="props" :class="%s">{{ props.value }}</q-td>
-                        ''' % _rc)
-                        h_table.add_slot('body-cell-tur', r'''
-                            <q-td :props="props" :class="%s">
-                                <span style="font-weight:600;"
-                                    :style="props.value === 'ALIS' ? 'color:#1d4ed8;' : 'color:#15803d;'">
-                                    {{ props.value === 'ALIS' ? 'Alış' : 'Satış' }}
-                                </span>
-                            </q-td>
-                        ''' % _rc)
-                        h_table.add_slot('body-cell-kalan', r'''
-                            <q-td :props="props" :class="%s">
-                                <span style="font-weight:700;"
-                                    :style="props.value < 0 ? 'color:#b91c1c;' : 'color:#1e40af;'">
-                                    {{ props.value != null ? props.value.toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) : '' }}
-                                </span>
-                            </q-td>
-                        ''' % _rc)
-                        search.on('update:model-value', lambda e: (setattr(h_table, 'rows', _filter(hareket_rows, e.args, ['firma_ad', 'tur'])), h_table.update()))
-                    else:
-                        ui.label('Hareket bulunamadı').classes('text-grey-5 q-pa-md')
+                    hareket_cols = [
+                        {'name': 'tarih', 'label': 'Tarih', 'field': 'tarih', 'align': 'center', 'sortable': True},
+                        {'name': 'tur', 'label': 'Tür', 'field': 'tur', 'align': 'center', 'sortable': True},
+                        {'name': 'firma_ad', 'label': 'Firma', 'field': 'firma_ad', 'align': 'left', 'sortable': True},
+                        {'name': 'miktar', 'label': 'Miktar', 'field': 'miktar', 'align': 'right', 'sortable': True},
+                        {'name': 'birim_fiyat', 'label': 'Birim Fiyat', 'field': 'birim_fiyat', 'align': 'right', 'sortable': True},
+                        {'name': 'toplam', 'label': 'Toplam', 'field': 'toplam', 'align': 'right', 'sortable': True},
+                        {'name': 'kalan', 'label': 'Kalan Stok', 'field': 'kalan', 'align': 'right', 'sortable': False},
+                    ]
+                    _rc = "props.row.tur==='ALIS'?'stk-alis':'stk-satis'"
+                    h_table = ui.table(
+                        columns=hareket_cols, rows=hareket_rows, row_key='_rid',
+                        pagination={'rowsPerPage': 50, 'sortBy': 'tarih', 'descending': True}
+                    ).classes('w-full')
+                    h_table.props('flat bordered dense')
+                    h_table_ref[0] = h_table
+                    h_table.add_slot('body-cell-tarih', r'''
+                        <q-td :props="props" :class="%s">
+                            {{ props.value ? props.value.split('-').reverse().join('.') : '' }}
+                        </q-td>
+                    ''' % _rc)
+                    h_table.add_slot('body-cell-miktar', r'''
+                        <q-td :props="props" :class="%s">
+                            {{ props.value != null && props.value !== 0 ? props.value.toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) : '' }}
+                        </q-td>
+                    ''' % _rc)
+                    h_table.add_slot('body-cell-birim_fiyat', r'''
+                        <q-td :props="props" :class="%s">
+                            {{ props.value != null && props.value !== 0
+                                ? (props.value < 0 ? '-' : '') + Math.abs(props.value).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' TL'
+                                : '' }}
+                        </q-td>
+                    ''' % _rc)
+                    h_table.add_slot('body-cell-toplam', r'''
+                        <q-td :props="props" :class="%s">
+                            {{ props.value != null && props.value !== 0
+                                ? (props.value < 0 ? '-' : '') + Math.abs(props.value).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' TL'
+                                : '' }}
+                        </q-td>
+                    ''' % _rc)
+                    h_table.add_slot('body-cell-firma_ad', r'''
+                        <q-td :props="props" :class="%s">{{ props.value }}</q-td>
+                    ''' % _rc)
+                    h_table.add_slot('body-cell-tur', r'''
+                        <q-td :props="props" :class="%s">
+                            <span style="font-weight:600;"
+                                :style="props.value === 'ALIS' ? 'color:#1d4ed8;' : 'color:#15803d;'">
+                                {{ props.value === 'ALIS' ? 'Alış' : 'Satış' }}
+                            </span>
+                        </q-td>
+                    ''' % _rc)
+                    h_table.add_slot('body-cell-kalan', r'''
+                        <q-td :props="props" :class="%s">
+                            <span style="font-weight:700;"
+                                :style="props.value < 0 ? 'color:#b91c1c;' : 'color:#1e40af;'">
+                                {{ props.value != null ? props.value.toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) : '' }}
+                            </span>
+                        </q-td>
+                    ''' % _rc)
+                    search.on('update:model-value', lambda e: (setattr(h_table, 'rows', _filter(hareket_rows, e.args, ['firma_ad', 'tur'])), h_table.update()))
+                else:
+                    ui.label('Hareket bulunamadı').classes('text-grey-5 q-pa-md')
 
             with uretim_panel:
                 if uretim_hareketleri:
-                        uretim_cols = [
-                            {'name': 'tarih', 'label': 'Tarih', 'field': 'tarih', 'align': 'center', 'sortable': True},
-                            {'name': 'tip', 'label': 'Tip', 'field': 'tip', 'align': 'center', 'sortable': True},
-                            {'name': 'miktar', 'label': 'Miktar', 'field': 'miktar', 'align': 'right', 'sortable': True},
-                        ]
-                        u_table = ui.table(
-                            columns=uretim_cols, rows=uretim_rows, row_key='_rid',
-                            pagination={'rowsPerPage': 50, 'sortBy': 'tarih', 'descending': True}
-                        ).classes('w-full')
-                        u_table.props('flat bordered dense')
-                        u_table.add_slot('body-cell-tarih', TARIH_SLOT)
-                        u_table.add_slot('body-cell-miktar', MIKTAR_SLOT)
-                        u_table.add_slot('body-cell-tip', r'''
-                            <q-td :props="props">
-                                <q-chip dense size="sm" text-color="white"
-                                    :color="props.value === 'GIRDI' ? 'orange' : 'teal'">
-                                    {{ props.value }}
-                                </q-chip>
-                            </q-td>
-                        ''')
-                        search.on('update:model-value', lambda e: (setattr(u_table, 'rows', _filter(uretim_rows, e.args, ['tip'])), u_table.update()))
-                    else:
-                        ui.label('Üretim hareketi bulunamadı').classes('text-grey-5 q-pa-md')
+                    uretim_cols = [
+                        {'name': 'tarih', 'label': 'Tarih', 'field': 'tarih', 'align': 'center', 'sortable': True},
+                        {'name': 'tip', 'label': 'Tip', 'field': 'tip', 'align': 'center', 'sortable': True},
+                        {'name': 'miktar', 'label': 'Miktar', 'field': 'miktar', 'align': 'right', 'sortable': True},
+                    ]
+                    u_table = ui.table(
+                        columns=uretim_cols, rows=uretim_rows, row_key='_rid',
+                        pagination={'rowsPerPage': 50, 'sortBy': 'tarih', 'descending': True}
+                    ).classes('w-full')
+                    u_table.props('flat bordered dense')
+                    u_table.add_slot('body-cell-tarih', TARIH_SLOT)
+                    u_table.add_slot('body-cell-miktar', MIKTAR_SLOT)
+                    u_table.add_slot('body-cell-tip', r'''
+                        <q-td :props="props">
+                            <q-chip dense size="sm" text-color="white"
+                                :color="props.value === 'GIRDI' ? 'orange' : 'teal'">
+                                {{ props.value }}
+                            </q-chip>
+                        </q-td>
+                    ''')
+                    search.on('update:model-value', lambda e: (setattr(u_table, 'rows', _filter(uretim_rows, e.args, ['tip'])), u_table.update()))
+                else:
+                    ui.label('Üretim hareketi bulunamadı').classes('text-grey-5 q-pa-md')
