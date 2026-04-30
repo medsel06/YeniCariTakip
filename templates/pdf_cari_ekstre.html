@@ -1,102 +1,136 @@
 {% extends "pdf_base.html" %}
 {% block content %}
 
-{% macro tip_text(tip, kaynak) -%}
-  {%- if kaynak == 'H' and tip == 'ALIS' -%}
-    <span style="color:#2563eb;font-weight:600;">Alış</span>
-  {%- elif kaynak == 'H' and tip == 'SATIS' -%}
-    <span style="color:#16a34a;font-weight:600;">Satış</span>
-  {%- elif kaynak == 'K' and tip == 'GELIR' -%}
-    <span style="color:#16a34a;font-weight:600;">Tahsilat</span>
-  {%- elif kaynak == 'K' and tip == 'GIDER' -%}
-    <span style="color:#dc2626;font-weight:600;">Ödeme</span>
-  {%- elif kaynak == 'G' and tip == 'GELIR' -%}
-    <span style="color:#16a34a;font-weight:600;">Gelir</span>
-  {%- elif kaynak == 'G' and tip == 'GIDER' -%}
-    <span style="color:#dc2626;font-weight:600;">Gider</span>
-  {%- elif kaynak == 'C' and tip == 'ALINAN' -%}
-    <span style="color:#ca8a04;font-weight:600;">Alınan Çek</span>
-  {%- elif kaynak == 'C' and tip == 'VERILEN' -%}
-    <span style="color:#ca8a04;font-weight:600;">Verilen Çek</span>
-  {%- elif kaynak == 'C' and tip == 'CIRO' -%}
-    <span style="color:#7c3aed;font-weight:600;">Ciro</span>
-  {%- else -%}
-    <span style="color:#64748b;">{{ tip or '-' }}</span>
+{% macro tip_label(tip, kaynak) -%}
+  {%- if kaynak == 'H' and tip == 'ALIS' -%}Alış
+  {%- elif kaynak == 'H' and tip == 'SATIS' -%}Satış
+  {%- elif kaynak == 'K' and tip == 'GELIR' -%}Tahsilat
+  {%- elif kaynak == 'K' and tip == 'GIDER' -%}Ödeme
+  {%- elif kaynak == 'G' and tip == 'GELIR' -%}Gelir
+  {%- elif kaynak == 'G' and tip == 'GIDER' -%}Gider
+  {%- elif kaynak == 'C' and tip == 'ALINAN' -%}Al. Çek
+  {%- elif kaynak == 'C' and tip == 'VERILEN' -%}Ver. Çek
+  {%- elif kaynak == 'C' and tip == 'CIRO' -%}Ciro
+  {%- else -%}{{ tip or '-' }}
   {%- endif -%}
 {%- endmacro %}
 
+<style>
+  .eks-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    border-bottom: 2.5px solid #1e293b; padding-bottom: 10px; margin-bottom: 12px;
+  }
+  .eks-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: #475569; margin-bottom: 4px; }
+  .eks-firma { font-size: 18px; font-weight: 700; color: #0f172a; letter-spacing: -0.02em; }
+  .eks-adres { font-size: 8.5pt; color: #64748b; margin-top: 3px; }
+  .eks-doc { text-align: right; font-size: 8.5pt; color: #64748b; line-height: 1.6; }
+
+  .eks-musteri {
+    background: #f8fafc; border: 1px solid #e2e8f0; border-left: 3px solid #334155;
+    padding: 5px 12px; margin-bottom: 10px; display: flex; align-items: center; gap: 16px;
+  }
+  .eks-musteri-ad { font-size: 12px; font-weight: 700; color: #0f172a; }
+  .eks-musteri-vkn { font-size: 9px; color: #64748b; }
+
+  .eks-tbl { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+  .eks-tbl thead th {
+    background: #f1f5f9; color: #334155; border-bottom: 1.5px solid #94a3b8;
+    padding: 5px 8px; font-size: 7.5pt; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; white-space: nowrap;
+  }
+  .eks-tbl thead th.r { text-align: right; }
+  .eks-tbl tbody td {
+    padding: 4px 8px; border-bottom: 0.5px solid #e2e8f0; vertical-align: middle;
+    font-variant-numeric: tabular-nums;
+  }
+  .eks-tbl tbody tr:nth-child(even) td { background: #fafbfc; }
+  .eks-tbl tbody td.dt { font-size: 8pt; color: #475569; white-space: nowrap; }
+  .eks-tbl tbody td.num { text-align: right; font-size: 8.5pt; }
+  .eks-tbl tbody td.tip { font-size: 8pt; font-weight: 600; }
+  .eks-tbl tbody td.ack { font-size: 8.5pt; color: #1e293b; }
+  .eks-tbl tbody tr.devir td { background: #eff6ff !important; font-weight: 600; }
+
+  .eks-tbl tfoot td {
+    padding: 6px 8px; border-top: 1.5px solid #334155; font-weight: 700; font-size: 8.5pt;
+    white-space: nowrap;
+  }
+  .eks-tbl tfoot td.r { text-align: right; }
+
+  .tip-alis { color: #1d4ed8; }
+  .tip-satis { color: #15803d; }
+  .tip-tahsilat { color: #059669; }
+  .tip-odeme { color: #dc2626; }
+  .tip-gelir { color: #16a34a; }
+  .tip-gider { color: #b91c1c; }
+  .tip-cek { color: #b45309; }
+  .tip-ciro { color: #7c3aed; }
+  .tip-devir { color: #1d4ed8; }
+  .tip-diger { color: #64748b; }
+
+  .bky-pos { color: #15803d; }
+  .bky-neg { color: #b91c1c; }
+</style>
+
 <section class="sheet">
-  <header class="pdf-hd">
-    <div class="brand-mark">{{ brand_initials }}</div>
-    <div class="brand-block">
-      <div class="brand-name">{{ sirket.firma_adi or 'Firma Adı' }}</div>
-      {% if sirket.is_alani %}<div class="brand-tag">{{ sirket.is_alani }}</div>{% endif %}
-      <div class="brand-meta">
-        {% if sirket.adres %}{{ sirket.adres }}{% endif %}
-        {% if sirket.telefon %}<span class="sep">·</span><span class="mono">{{ sirket.telefon }}</span>{% endif %}
-        {% if sirket.email %}<span class="sep">·</span>{{ sirket.email }}{% endif %}
-      </div>
+  <div class="eks-header">
+    <div>
+      <div class="eks-title">Cari Hesap Ekstresi</div>
+      <div class="eks-firma">{{ sirket.firma_adi or 'Firma Adı' }}</div>
+      {% if sirket.adres %}<div class="eks-adres">{{ sirket.adres }}</div>{% endif %}
     </div>
-    <div class="doc-meta">
-      <div class="doc-kind">Cari Hesap Ekstresi</div>
-      <div class="doc-num">No: {{ doc_no }}</div>
-      <div class="doc-date">Düzenleme: {{ doc_date }}</div>
+    <div class="eks-doc">
+      {{ doc_date }}{% if sirket.vkn_tckn %}<br/>VKN: {{ sirket.vkn_tckn }}{% endif %}
     </div>
-  </header>
-
-  <div style="border-left:3px solid var(--accent);padding:4px 10px;margin-bottom:8px;background:var(--tint);">
-    <span style="font-size:13px;font-weight:700;">{{ firma.ad or firma.kod }}</span>
-    {% if firma.vkn_tckn %}<span style="font-size:10px;color:var(--ink-3);margin-left:12px;">VKN: {{ firma.vkn_tckn }}</span>{% endif %}
   </div>
 
-  <div class="section-block">
-    <table class="t">
-      <thead>
-        <tr>
-          <th style="width:60px;">Tarih</th>
-          <th>Açıklama</th>
-          <th style="width:65px;">Tip</th>
-          <th class="r" style="width:95px;">Borç</th>
-          <th class="r" style="width:95px;">Alacak</th>
-          <th class="r" style="width:100px;">Bakiye</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% if devir is not none and (devir|abs) > 0.005 %}
-        <tr class="devir">
-          <td class="dt">—</td>
-          <td><strong>Önceki dönem devir bakiyesi</strong></td>
-          <td><span style="color:#2563eb;font-weight:600;">Devir</span></td>
-          <td class="tnum">{% if devir < 0 %}{{ format_money(-devir) }}{% else %}—{% endif %}</td>
-          <td class="tnum">{% if devir > 0 %}{{ format_money(devir) }}{% else %}—{% endif %}</td>
-          <td class="tnum"><strong>{{ format_money(devir) }}</strong></td>
-        </tr>
-        {% endif %}
-        {% for r in satirlar %}
-        <tr>
-          <td class="dt">{% if r.tarih %}{{ format_date(r.tarih) }}{% else %}<span class="pill bad" style="font-size:7.5pt;">TARİH ?</span>{% endif %}</td>
-          <td>{{ r.aciklama_clean }}</td>
-          <td>{{ tip_text(r.tip, r.kaynak) }}</td>
-          <td class="tnum">{% if r.borc and r.borc > 0.005 %}{{ format_money(r.borc) }}{% else %}—{% endif %}</td>
-          <td class="tnum">{% if r.alacak and r.alacak > 0.005 %}{{ format_money(r.alacak) }}{% else %}—{% endif %}</td>
-          <td class="tnum"><strong>{{ format_money(r.bakiye) }}</strong></td>
-        </tr>
-        {% endfor %}
-      </tbody>
-      <tfoot>
-        <tr>
-          <td colspan="3" class="lbl">DÖNEM TOPLAMI · {{ satirlar|length }} KAYIT</td>
-          <td class="r num" style="white-space:nowrap;">{{ format_money(donem_borc) }}&nbsp;₺</td>
-          <td class="r num" style="white-space:nowrap;">{{ format_money(donem_alacak) }}&nbsp;₺</td>
-          <td class="r num" style="white-space:nowrap;"><strong>{{ format_money(kapanis_bakiye) }}&nbsp;₺</strong></td>
-        </tr>
-      </tfoot>
-    </table>
+  <div class="eks-musteri">
+    <span class="eks-musteri-ad">{{ firma.ad or firma.kod }}</span>
+    {% if firma.vkn_tckn %}<span class="eks-musteri-vkn">VKN: {{ firma.vkn_tckn }}</span>{% endif %}
+    {% if firma.tel %}<span class="eks-musteri-vkn">Tel: {{ firma.tel }}</span>{% endif %}
   </div>
 
-
-  <div class="watermark">{{ brand_initials }}</div>
-
+  <table class="eks-tbl">
+    <thead>
+      <tr>
+        <th style="width:58px;">TARİH</th>
+        <th>AÇIKLAMA</th>
+        <th style="width:55px;">TİP</th>
+        <th class="r" style="width:90px;">BORÇ</th>
+        <th class="r" style="width:90px;">ALACAK</th>
+        <th class="r" style="width:95px;">BAKİYE</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if devir is not none and (devir|abs) > 0.005 %}
+      <tr class="devir">
+        <td class="dt">—</td>
+        <td class="ack">Önceki dönem devir</td>
+        <td class="tip tip-devir">Devir</td>
+        <td class="num">{% if devir < 0 %}{{ format_money(-devir) }}{% else %}—{% endif %}</td>
+        <td class="num">{% if devir > 0 %}{{ format_money(devir) }}{% else %}—{% endif %}</td>
+        <td class="num {% if devir >= 0 %}bky-pos{% else %}bky-neg{% endif %}"><strong>{{ format_money(devir) }}</strong></td>
+      </tr>
+      {% endif %}
+      {% for r in satirlar %}
+      <tr>
+        <td class="dt">{% if r.tarih %}{{ format_date(r.tarih) }}{% endif %}</td>
+        <td class="ack">{{ r.aciklama_clean }}</td>
+        <td class="tip {% if r.kaynak == 'H' and r.tip == 'ALIS' %}tip-alis{% elif r.kaynak == 'H' and r.tip == 'SATIS' %}tip-satis{% elif r.kaynak == 'K' and r.tip == 'GELIR' %}tip-tahsilat{% elif r.kaynak == 'K' and r.tip == 'GIDER' %}tip-odeme{% elif r.kaynak == 'G' and r.tip == 'GELIR' %}tip-gelir{% elif r.kaynak == 'G' and r.tip == 'GIDER' %}tip-gider{% elif r.kaynak == 'C' and r.tip == 'CIRO' %}tip-ciro{% elif r.kaynak == 'C' %}tip-cek{% else %}tip-diger{% endif %}">{{ tip_label(r.tip, r.kaynak) }}</td>
+        <td class="num">{% if r.borc and r.borc > 0.005 %}{{ format_money(r.borc) }}{% else %}—{% endif %}</td>
+        <td class="num">{% if r.alacak and r.alacak > 0.005 %}{{ format_money(r.alacak) }}{% else %}—{% endif %}</td>
+        <td class="num {% if r.bakiye >= 0 %}bky-pos{% else %}bky-neg{% endif %}"><strong>{{ format_money(r.bakiye) }}</strong></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="3">{{ satirlar|length }} kayıt</td>
+        <td class="r">{{ format_money(donem_borc) }} ₺</td>
+        <td class="r">{{ format_money(donem_alacak) }} ₺</td>
+        <td class="r {% if kapanis_bakiye >= 0 %}bky-pos{% else %}bky-neg{% endif %}"><strong>{{ format_money(kapanis_bakiye) }} ₺</strong></td>
+      </tr>
+    </tfoot>
+  </table>
 </section>
 
 {% endblock %}
