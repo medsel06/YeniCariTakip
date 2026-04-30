@@ -41,13 +41,14 @@ def _add_kasa_conn(conn, data):
     """Acik bir conn uzerinde kasa kaydi ekler."""
     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
     cur = conn.execute('''
-        INSERT INTO kasa (tarih, firma_kod, firma_ad, tur, tutar, odeme_sekli, aciklama, cek_id, gelir_gider_id, banka, created_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?)
+        INSERT INTO kasa (tarih, firma_kod, firma_ad, tur, tutar, odeme_sekli, aciklama, cek_id, gelir_gider_id, banka, kategori, created_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
         RETURNING id
     ''', (
         data['tarih'], data.get('firma_kod', ''), data.get('firma_ad', ''),
         data['tur'], data['tutar'], data.get('odeme_sekli', ''), data.get('aciklama', ''),
         data.get('cek_id'), data.get('gelir_gider_id'), data.get('banka', ''),
+        data.get('kategori', ''),
         now,
     ))
     return cur.fetchone()['id']
@@ -61,11 +62,12 @@ def add_kasa(data):
 def update_kasa(id, data):
     with get_db() as conn:
         conn.execute('''
-            UPDATE kasa SET tarih=?, firma_kod=?, firma_ad=?, tur=?, tutar=?, odeme_sekli=?, aciklama=?
+            UPDATE kasa SET tarih=?, firma_kod=?, firma_ad=?, tur=?, tutar=?, odeme_sekli=?, aciklama=?, kategori=?
             WHERE id=?
         ''', (
             data['tarih'], data.get('firma_kod', ''), data.get('firma_ad', ''),
             data['tur'], data['tutar'], data.get('odeme_sekli', ''), data.get('aciklama', ''),
+            data.get('kategori', ''),
             id
         ))
 

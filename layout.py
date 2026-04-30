@@ -91,6 +91,16 @@ body, html, .q-page-container, .q-page, .q-layout,
 .alse-dialog {
   border-radius: 16px !important;
   overflow: hidden;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+.alse-dialog > .nicegui-column,
+.alse-dialog > .q-card__section,
+.alse-dialog > div:not(.alse-dialog-header):not(.q-card__actions) {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 .alse-dialog-header {
   background: linear-gradient(135deg, #1c4461 0%, #2a6b8f 100%);
@@ -575,18 +585,41 @@ AY_ISIMLERI = {
 }
 
 
+def _get_min_year():
+    """DB'den en erken yili bul."""
+    try:
+        from db import get_db
+        with get_db() as conn:
+            row = conn.execute('''
+                SELECT MIN(y) as min_y FROM (
+                    SELECT MIN(CAST(SUBSTRING(tarih FROM 1 FOR 4) AS INTEGER)) as y FROM hareketler WHERE tarih IS NOT NULL AND tarih != ''
+                    UNION ALL
+                    SELECT MIN(CAST(SUBSTRING(tarih FROM 1 FOR 4) AS INTEGER)) as y FROM kasa WHERE tarih IS NOT NULL AND tarih != ''
+                    UNION ALL
+                    SELECT MIN(CAST(SUBSTRING(tarih FROM 1 FOR 4) AS INTEGER)) as y FROM gelir_gider WHERE tarih IS NOT NULL AND tarih != ''
+                    UNION ALL
+                    SELECT MIN(CAST(SUBSTRING(kesim_tarih FROM 1 FOR 4) AS INTEGER)) as y FROM cekler WHERE kesim_tarih IS NOT NULL AND kesim_tarih != ''
+                ) sub WHERE y > 2000
+            ''').fetchone()
+            if row and row['min_y']:
+                return int(row['min_y'])
+    except Exception:
+        pass
+    return datetime.now().year - 5
+
+
 def donem_secici(on_change, include_all=True):
     """Ay/Yil secici widget olusturur. on_change(yil, ay) callback ile cagirilir.
     ay=0 ise tum zamanlar demek.
     """
-    from datetime import datetime
     now = datetime.now()
     ay_opts = {}
     if include_all:
         ay_opts[0] = 'Tümü'
     for m in range(1, 13):
         ay_opts[m] = AY_ISIMLERI[m]
-    yil_opts = {y: str(y) for y in range(now.year - 3, now.year + 2)}
+    min_year = _get_min_year()
+    yil_opts = {y: str(y) for y in range(min_year, now.year + 2)}
 
     default_ay = 0 if include_all else now.month
     sel_ay = ui.select(options=ay_opts, value=default_ay, label='Ay').props('outlined dense').style('min-width: 100px')

@@ -6,6 +6,7 @@ from services.kasa_service import get_kasa_list, get_kasa_bakiye, add_kasa, dele
 from services.cari_service import get_firma_list
 from services.cek_service import list_cekler_portfoyde, generate_firma_cek_no, add_cek, change_durum
 from services.pdf_service import generate_kasa_raporu_pdf, save_pdf_preview
+from services.gelir_gider_service import GIDER_KATEGORILER, GELIR_KATEGORILER
 
 
 @ui.page('/kasa')
@@ -78,6 +79,23 @@ def kasa_page():
             inp_tur = ui.select(
                 options={'GELIR': 'Gelir', 'GIDER': 'Gider'}, label='Tür', value='GIDER'
             ).classes('w-full').props('outlined dense')
+
+            # Kategori (Gider secildiginde gorunur)
+            kat_options = {k: k for k in GIDER_KATEGORILER}
+            inp_kategori = ui.select(
+                options=kat_options, label='Kategori', with_input=True
+            ).classes('w-full').props('outlined dense clearable')
+            inp_kategori.set_visibility(True)
+
+            def on_tur_change(e):
+                if e.value == 'GIDER':
+                    inp_kategori.options = {k: k for k in GIDER_KATEGORILER}
+                    inp_kategori.set_visibility(True)
+                elif e.value == 'GELIR':
+                    inp_kategori.options = {k: k for k in GELIR_KATEGORILER}
+                    inp_kategori.set_visibility(True)
+                inp_kategori.value = None
+            inp_tur.on_value_change(on_tur_change)
 
             # Tutar
             inp_tutar = ui.number(label='Tutar', value=0, format='%.2f').classes('w-full').props('outlined dense')
@@ -225,6 +243,7 @@ def kasa_page():
                             'tutar': tutar_val,
                             'odeme_sekli': odeme_secili,
                             'aciklama': inp_aciklama.value.strip() if inp_aciklama.value else '',
+                            'kategori': inp_kategori.value or '',
                         }
                         if cek_id_ref:
                             kasa_data['cek_id'] = cek_id_ref
@@ -433,9 +452,19 @@ def kasa_page():
         # Row coloring by tur (GELIR=green, GIDER=red)
         table_ref.add_slot('body-cell-tur', r'''
             <q-td :props="props">
-                <q-chip dense :color="props.value === 'GELIR' ? 'positive' : 'negative'" text-color="white" size="sm">
-                    {{ props.value === 'GELIR' ? 'Gelir' : 'Gider' }}
-                </q-chip>
+                <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+                    <q-chip dense :color="props.value === 'GELIR' ? 'positive' : 'negative'" text-color="white" size="sm">
+                        {{ props.value === 'GELIR' ? 'Gelir' : 'Gider' }}
+                    </q-chip>
+                    <q-chip v-if="props.row.aciklama && props.row.aciklama.startsWith('Maaş Ödeme:')"
+                        dense color="pink-3" text-color="pink-9" size="sm">Maaş</q-chip>
+                    <q-chip v-else-if="props.row.aciklama && props.row.aciklama.startsWith('Avans:')"
+                        dense color="orange-3" text-color="orange-9" size="sm">Avans</q-chip>
+                    <q-chip v-else-if="props.row.kategori"
+                        dense color="blue-grey-2" text-color="blue-grey-8" size="sm">
+                        {{ props.row.kategori }}
+                    </q-chip>
+                </div>
             </q-td>
         ''')
 

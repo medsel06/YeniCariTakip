@@ -650,6 +650,8 @@ def _create_business_tables(conn):
         conn.execute("ALTER TABLE firmalar ADD COLUMN aktif INTEGER DEFAULT 1")
     if not _col_exists(conn, 'urunler', 'aktif'):
         conn.execute("ALTER TABLE urunler ADD COLUMN aktif INTEGER DEFAULT 1")
+    if not _col_exists(conn, 'kasa', 'kategori'):
+        conn.execute("ALTER TABLE kasa ADD COLUMN kategori TEXT DEFAULT ''")
 
     # --- HAFTALIK BILANCO TABLOLARI ---
     conn.execute('''
