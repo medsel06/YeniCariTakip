@@ -7,6 +7,7 @@
   @page {
     size: A4;
     margin: 0;
+    @bottom-right { content: counter(page) " / " counter(pages); font-size: 8pt; color: #94a3b8; margin-right: 16mm; margin-bottom: 8mm; }
   }
   :root {
     --ink: #0f172a;
@@ -46,10 +47,14 @@
     width: 210mm; min-height: 297mm;
     background: var(--paper);
     padding: 16mm 16mm 14mm;
-    display: flex; flex-direction: column;
+    display: block;
     position: relative;
     color: var(--ink);
   }
+  table.t thead { display: table-header-group; }
+  table.t tr { page-break-inside: avoid; }
+  .signature-row { page-break-inside: avoid; }
+  .pdf-ft { page-break-inside: avoid; }
 
   /* HEADER */
   .pdf-hd {
