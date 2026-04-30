@@ -167,7 +167,7 @@ def cari_detay_page(firma_kod: str):
             with ui.row().classes('w-full items-center gap-1 q-px-xs q-py-xs cari-topbar').style('flex-wrap: nowrap; overflow: hidden;'):
                 with ui.row().classes('items-center gap-2 no-wrap'):
                     ui.button(icon='arrow_back', on_click=lambda: ui.navigate.to('/cari')).props('flat round dense')
-                    ui.label(firma['ad']).style('font-size:15px;font-weight:700;color:#1e293b;')
+                    ui.label(firma['ad']).style('font-size:15px;font-weight:700;color:#ffffff;background:#334155;padding:2px 12px;border-radius:6px;')
                     bakiye_color = '#16a34a' if son_bakiye > 0 else '#dc2626' if son_bakiye < 0 else '#64748b'
                     bakiye_desc = 'Alacak' if son_bakiye > 0 else 'Borç' if son_bakiye < 0 else ''
                     ui.label(f'{fmt_para(son_bakiye)} TL ({bakiye_desc})').style(f'font-size:13px;font-weight:600;color:{bakiye_color};')
