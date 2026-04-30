@@ -1,27 +1,27 @@
 {% extends "pdf_base.html" %}
 {% block content %}
 
-{% macro tip_pill(tip, kaynak) -%}
+{% macro tip_text(tip, kaynak) -%}
   {%- if kaynak == 'H' and tip == 'ALIS' -%}
-    <span class="pill info">Alış</span>
+    <span style="color:#2563eb;font-weight:600;">Alış</span>
   {%- elif kaynak == 'H' and tip == 'SATIS' -%}
-    <span class="pill info">Satış</span>
+    <span style="color:#16a34a;font-weight:600;">Satış</span>
   {%- elif kaynak == 'K' and tip == 'GELIR' -%}
-    <span class="pill good">Tahsilat</span>
+    <span style="color:#16a34a;font-weight:600;">Tahsilat</span>
   {%- elif kaynak == 'K' and tip == 'GIDER' -%}
-    <span class="pill mute">Ödeme</span>
+    <span style="color:#dc2626;font-weight:600;">Ödeme</span>
   {%- elif kaynak == 'G' and tip == 'GELIR' -%}
-    <span class="pill good">Gelir</span>
+    <span style="color:#16a34a;font-weight:600;">Gelir</span>
   {%- elif kaynak == 'G' and tip == 'GIDER' -%}
-    <span class="pill bad">Gider</span>
+    <span style="color:#dc2626;font-weight:600;">Gider</span>
   {%- elif kaynak == 'C' and tip == 'ALINAN' -%}
-    <span class="pill warn">Alınan Çek</span>
+    <span style="color:#ca8a04;font-weight:600;">Alınan Çek</span>
   {%- elif kaynak == 'C' and tip == 'VERILEN' -%}
-    <span class="pill warn">Verilen Çek</span>
+    <span style="color:#ca8a04;font-weight:600;">Verilen Çek</span>
   {%- elif kaynak == 'C' and tip == 'CIRO' -%}
-    <span class="pill accent">Ciro</span>
+    <span style="color:#7c3aed;font-weight:600;">Ciro</span>
   {%- else -%}
-    <span class="pill mute">{{ tip or '-' }}</span>
+    <span style="color:#64748b;">{{ tip or '-' }}</span>
   {%- endif -%}
 {%- endmacro %}
 
@@ -44,42 +44,21 @@
     </div>
   </header>
 
-  <div class="section-block">
-    <h2 class="section">Cari Hesap Bilgileri</h2>
-    <div class="cari-strip">
-      <div class="cari-strip-cell">
-        <div class="info-label">Ünvan</div>
-        <div class="cari-strip-name">{{ firma.ad or firma.kod }}</div>
-      </div>
-      {% if firma.vkn_tckn %}
-      <div class="cari-strip-cell fixed">
-        <div class="info-label">Vergi No / VKN</div>
-        <div class="cari-strip-name mono" style="font-size:13px;">
-          {{ firma.vkn_tckn }}
-          {% if firma.vergi_dairesi %}<span style="color:var(--ink-3);font-weight:500;font-size:11px;">— {{ firma.vergi_dairesi }} V.D.</span>{% endif %}
-        </div>
-      </div>
-      {% endif %}
-      {% if firma.tel %}
-      <div class="cari-strip-cell fixed">
-        <div class="info-label">Telefon</div>
-        <div class="cari-strip-name mono" style="font-size:13px;">{{ firma.tel }}</div>
-      </div>
-      {% endif %}
-    </div>
+  <div style="border-left:3px solid var(--accent);padding:4px 10px;margin-bottom:8px;background:var(--tint);">
+    <span style="font-size:13px;font-weight:700;">{{ firma.ad or firma.kod }}</span>
+    {% if firma.vkn_tckn %}<span style="font-size:10px;color:var(--ink-3);margin-left:12px;">VKN: {{ firma.vkn_tckn }}</span>{% endif %}
   </div>
 
   <div class="section-block">
-    <h2 class="section">Hesap Hareketleri — {{ donem_label }}</h2>
     <table class="t">
       <thead>
         <tr>
-          <th style="width:65px;">Tarih</th>
+          <th style="width:60px;">Tarih</th>
           <th>Açıklama</th>
-          <th style="width:90px;">Tip</th>
-          <th class="r" style="width:85px;">Borç</th>
-          <th class="r" style="width:85px;">Alacak</th>
-          <th class="r" style="width:95px;">Bakiye</th>
+          <th style="width:65px;">Tip</th>
+          <th class="r" style="width:95px;">Borç</th>
+          <th class="r" style="width:95px;">Alacak</th>
+          <th class="r" style="width:100px;">Bakiye</th>
         </tr>
       </thead>
       <tbody>
@@ -87,7 +66,7 @@
         <tr class="devir">
           <td class="dt">—</td>
           <td><strong>Önceki dönem devir bakiyesi</strong></td>
-          <td><span class="pill info">Devir</span></td>
+          <td><span style="color:#2563eb;font-weight:600;">Devir</span></td>
           <td class="tnum">{% if devir < 0 %}{{ format_money(-devir) }}{% else %}—{% endif %}</td>
           <td class="tnum">{% if devir > 0 %}{{ format_money(devir) }}{% else %}—{% endif %}</td>
           <td class="tnum"><strong>{{ format_money(devir) }}</strong></td>
@@ -97,7 +76,7 @@
         <tr>
           <td class="dt">{% if r.tarih %}{{ format_date(r.tarih) }}{% else %}<span class="pill bad" style="font-size:7.5pt;">TARİH ?</span>{% endif %}</td>
           <td>{{ r.aciklama_clean }}</td>
-          <td>{{ tip_pill(r.tip, r.kaynak) }}</td>
+          <td>{{ tip_text(r.tip, r.kaynak) }}</td>
           <td class="tnum">{% if r.borc and r.borc > 0.005 %}{{ format_money(r.borc) }}{% else %}—{% endif %}</td>
           <td class="tnum">{% if r.alacak and r.alacak > 0.005 %}{{ format_money(r.alacak) }}{% else %}—{% endif %}</td>
           <td class="tnum"><strong>{{ format_money(r.bakiye) }}</strong></td>
@@ -107,18 +86,14 @@
       <tfoot>
         <tr>
           <td colspan="3" class="lbl">DÖNEM TOPLAMI · {{ satirlar|length }} KAYIT</td>
-          <td class="r num">{{ format_money(donem_borc) }} ₺</td>
-          <td class="r num">{{ format_money(donem_alacak) }} ₺</td>
-          <td class="r num"><strong>{{ format_money(kapanis_bakiye) }} ₺</strong></td>
+          <td class="r num" style="white-space:nowrap;">{{ format_money(donem_borc) }}&nbsp;₺</td>
+          <td class="r num" style="white-space:nowrap;">{{ format_money(donem_alacak) }}&nbsp;₺</td>
+          <td class="r num" style="white-space:nowrap;"><strong>{{ format_money(kapanis_bakiye) }}&nbsp;₺</strong></td>
         </tr>
       </tfoot>
     </table>
   </div>
 
-  <div class="signature-row">
-    <div class="sig">Düzenleyen<br/><br/>{{ sirket.firma_adi or '' }}</div>
-    <div class="sig">Onaylayan<br/><br/>Yetkili İmza</div>
-  </div>
 
   <div class="watermark">{{ brand_initials }}</div>
 
