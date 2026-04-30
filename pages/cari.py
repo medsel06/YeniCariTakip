@@ -3,7 +3,7 @@ from datetime import datetime
 from nicegui import ui
 from layout import create_layout, fmt_para, notify_ok, notify_err, confirm_dialog, PARA_SLOT, normalize_search, donem_secici
 from services.cari_service import (
-    get_cari_bakiye_list, get_firma_list, add_firma, delete_firma, update_firma, generate_firma_kod
+    get_cari_bakiye_list, get_firma_list, add_firma, update_firma, generate_firma_kod
 )
 
 
@@ -90,16 +90,11 @@ def cari_page():
             </q-td>
         ''')
 
-        # Edit + Silme butonlari
         table.add_slot('body-cell-actions', '''
             <q-td :props="props">
-                <q-btn flat round dense icon="edit" color="primary" size="sm"
+                <q-btn flat round dense icon="drive_file_rename_outline" color="primary" size="sm"
                     @click.stop="$parent.$emit('edit', props.row)">
                     <q-tooltip>D\u00fczenle</q-tooltip>
-                </q-btn>
-                <q-btn flat round dense icon="delete" color="negative" size="sm"
-                    @click.stop="$parent.$emit('delete', props.row)">
-                    <q-tooltip>Sil</q-tooltip>
                 </q-btn>
             </q-td>
         ''')
@@ -121,15 +116,6 @@ def cari_page():
         # Satir tiklama - cari detaya git
         table.on('rowClick', lambda e: ui.navigate.to(f'/cari/{e.args[1]["kod"]}'))
 
-        # Silme handler
-        def handle_delete(e):
-            row = e.args
-            confirm_dialog(
-                f'"{row["ad"]}" firmas\u0131n\u0131 silmek istedi\u011finize emin misiniz?',
-                lambda: (delete_firma(row['kod']), refresh_table(), notify_ok('Firma silindi'))
-            )
-
-        table.on('delete', handle_delete)
 
         # Edit handler
         def handle_edit(e):
