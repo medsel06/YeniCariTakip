@@ -60,7 +60,7 @@
   .tip-gelir, .tip-gider, .tip-cek, .tip-ciro,
   .tip-devir, .tip-diger { color: #1e293b; }
 
-  .bky-pos, .bky-neg { color: #64748b; }
+  .bky-pos, .bky-neg { color: #475569; }
 </style>
 
 <section class="sheet">
@@ -96,8 +96,8 @@
       <tr class="devir">
         <td class="dt">—</td>
         <td class="ack">Devir · Önceki dönem bakiyesi</td>
-        <td class="num">{% if devir < 0 %}{{ format_money(-devir) }}{% else %}—{% endif %}</td>
-        <td class="num">{% if devir > 0 %}{{ format_money(devir) }}{% else %}—{% endif %}</td>
+        <td class="num">{% if devir < 0 %}{{ format_money(-devir) }}{% else %}{% endif %}</td>
+        <td class="num">{% if devir > 0 %}{{ format_money(devir) }}{% else %}{% endif %}</td>
         <td class="num {% if devir >= 0 %}bky-pos{% else %}bky-neg{% endif %}"><strong>{{ format_money(devir) }}</strong></td>
       </tr>
       {% endif %}
@@ -105,8 +105,8 @@
       <tr>
         <td class="dt">{% if r.tarih %}{{ format_date(r.tarih) }}{% endif %}</td>
         <td class="ack">{{ r.aciklama_clean }} <span style="color:#64748b;font-size:7.5pt;">· {{ tip_label(r.tip, r.kaynak) }}</span></td>
-        <td class="num">{% if r.borc and r.borc > 0.005 %}{{ format_money(r.borc) }}{% else %}—{% endif %}</td>
-        <td class="num">{% if r.alacak and r.alacak > 0.005 %}{{ format_money(r.alacak) }}{% else %}—{% endif %}</td>
+        <td class="num">{% if r.borc and r.borc > 0.005 %}{{ format_money(r.borc) }}{% else %}{% endif %}</td>
+        <td class="num">{% if r.alacak and r.alacak > 0.005 %}{{ format_money(r.alacak) }}{% else %}{% endif %}</td>
         <td class="num {% if r.bakiye >= 0 %}bky-pos{% else %}bky-neg{% endif %}"><strong>{{ format_money(r.bakiye) }}</strong></td>
       </tr>
       {% endfor %}
