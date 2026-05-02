@@ -19,8 +19,8 @@ def kasa_page():
         ui.run_javascript(f"window.open('{preview_url}', '_blank')")
 
     now = datetime.now()
-    # Default: aylik mod + mevcut ay (donem_secici mode_toggle=True ile sync)
-    state = {'yil': now.year, 'ay': now.month}
+    # Default: yillik mod + mevcut yil (donem_popover_btn default_mode='YIL' ile sync)
+    state = {'yil': now.year, 'ay': None}
 
     table_ref = None
     card_giris = None
@@ -409,8 +409,9 @@ def kasa_page():
 
         bakiye = get_kasa_bakiye(yil=state['yil'], ay=state['ay'])
 
-        # --- Satir 1: Toolbar (kompakt) ---
-        with ui.row().classes('w-full items-center gap-2 q-mb-xs no-wrap'):
+        # --- Tek satir toolbar: filtreler + ozet chipleri + aksiyonlar ---
+        with ui.row().classes('w-full items-center gap-2 q-mb-sm no-wrap'):
+            # Sol grup: arama + donem
             search_input = ui.input(
                 placeholder='Ara (firma, açıklama)...',
                 on_change=lambda e: (setattr(table_ref, 'rows', do_filter(e.value)), table_ref.update()),
@@ -421,42 +422,49 @@ def kasa_page():
                 state['ay'] = ay
                 load_data()
 
-            donem_popover_btn(_donem_changed, default_current_month=True)
-            ui.space()
+            donem_popover_btn(_donem_changed, default_mode='YIL')
 
-            def _download_pdf():
-                pdf_bytes = generate_kasa_raporu_pdf(all_rows, get_kasa_bakiye(yil=state['yil'], ay=state['ay']))
-                _open_pdf(pdf_bytes, 'kasa_hizli_rapor.pdf')
+            # Ayirici bosluk
+            ui.element('div').style('flex:1')
 
-            ui.button('PDF', icon='picture_as_pdf', color='primary', on_click=_download_pdf).props('dense')
-            ui.button('Yeni Kayıt', icon='add', color='primary', on_click=open_add_dialog).props('dense')
-
-        # --- Satir 2: Ozet kartlari (Giris / Cikis / Bakiye) ---
-        with ui.row().classes('w-full items-center gap-2 q-mb-sm no-wrap'):
-            def _summary_card(icon, label_text, value_label_ref, accent_bg, accent_fg, accent_border):
+            # Orta grup: ozet chipleri (kompakt — tek satira sigsin)
+            def _summary_chip(icon, label_text, value_label_ref, accent_bg, accent_fg, accent_border):
                 with ui.element('div').style(
-                    f'flex:1;display:flex;align-items:center;gap:10px;padding:10px 14px;'
-                    f'background:{accent_bg};border:1px solid {accent_border};border-radius:10px;'
+                    f'display:inline-flex;align-items:center;gap:6px;padding:4px 10px;'
+                    f'background:{accent_bg};border:1px solid {accent_border};border-radius:999px;'
+                    f'white-space:nowrap;'
                 ):
-                    ui.icon(icon).style(f'font-size:22px;color:{accent_fg};')
-                    with ui.column().classes('gap-0'):
-                        ui.label(label_text).classes('text-caption').style(f'color:{accent_fg};opacity:0.8;line-height:1;')
-                        value_label_ref['ref'] = ui.label(f'{fmt_para(0)} TL').classes('text-weight-bold').style(
-                            f'color:{accent_fg};font-size:16px;line-height:1.2;'
-                        )
+                    ui.icon(icon).style(f'font-size:14px;color:{accent_fg};')
+                    ui.label(label_text).classes('text-caption').style(
+                        f'color:{accent_fg};font-weight:600;font-size:11px;line-height:1;'
+                    )
+                    value_label_ref['ref'] = ui.label(f'{fmt_para(0)} TL').style(
+                        f'color:{accent_fg};font-weight:700;font-size:12.5px;line-height:1;'
+                        'font-variant-numeric:tabular-nums;'
+                    )
 
             _giris_ref = {}
             _cikis_ref = {}
             _bakiye_ref = {}
-            _summary_card('arrow_downward', 'Giriş', _giris_ref, '#dcfce7', '#15803d', '#86efac')
-            _summary_card('arrow_upward', 'Çıkış', _cikis_ref, '#fee2e2', '#b91c1c', '#fca5a5')
-            _summary_card('account_balance', 'Bakiye', _bakiye_ref, '#dbeafe', '#1d4ed8', '#93c5fd')
+            _summary_chip('arrow_downward', 'Giriş', _giris_ref, '#dcfce7', '#15803d', '#86efac')
+            _summary_chip('arrow_upward', 'Çıkış', _cikis_ref, '#fee2e2', '#b91c1c', '#fca5a5')
+            _summary_chip('account_balance', 'Bakiye', _bakiye_ref, '#dbeafe', '#1d4ed8', '#93c5fd')
             card_giris = _giris_ref['ref']
             card_cikis = _cikis_ref['ref']
             card_bakiye = _bakiye_ref['ref']
             card_giris.set_text(f'{fmt_para(bakiye["giris"])} TL')
             card_cikis.set_text(f'{fmt_para(bakiye["cikis"])} TL')
             card_bakiye.set_text(f'{fmt_para(bakiye["bakiye"])} TL')
+
+            ui.element('div').style('flex:1')
+
+            # Sag grup: aksiyon butonlari
+            def _download_pdf():
+                pdf_bytes = generate_kasa_raporu_pdf(all_rows, get_kasa_bakiye(yil=state['yil'], ay=state['ay']))
+                _open_pdf(pdf_bytes, 'kasa_hizli_rapor.pdf')
+
+            ui.button('PDF', icon='picture_as_pdf', color='primary', on_click=_download_pdf).props('dense')
+            ui.button('Yeni Kayıt', icon='add', color='primary', on_click=open_add_dialog).props('dense')
 
         # Table
         table_ref = ui.table(
