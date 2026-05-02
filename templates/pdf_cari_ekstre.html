@@ -16,6 +16,33 @@
 {%- endmacro %}
 
 <style>
+  /* Sayfa 2+ icin kompakt running header — musteri adi + dokuman tipi
+     Ilk sayfa override edilir (header gizli), boylece tablo asagi itilmez. */
+  @page {
+    margin: 13mm 0 10mm 0;
+    @top-center {
+      content: string(musteri-adi) "  ·  Cari Hesap Ekstresi";
+      font-family: 'DejaVu Sans', 'Liberation Sans', 'Arial', sans-serif;
+      font-size: 8.5pt; color: #475569; font-weight: 500;
+      width: 186mm;
+      padding-bottom: 4px; padding-top: 6px;
+      border-bottom: 1px solid #e2e8f0;
+      letter-spacing: 0.02em;
+    }
+    @top-right {
+      content: "Sayfa " counter(page) " / " counter(pages);
+      font-family: 'DejaVu Sans', 'Liberation Sans', 'Arial', sans-serif;
+      font-size: 8pt; color: #94a3b8; font-weight: 500;
+      padding-bottom: 4px; padding-top: 6px;
+      padding-right: 12mm;
+    }
+  }
+  @page :first {
+    margin: 10mm 0;
+    @top-center { content: ""; border-bottom: none; }
+    @top-right { content: ""; }
+  }
+
   .eks-header {
     display: flex; justify-content: space-between; align-items: flex-start;
     border-bottom: 2.5px solid #1e293b; padding-bottom: 10px; margin-bottom: 12px;
@@ -29,8 +56,13 @@
     background: #f8fafc; border: 1px solid #e2e8f0; border-left: 3px solid #334155;
     padding: 5px 12px; margin-bottom: 10px; display: flex; align-items: center; gap: 16px;
   }
-  .eks-musteri-ad { font-size: 12px; font-weight: 700; color: #0f172a; }
+  /* Musteri adini CSS string'e kopyala — running header'da kullanilacak */
+  .eks-musteri-ad { font-size: 12px; font-weight: 700; color: #0f172a; string-set: musteri-adi content(); }
   .eks-musteri-vkn { font-size: 9px; color: #64748b; }
+
+  /* Tablo basligi her sayfada tekrarlasin */
+  .eks-tbl thead { display: table-header-group; }
+  .eks-tbl tr { page-break-inside: avoid; }
 
   .eks-tbl { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
   .eks-tbl thead th {
