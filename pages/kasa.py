@@ -39,12 +39,23 @@ def kasa_page():
         {'name': 'actions', 'label': 'İşlemler', 'field': 'actions', 'align': 'center', 'sortable': False},
     ]
 
+    def _filter_rows(rows):
+        q = normalize_search(search_val['text'])
+        if not q:
+            return rows
+        return [r for r in rows if q in normalize_search(r.get('firma_ad', ''))
+                or q in normalize_search(r.get('aciklama', ''))
+                or q in normalize_search(r.get('odeme_sekli', ''))]
+
+    def apply_filters():
+        if table_ref:
+            table_ref.rows = _filter_rows(all_rows)
+            table_ref.update()
+
     def load_data():
         nonlocal table_ref, all_rows
         all_rows = get_kasa_list(yil=state['yil'], ay=state['ay'])
-        if table_ref:
-            table_ref.rows = all_rows
-            table_ref.update()
+        apply_filters()
         bakiye = get_kasa_bakiye(yil=state['yil'], ay=state['ay'])
         if card_giris:
             card_giris.set_text(fmt_para(bakiye['giris']) + ' TL')
@@ -399,22 +410,18 @@ def kasa_page():
     with ui.column().classes('w-full q-pa-sm'):
         all_rows = get_kasa_list(yil=state['yil'], ay=state['ay'])
 
-        def do_filter(query):
-            if not query:
-                return all_rows
-            q = normalize_search(query)
-            return [r for r in all_rows if q in normalize_search(r.get('firma_ad', ''))
-                    or q in normalize_search(r.get('aciklama', ''))
-                    or q in normalize_search(r.get('odeme_sekli', ''))]
-
         bakiye = get_kasa_bakiye(yil=state['yil'], ay=state['ay'])
+
+        def _on_search_change(e):
+            search_val['text'] = e.value or ''
+            apply_filters()
 
         # --- Tek satir toolbar: filtreler + ozet chipleri + aksiyonlar ---
         with ui.row().classes('w-full items-center gap-2 q-mb-sm no-wrap'):
             # Sol grup: arama + donem
             search_input = ui.input(
                 placeholder='Ara (firma, açıklama)...',
-                on_change=lambda e: (setattr(table_ref, 'rows', do_filter(e.value)), table_ref.update()),
+                on_change=_on_search_change,
             ).props('outlined dense clearable').classes('w-64')
 
             def _donem_changed(yil, ay):
