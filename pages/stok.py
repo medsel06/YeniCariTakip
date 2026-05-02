@@ -1,7 +1,7 @@
 """Cari Takip - Stok Sayfasi"""
 from nicegui import ui
 from layout import create_layout, fmt_miktar, MIKTAR_SLOT, PARA_SLOT, TARIH_SLOT, notify_ok, notify_err, confirm_dialog, normalize_search
-from services.stok_service import get_stok_list, get_urun_list, add_urun, update_urun, generate_urun_kod, get_kategori_list
+from services.stok_service import get_stok_list, get_urun_list, add_urun, update_urun, delete_urun, generate_urun_kod, get_kategori_list
 from services.settings_service import get_company_settings
 from services.pdf_service import generate_stok_raporu_pdf, save_pdf_preview
 
@@ -218,9 +218,29 @@ def stok_page():
                     @click.stop="$parent.$emit('edit', props.row)">
                     <q-tooltip>Düzenle</q-tooltip>
                 </q-btn>
+                <q-btn v-if="(!props.row.alis || props.row.alis === 0) && (!props.row.satis || props.row.satis === 0) && (!props.row.uretim_girdi || props.row.uretim_girdi === 0) && (!props.row.uretim_cikti || props.row.uretim_cikti === 0)"
+                    flat round dense icon="delete_outline" color="negative" size="sm"
+                    @click.stop="$parent.$emit('remove', props.row)">
+                    <q-tooltip>Sil (boş stok)</q-tooltip>
+                </q-btn>
             </q-td>
         ''')
+
+        def do_delete(row):
+            def confirmed():
+                try:
+                    delete_urun(row['kod'])
+                    notify_ok(f'Ürün silindi: {row.get("ad", "")}')
+                    load_data()
+                except Exception as e:
+                    notify_err(f'Hata: {e}')
+            confirm_dialog(
+                f"'{row.get('ad', '')}' ürününü silmek istediğinize emin misiniz?",
+                confirmed
+            )
+
         table_ref.on('edit', lambda e: open_edit_dialog(e.args))
+        table_ref.on('remove', lambda e: do_delete(e.args))
 
         # Satir tiklama - stok detay sayfasina git
         table_ref.on('rowClick', lambda e: ui.navigate.to(f'/stok/{e.args[1]["kod"]}'))

@@ -49,21 +49,28 @@ def hareketler_page():
         {'name': 'actions', 'label': 'İŞLEMLER', 'field': 'actions', 'align': 'center', 'sortable': False},
     ]
 
+    search_text = {'value': ''}
+    tur_filter = {'value': None}
+
+    def apply_filters():
+        rows = all_rows
+        q = search_text['value']
+        if q:
+            qn = normalize_search(q)
+            rows = [r for r in rows if
+                    qn in normalize_search(r.get('firma_ad', '')) or
+                    qn in normalize_search(r.get('urun_ad', '')) or
+                    qn in normalize_search(r.get('tur', ''))]
+        if tur_filter['value']:
+            rows = [r for r in rows if r.get('tur') == tur_filter['value']]
+        if table_ref:
+            table_ref.rows = rows
+            table_ref.update()
+
     def load_data():
         nonlocal all_rows
         all_rows = get_hareketler(yil=None, ay=None)
-        if table_ref:
-            table_ref.rows = all_rows
-            table_ref.update()
-
-    def do_filter(query):
-        if not query:
-            return all_rows
-        q = normalize_search(query)
-        return [r for r in all_rows if
-                q in normalize_search(r.get('firma_ad', '')) or
-                q in normalize_search(r.get('urun_ad', '')) or
-                q in normalize_search(r.get('tur', ''))]
+        apply_filters()
 
     def hesapla(miktar, birim_fiyat, kdv_orani, tevkifat_str='0'):
         m = float(miktar or 0)
@@ -477,8 +484,6 @@ def hareketler_page():
     with ui.column().classes('w-full q-pa-sm'):
         all_rows = get_hareketler(yil=None, ay=None)
 
-        tur_filter = {'value': None}
-
         def apply_tur_filter(tur):
             if tur_filter['value'] == tur:
                 tur_filter['value'] = None
@@ -487,16 +492,18 @@ def hareketler_page():
             for btn_t, btn_ref in tur_buttons:
                 is_active = tur_filter['value'] == btn_t
                 btn_ref.props(f'{"" if is_active else "outline"}')
-            filtered = [r for r in all_rows if r.get('tur') == tur_filter['value']] if tur_filter['value'] else all_rows
-            table_ref.rows = filtered
-            table_ref.update()
+            apply_filters()
+
+        def on_search_change(e):
+            search_text['value'] = e.value or ''
+            apply_filters()
 
         tur_buttons = []
 
         with ui.row().classes('w-full items-center gap-2 q-mb-xs'):
             search_input = ui.input(
                 placeholder='Ara (firma, urun, tur)...',
-                on_change=lambda e: (setattr(table_ref, 'rows', do_filter(e.value)), table_ref.update()),
+                on_change=on_search_change,
             ).props('outlined dense clearable').classes('w-64')
             ui.element('div').style('width:16px')
             _tur_badge_styles = {

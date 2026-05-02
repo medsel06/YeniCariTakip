@@ -15,6 +15,7 @@ def cari_page():
     # --- State ---
     now = datetime.now()
     search_value = {'text': ''}
+    tur_filter = {'value': None}  # 'ALIS' | 'SATIS' | None
     # Default: yil=mevcut yil, ay=None (Tumu) — UI ile sync (donem_secici default_ay=0=Tumu)
     state = {'yil': now.year, 'ay': None}
 
@@ -27,10 +28,15 @@ def cari_page():
     all_data = load_data()
 
     def get_filtered():
+        rows = all_data
+        if tur_filter['value'] == 'ALIS':
+            rows = [r for r in rows if (r.get('alis') or 0) > 0]
+        elif tur_filter['value'] == 'SATIS':
+            rows = [r for r in rows if (r.get('satis') or 0) > 0]
         q = normalize_search(search_value['text'])
-        if not q:
-            return all_data
-        return [r for r in all_data if q in normalize_search(r['ad']) or q in normalize_search(r['kod'])]
+        if q:
+            rows = [r for r in rows if q in normalize_search(r['ad']) or q in normalize_search(r['kod'])]
+        return rows
 
     # --- UI ---
     with ui.column().classes('w-full q-pa-sm'):
@@ -43,11 +49,39 @@ def cari_page():
             table.rows = get_filtered()
             table.update()
 
-        # Arama + Donem secici + Buton tek satir
+        tur_buttons = []
+
+        def apply_tur_filter(tur):
+            if tur_filter['value'] == tur:
+                tur_filter['value'] = None
+            else:
+                tur_filter['value'] = tur
+            for btn_t, btn_ref in tur_buttons:
+                is_active = tur_filter['value'] == btn_t
+                btn_ref.props(f'{"" if is_active else "outline"}')
+            table.rows = get_filtered()
+            table.update()
+
+        # Arama + Tur badge + Donem secici + Buton tek satir
         with ui.row().classes('w-full items-center gap-2 q-mb-xs'):
             search_input = ui.input(
                 label='Ara (Firma adı veya kodu)',
             ).classes('w-64').props('outlined dense clearable')
+
+            ui.element('div').style('width:8px')
+            _tur_badge_styles = {
+                'ALIS': ('Alış', '#dbeafe', '#1d4ed8', '#93c5fd'),
+                'SATIS': ('Satış', '#dcfce7', '#15803d', '#86efac'),
+            }
+            for tur_key, (label, bg, fg, border) in _tur_badge_styles.items():
+                b = ui.button(label, on_click=lambda t=tur_key: apply_tur_filter(t)).props(
+                    'unelevated dense size=sm no-caps'
+                ).style(
+                    f'background:{bg} !important;color:{fg} !important;border:1px solid {border};'
+                    'border-radius:999px;padding:2px 14px;'
+                )
+                tur_buttons.append((tur_key, b))
+
             donem_secici(_on_donem, include_all=True)
             ui.space()
             ui.button('Yeni Firma', icon='add', on_click=lambda: open_new_firma_dialog()) \
