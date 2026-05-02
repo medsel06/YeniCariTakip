@@ -1,7 +1,7 @@
 """ALSE Plastik Hammadde - Cari Hesaplar Sayfasi"""
 from datetime import datetime
 from nicegui import ui
-from layout import create_layout, fmt_para, notify_ok, notify_err, confirm_dialog, PARA_SLOT, normalize_search, donem_secici
+from layout import create_layout, fmt_para, notify_ok, notify_err, confirm_dialog, PARA_SLOT, normalize_search, donem_popover_btn, segment_group
 from services.cari_service import (
     get_cari_bakiye_list, get_firma_list, add_firma, update_firma, generate_firma_kod
 )
@@ -49,40 +49,28 @@ def cari_page():
             table.rows = get_filtered()
             table.update()
 
-        tur_buttons = []
-
-        def apply_tur_filter(tur):
-            if tur_filter['value'] == tur:
-                tur_filter['value'] = None
-            else:
-                tur_filter['value'] = tur
-            for btn_t, btn_ref in tur_buttons:
-                is_active = tur_filter['value'] == btn_t
-                btn_ref.props(f'{"" if is_active else "outline"}')
+        def on_tur_change(new_tur):
+            tur_filter['value'] = new_tur
             table.rows = get_filtered()
             table.update()
 
-        # Arama + Tur badge + Donem secici + Buton tek satir
+        # Arama + Tur segment + Donem popover + Buton tek satir
         with ui.row().classes('w-full items-center gap-2 q-mb-xs'):
             search_input = ui.input(
                 label='Ara (Firma adı veya kodu)',
             ).classes('w-64').props('outlined dense clearable')
 
             ui.element('div').style('width:8px')
-            _tur_badge_styles = {
-                'ALIS': ('Alış', '#dbeafe', '#1d4ed8', '#93c5fd'),
-                'SATIS': ('Satış', '#dcfce7', '#15803d', '#86efac'),
-            }
-            for tur_key, (label, bg, fg, border) in _tur_badge_styles.items():
-                b = ui.button(label, on_click=lambda t=tur_key: apply_tur_filter(t)).props(
-                    'unelevated dense size=sm no-caps'
-                ).style(
-                    f'background:{bg} !important;color:{fg} !important;border:1px solid {border};'
-                    'border-radius:999px;padding:2px 14px;'
-                )
-                tur_buttons.append((tur_key, b))
+            segment_group(
+                buttons=[
+                    ('ALIS', 'Alış', '#1d4ed8'),
+                    ('SATIS', 'Satış', '#15803d'),
+                ],
+                on_change=on_tur_change,
+                active=None,
+            )
 
-            donem_secici(_on_donem, include_all=True)
+            donem_popover_btn(_on_donem, default_mode='YIL')
             ui.space()
             ui.button('Yeni Firma', icon='add', on_click=lambda: open_new_firma_dialog()) \
                 .props('color=primary')

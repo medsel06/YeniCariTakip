@@ -3,7 +3,7 @@ from datetime import date, datetime
 from nicegui import ui
 from layout import (
     create_layout, PARA_SLOT, MIKTAR_SLOT, TARIH_SLOT,
-    notify_ok, notify_err, confirm_dialog, normalize_search, donem_secici
+    notify_ok, notify_err, confirm_dialog, normalize_search, donem_secici, segment_group
 )
 from services.kasa_service import get_hareketler, add_hareket, update_hareket, delete_hareket
 from services.cari_service import get_firma_list, add_firma, generate_firma_kod, get_firma_risk_durumu
@@ -484,37 +484,31 @@ def hareketler_page():
     with ui.column().classes('w-full q-pa-sm'):
         all_rows = get_hareketler(yil=None, ay=None)
 
-        def apply_tur_filter(tur):
-            if tur_filter['value'] == tur:
-                tur_filter['value'] = None
-            else:
-                tur_filter['value'] = tur
-            for btn_t, btn_ref in tur_buttons:
-                is_active = tur_filter['value'] == btn_t
-                btn_ref.props(f'{"" if is_active else "outline"}')
+        def on_tur_change(new_tur):
+            tur_filter['value'] = new_tur
             apply_filters()
 
         def on_search_change(e):
             search_text['value'] = e.value or ''
             apply_filters()
 
-        tur_buttons = []
-
         with ui.row().classes('w-full items-center gap-2 q-mb-xs'):
             search_input = ui.input(
-                placeholder='Ara (firma, urun, tur)...',
+                placeholder='Ara (firma, ürün, tür)...',
                 on_change=on_search_change,
             ).props('outlined dense clearable').classes('w-64')
-            ui.element('div').style('width:16px')
-            _tur_badge_styles = {
-                'ALIS': ('Alış', '#dbeafe', '#1d4ed8', '#93c5fd'),
-                'SATIS': ('Satış', '#dcfce7', '#15803d', '#86efac'),
-                'TAHSILAT': ('Tah.', '#fef9c3', '#b45309', '#fcd34d'),
-                'ODEME': ('Ödm.', '#fee2e2', '#b91c1c', '#fca5a5'),
-            }
-            for tur_key, (label, bg, fg, border) in _tur_badge_styles.items():
-                b = ui.button(label, on_click=lambda t=tur_key: apply_tur_filter(t)).props('unelevated dense size=sm no-caps').style(f'background:{bg} !important;color:{fg} !important;border:1px solid {border};border-radius:999px;padding:2px 14px;')
-                tur_buttons.append((tur_key, b))
+            ui.element('div').style('width:8px')
+
+            segment_group(
+                buttons=[
+                    ('ALIS', 'Alış', '#1d4ed8'),
+                    ('SATIS', 'Satış', '#15803d'),
+                    ('TAHSILAT', 'Tahsilat', '#b45309'),
+                    ('ODEME', 'Ödeme', '#b91c1c'),
+                ],
+                on_change=on_tur_change,
+                active=None,
+            )
 
             ui.space()
             ui.button('Yeni İşlem', icon='add', color='primary',

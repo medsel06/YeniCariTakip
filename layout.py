@@ -702,6 +702,172 @@ def donem_secici(on_change, include_all=True, mode_toggle=False, default_current
     return sel_ay, sel_yil
 
 
+def donem_popover_btn(on_change, default_current_month=True, default_mode=None):
+    """Tek butonlu donem secici (popover icinde mod + ay/yil select).
+    Toolbar'i kompakt tutar — buton etiketi aktif duruma gore guncellenir.
+
+    on_change(yil, ay): callback. Aylik mod -> (y, a), Yillik -> (y, None), Tumu -> (None, None).
+    default_current_month=True: ilk acilis Aylik mod + bu ay.
+    default_mode='AY'|'YIL'|'TUMU': default_current_month'a gore baskin. Acikca verilirse o moddan baslar.
+    Returns: button reference.
+    """
+    now = datetime.now()
+    min_year = _get_min_year()
+
+    if default_mode in ('AY', 'YIL', 'TUMU'):
+        initial_mode = default_mode
+    else:
+        initial_mode = 'AY' if default_current_month else 'TUMU'
+
+    state = {
+        'mode': initial_mode,
+        'ay': now.month,
+        'yil': now.year,
+    }
+
+    def _label():
+        if state['mode'] == 'AY':
+            return f"{AY_ISIMLERI[state['ay']]} {state['yil']}"
+        elif state['mode'] == 'YIL':
+            return f"{state['yil']}"
+        return 'Tüm Zamanlar'
+
+    btn = ui.button(_label(), icon='event').props('outline dense color=primary no-caps')
+    btn.style('border-radius:999px;padding:4px 14px;')
+
+    with btn:
+        with ui.menu().props('anchor="bottom left" self="top left"') as menu:
+            with ui.column().classes('q-pa-sm gap-2').style('min-width: 280px'):
+                ui.label('Dönem').classes('text-caption text-grey-7 q-mb-xs')
+
+                # Mod butonlari (segment-group gorunumu)
+                mode_buttons = {}
+                with ui.row().classes('w-full items-center').style(
+                    'gap:0;border:1px solid #cbd5e1;border-radius:8px;overflow:hidden;'
+                ):
+                    mode_styles = [
+                        ('AY', 'Aylık'),
+                        ('YIL', 'Yıllık'),
+                        ('TUMU', 'Tümü'),
+                    ]
+                    for idx, (key, label) in enumerate(mode_styles):
+                        b = ui.button(label).props('flat dense no-caps').style(
+                            'border-radius:0;flex:1;padding:6px 10px;'
+                            + ('border-right:1px solid #cbd5e1;' if idx < 2 else '')
+                        )
+                        mode_buttons[key] = b
+
+                # Ay / Yil select
+                ay_opts = {m: AY_ISIMLERI[m] for m in range(1, 13)}
+                yil_opts = {y: str(y) for y in range(min_year, now.year + 2)}
+                with ui.row().classes('w-full items-center gap-2 q-mt-xs') as sel_row:
+                    sel_ay = ui.select(options=ay_opts, value=state['ay'], label='Ay').props(
+                        'outlined dense'
+                    ).classes('col')
+                    sel_yil = ui.select(options=yil_opts, value=state['yil'], label='Yıl').props(
+                        'outlined dense'
+                    ).classes('col')
+
+        def _refresh_styles():
+            for key, b in mode_buttons.items():
+                if key == state['mode']:
+                    b.style(
+                        'border-radius:0;flex:1;padding:6px 10px;'
+                        + ('border-right:1px solid #cbd5e1;' if key != 'TUMU' else '')
+                        + 'background:#2563eb !important;color:#fff !important;font-weight:600;'
+                    )
+                else:
+                    b.style(
+                        'border-radius:0;flex:1;padding:6px 10px;'
+                        + ('border-right:1px solid #cbd5e1;' if key != 'TUMU' else '')
+                        + 'background:#fff !important;color:#475569 !important;'
+                    )
+            sel_ay.set_visibility(state['mode'] == 'AY')
+            sel_yil.set_visibility(state['mode'] in ('AY', 'YIL'))
+            btn.set_text(_label())
+
+        def _emit():
+            if state['mode'] == 'AY':
+                on_change(state['yil'], state['ay'])
+            elif state['mode'] == 'YIL':
+                on_change(state['yil'], None)
+            else:
+                on_change(None, None)
+
+        def _set_mode(new_mode):
+            state['mode'] = new_mode
+            _refresh_styles()
+            _emit()
+
+        for key, b in mode_buttons.items():
+            b.on('click', lambda _e, k=key: _set_mode(k))
+
+        def _on_ay_change(e):
+            state['ay'] = e.value
+            _refresh_styles()
+            _emit()
+
+        def _on_yil_change(e):
+            state['yil'] = e.value
+            _refresh_styles()
+            _emit()
+
+        sel_ay.on_value_change(_on_ay_change)
+        sel_yil.on_value_change(_on_yil_change)
+
+        _refresh_styles()
+
+    return btn
+
+
+def segment_group(buttons, on_change, active=None):
+    """Birlesik segment buton grubu (4 ayri pill yerine tek goruntu).
+
+    buttons: [(key, label, accent_color)] listesi
+    on_change(key): tiklanan buton anahtari, None=hepsi-pasif (ayni butona ikinci tik)
+    active: baslangicta aktif anahtar (None=hicbiri)
+
+    Returns: dict {key: button_ref}
+    """
+    state = {'active': active}
+    refs = {}
+
+    def _refresh():
+        for k, btn in refs.items():
+            is_active = (state['active'] == k)
+            accent = next((c for kk, _, c in buttons if kk == k), '#2563eb')
+            if is_active:
+                btn.style(
+                    'border-radius:0;flex:1;padding:5px 14px;'
+                    f'background:{accent} !important;color:#fff !important;font-weight:600;border:none;'
+                )
+            else:
+                btn.style(
+                    'border-radius:0;flex:1;padding:5px 14px;'
+                    'background:#fff !important;color:#475569 !important;border:none;'
+                )
+
+    with ui.row().classes('items-center').style(
+        'gap:0;border:1px solid #cbd5e1;border-radius:999px;overflow:hidden;background:#fff;'
+    ):
+        for idx, (key, label, accent) in enumerate(buttons):
+            sep = 'border-right:1px solid #e2e8f0;' if idx < len(buttons) - 1 else ''
+            b = ui.button(label).props('flat dense no-caps').style(
+                f'border-radius:0;flex:1;padding:5px 14px;{sep}'
+            )
+
+            def _handler(_e, k=key):
+                state['active'] = None if state['active'] == k else k
+                _refresh()
+                on_change(state['active'])
+
+            b.on('click', _handler)
+            refs[key] = b
+
+    _refresh()
+    return refs
+
+
 def notify_ok(msg):
     ui.notify(msg, type='positive', position='top')
 
