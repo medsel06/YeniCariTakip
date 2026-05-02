@@ -607,19 +607,86 @@ def _get_min_year():
     return datetime.now().year - 5
 
 
-def donem_secici(on_change, include_all=True):
+def donem_secici(on_change, include_all=True, mode_toggle=False, default_current_month=False):
     """Ay/Yil secici widget olusturur. on_change(yil, ay) callback ile cagirilir.
     ay=0 ise tum zamanlar demek.
+
+    mode_toggle=True ise [Aylik][Yillik][Tumu] segment butonlu 3-modlu UI kullanilir:
+      - Aylik mod: ay + yil gorunur, callback (y, a)
+      - Yillik mod: sadece yil gorunur, callback (y, None)
+      - Tumu mod: hicbir select gorunmez, callback (None, None)
+    default_current_month=True ise (mode_toggle ile) Aylik mod + mevcut ay secili acilir.
+    Geriye donuk uyumlu: parametreler verilmezse eski davranis aynen calisir.
     """
     now = datetime.now()
     ay_opts = {}
-    if include_all:
+    if include_all and not mode_toggle:
         ay_opts[0] = 'Tümü'
     for m in range(1, 13):
         ay_opts[m] = AY_ISIMLERI[m]
     min_year = _get_min_year()
     yil_opts = {y: str(y) for y in range(min_year, now.year + 2)}
 
+    if mode_toggle:
+        # 3-modlu segment + dinamik selectler
+        mode = {'value': 'AY' if default_current_month else 'TUMU'}
+        default_ay_val = now.month
+        default_yil_val = now.year
+
+        # Mod butonlari
+        mode_buttons = {}
+        mode_styles = {
+            'AY':   ('Aylık',  '#dbeafe', '#1d4ed8', '#93c5fd'),
+            'YIL':  ('Yıllık', '#dcfce7', '#15803d', '#86efac'),
+            'TUMU': ('Tümü',   '#f3f4f6', '#374151', '#d1d5db'),
+        }
+        for key, (label, bg, fg, border) in mode_styles.items():
+            b = ui.button(label).props('unelevated dense size=sm no-caps').style(
+                f'background:{bg} !important;color:{fg} !important;border:1px solid {border};'
+                'border-radius:999px;padding:2px 14px;'
+            )
+            mode_buttons[key] = b
+
+        sel_ay = ui.select(options=ay_opts, value=default_ay_val, label='Ay').props(
+            'outlined dense'
+        ).style('min-width: 110px')
+        sel_yil = ui.select(options=yil_opts, value=default_yil_val, label='Yıl').props(
+            'outlined dense'
+        ).style('min-width: 90px')
+
+        def _refresh_visibility():
+            for key, btn in mode_buttons.items():
+                if key == mode['value']:
+                    btn.props('unelevated')
+                else:
+                    btn.props(remove='unelevated')
+                    btn.props('outline')
+            sel_ay.set_visibility(mode['value'] == 'AY')
+            sel_yil.set_visibility(mode['value'] in ('AY', 'YIL'))
+
+        def _emit():
+            if mode['value'] == 'AY':
+                on_change(sel_yil.value, sel_ay.value)
+            elif mode['value'] == 'YIL':
+                on_change(sel_yil.value, None)
+            else:
+                on_change(None, None)
+
+        def _set_mode(new_mode):
+            mode['value'] = new_mode
+            _refresh_visibility()
+            _emit()
+
+        for key, btn in mode_buttons.items():
+            btn.on('click', lambda _e, k=key: _set_mode(k))
+
+        sel_ay.on_value_change(lambda _e: _emit())
+        sel_yil.on_value_change(lambda _e: _emit())
+
+        _refresh_visibility()
+        return sel_ay, sel_yil
+
+    # --- Klasik mod (geriye donuk uyumlu) ---
     default_ay = 0 if include_all else now.month
     sel_ay = ui.select(options=ay_opts, value=default_ay, label='Ay').props('outlined dense').style('min-width: 100px')
     sel_yil = ui.select(options=yil_opts, value=now.year, label='Yıl').props('outlined dense').style('min-width: 80px')

@@ -19,8 +19,8 @@ def kasa_page():
         ui.run_javascript(f"window.open('{preview_url}', '_blank')")
 
     now = datetime.now()
-    # Default: yil=mevcut, ay=None (Tumu) — UI donem_secici default_ay=0 ile sync
-    state = {'yil': now.year, 'ay': None}
+    # Default: aylik mod + mevcut ay (donem_secici mode_toggle=True ile sync)
+    state = {'yil': now.year, 'ay': now.month}
 
     table_ref = None
     card_giris = None
@@ -421,7 +421,7 @@ def kasa_page():
                     state['ay'] = ay
                     load_data()
 
-                donem_secici(_donem_changed, include_all=True)
+                donem_secici(_donem_changed, include_all=True, mode_toggle=True, default_current_month=True)
 
                 with ui.element('q-chip').props('color="green-2" text-color="green-9" icon="arrow_downward" dense'):
                     card_giris = ui.label(f'Giriş: {fmt_para(bakiye["giris"])} TL').classes('text-weight-medium')
