@@ -20,10 +20,12 @@ def hareketler_page():
     .hrk-satis { background: #f0fdf4 !important; }
     .hrk-tahsilat { background: #fefce8 !important; }
     .hrk-odeme { background: #fef2f2 !important; }
+    .hrk-tarihsiz { background: #fecaca !important; color: #7f1d1d !important; }
     tr:hover .hrk-alis { background: #dbeafe !important; }
     tr:hover .hrk-satis { background: #dcfce7 !important; }
     tr:hover .hrk-tahsilat { background: #fef9c3 !important; }
     tr:hover .hrk-odeme { background: #fee2e2 !important; }
+    tr:hover .hrk-tarihsiz { background: #fca5a5 !important; }
     .hrk-table td { border-right: 1px solid #e8edf2; }
     .hrk-table td:last-child { border-right: none; }
     .hrk-table th { border-right: 1px solid rgba(255,255,255,0.15); text-align: center !important; }
@@ -418,12 +420,14 @@ def hareketler_page():
         confirm_dialog('Bu hareketi silmek istediğinize emin misiniz?', confirmed)
 
     # --- Slot template'leri ---
-    # Satir arka plan rengi: tur'e gore cok hafif tint
-    _rcls = "props.row.tur==='ALIS'?'hrk-alis':props.row.tur==='SATIS'?'hrk-satis':props.row.tur==='TAHSILAT'?'hrk-tahsilat':props.row.tur==='ODEME'?'hrk-odeme':''"
+    # Satir arka plan rengi: tarih bos ise kirmizi (tarihsiz uyarisi),
+    # aksi halde tur'e gore cok hafif tint
+    _rcls = "(!props.row.tarih)?'hrk-tarihsiz':props.row.tur==='ALIS'?'hrk-alis':props.row.tur==='SATIS'?'hrk-satis':props.row.tur==='TAHSILAT'?'hrk-tahsilat':props.row.tur==='ODEME'?'hrk-odeme':''"
 
     _tarih_slot = r'''
         <q-td :props="props" :class="%s">
-            {{ props.value ? props.value.split('-').reverse().join('.') : '' }}
+            <span v-if="props.value">{{ props.value.split('-').reverse().join('.') }}</span>
+            <span v-else style="color:#7f1d1d;font-weight:700;">⚠ TARİH YOK</span>
         </q-td>
     ''' % _rcls
 

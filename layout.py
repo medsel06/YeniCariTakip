@@ -36,6 +36,9 @@ MENU_GROUPS = [
 
 BRAND_CSS = '''
 .alse-root { font-family: "Bahnschrift", "Segoe UI Variable", sans-serif; }
+/* Tarihsiz kayit uyarisi - tum sayfalarda ortak */
+.tarihsiz-cell { background: #fee2e2 !important; }
+tr:hover .tarihsiz-cell { background: #fecaca !important; }
 body, html, .q-page-container, .q-page, .q-layout,
 .q-card, .q-card__section,
 .q-table, .q-table__container, .q-table__middle, .q-table__bottom,
@@ -572,8 +575,9 @@ MIKTAR_SLOT = r'''
 '''
 
 TARIH_SLOT = r'''
-    <q-td :props="props">
-        {{ props.value ? props.value.split('-').reverse().join('.') : '' }}
+    <q-td :props="props" :class="!props.value ? 'tarihsiz-cell' : ''">
+        <span v-if="props.value">{{ props.value.split('-').reverse().join('.') }}</span>
+        <span v-else style="color:#b91c1c;font-weight:600;">⚠ TARİH YOK</span>
     </q-td>
 '''
 
