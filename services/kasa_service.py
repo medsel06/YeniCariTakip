@@ -75,12 +75,19 @@ def update_kasa(id, data):
 
 
 def delete_kasa(id):
+    """Kasa silme — kaynak baglantisina gore kademeli davranir:
+    - gelir_gider_id NOT NULL: ilgili gider/gelir kaydi DA silinir
+      (ayni anda yaratildiklari varsayilir — pesin odeme akisi)
+    - cek_id NOT NULL ve odeme_sekli='CEK' ve cek CIRO_EDILDI: cek portfoye geri doner
+    - Diger durumlar: sadece kasa silinir (cariye atilmis gider'in odemesi gibi —
+      odeme geri alinir, gider/cari borcu yerinde durur)
+    """
     with get_db() as conn:
         rec = conn.execute('SELECT * FROM kasa WHERE id=?', (id,)).fetchone()
         if not rec:
             return
 
-        # Ciro ile olusmus kasa kaydi silinirse cek tekrar portfoye alinmali.
+        # 1) Cek bagli ise — cirolanmis cek portfoye geri doner
         cek_id = rec['cek_id']
         if rec['odeme_sekli'] == 'CEK' and cek_id:
             cek = conn.execute('SELECT * FROM cekler WHERE id=?', (cek_id,)).fetchone()
@@ -110,7 +117,60 @@ def delete_kasa(id):
                     ),
                 )
 
+        # 2) Gelir-gider bagli ise — gider/gelir satirini DA sil (kullanici karari)
+        gg_id = rec['gelir_gider_id']
+        if gg_id:
+            conn.execute('DELETE FROM gelir_gider WHERE id=?', (gg_id,))
+
+        # 3) Kasa kaydini sil
         conn.execute('DELETE FROM kasa WHERE id=?', (id,))
+
+
+def get_kasa_silme_etkisi(id):
+    """Kasa silinmeden once kullaniciya gosterilecek etki analizi.
+    Donus dict: {ok: bool, kasa: dict, etkiler: [str], detay: dict}
+    """
+    with get_db() as conn:
+        rec = conn.execute('SELECT * FROM kasa WHERE id=?', (id,)).fetchone()
+        if not rec:
+            return {'ok': False, 'kasa': None, 'etkiler': ['Kayit bulunamadi'], 'detay': {}}
+        rec_d = dict(rec)
+        etkiler = ['Kasa kaydi silinecek']
+        detay = {}
+
+        # Gelir-gider baglantisi
+        gg_id = rec_d.get('gelir_gider_id')
+        if gg_id:
+            gg = conn.execute('SELECT * FROM gelir_gider WHERE id=?', (gg_id,)).fetchone()
+            if gg:
+                gg_d = dict(gg)
+                tip_ad = 'Gider' if gg_d.get('tur') == 'GIDER' else 'Gelir'
+                etkiler.append(f"⚠ Bagli {tip_ad} kaydi DA silinecek (gelir_gider id={gg_id})")
+                detay['gelir_gider'] = gg_d
+
+        # Cek baglantisi
+        cek_id = rec_d.get('cek_id')
+        if cek_id and rec_d.get('odeme_sekli') == 'CEK':
+            cek = conn.execute('SELECT * FROM cekler WHERE id=?', (cek_id,)).fetchone()
+            if cek:
+                cek_d = dict(cek)
+                if cek_d.get('durum') == 'CIRO_EDILDI':
+                    etkiler.append(f"⚠ Bagli cek (No: {cek_d.get('cek_no', '-')}) PORTFOYE geri donecek")
+                else:
+                    etkiler.append(f"ℹ Bagli cek (No: {cek_d.get('cek_no', '-')}) — cek durumu degismeyecek")
+                detay['cek'] = cek_d
+
+        # Cari etkisi (firma'ya ait ise borc/alacak ortaya cikar)
+        firma_kod = rec_d.get('firma_kod')
+        tur = rec_d.get('tur')  # GELIR (tahsilat) veya GIDER (odeme)
+        tutar = float(rec_d.get('tutar') or 0)
+        if firma_kod and not gg_id:
+            if tur == 'GELIR':
+                etkiler.append(f"ℹ Cari etkisi: Tahsilat geri alinacak — firmanin borcu {tutar:,.2f} TL artar")
+            elif tur == 'GIDER':
+                etkiler.append(f"ℹ Cari etkisi: Odeme geri alinacak — firmaya borcunuz {tutar:,.2f} TL artar")
+
+        return {'ok': True, 'kasa': rec_d, 'etkiler': etkiler, 'detay': detay}
 
 
 def get_kasa_by_id(id):
@@ -146,6 +206,12 @@ def get_hareketler(yil=None, ay=None):
             aciklama,
             belge_no,
             'STOK' AS source,
+            NULL::INTEGER AS kasa_id,
+            NULL::INTEGER AS gelir_gider_id,
+            NULL::INTEGER AS cek_id,
+            NULL::TEXT AS odeme_sekli,
+            NULL::TEXT AS banka,
+            NULL::TEXT AS kategori,
             COALESCE(NULLIF(created_at, ''), tarih || ' 00:00:00.000000') AS sort_ts
         FROM hareketler WHERE 1=1{flt}
 
@@ -171,6 +237,12 @@ def get_hareketler(yil=None, ay=None):
             aciklama,
             '' AS belge_no,
             'KASA' AS source,
+            id AS kasa_id,
+            gelir_gider_id,
+            cek_id,
+            odeme_sekli,
+            banka,
+            kategori,
             COALESCE(NULLIF(created_at, ''), tarih || ' 00:00:00.000000') AS sort_ts
         FROM kasa WHERE 1=1{flt}
     )
@@ -183,6 +255,16 @@ def get_hareketler(yil=None, ay=None):
             row = dict(r)
             row['id'] = row.pop('unified_id')
             row.pop('sort_ts', None)
+            # kasa kaynak etiketi (UI tooltipi/chip icin)
+            if row.get('source') == 'KASA':
+                if row.get('gelir_gider_id'):
+                    row['kasa_kaynak'] = 'gelir_gider'
+                elif row.get('cek_id'):
+                    row['kasa_kaynak'] = 'cek'
+                else:
+                    row['kasa_kaynak'] = 'serbest'
+            else:
+                row['kasa_kaynak'] = None
             result.append(row)
         return result
 

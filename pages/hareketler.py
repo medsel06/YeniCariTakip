@@ -5,7 +5,10 @@ from layout import (
     create_layout, PARA_SLOT, MIKTAR_SLOT, TARIH_SLOT,
     notify_ok, notify_err, confirm_dialog, normalize_search, donem_secici, segment_group
 )
-from services.kasa_service import get_hareketler, add_hareket, update_hareket, delete_hareket
+from services.kasa_service import (
+    get_hareketler, add_hareket, update_hareket, delete_hareket,
+    get_kasa_by_id, add_kasa, update_kasa, delete_kasa, get_kasa_silme_etkisi,
+)
 from services.cari_service import get_firma_list, add_firma, generate_firma_kod, get_firma_risk_durumu
 from services.stok_service import get_urun_list, add_urun, generate_urun_kod
 
@@ -419,6 +422,168 @@ def hareketler_page():
                 notify_err(f'Hata: {e}')
         confirm_dialog('Bu hareketi silmek istediğinize emin misiniz?', confirmed)
 
+    # --- KASA edit/delete/yeni dialoglari ---
+    def open_kasa_dialog(edit_row=None, default_tur=None):
+        """Kasa kaydi (TAHSILAT/ODEME) ekle veya duzenle.
+        edit_row: dict (row['kasa_id'] dolu olmali) — duzenleme modu
+        default_tur: 'GELIR' (Tahsilat) veya 'GIDER' (Odeme) — yeni kayit modu
+        """
+        is_edit = edit_row is not None
+        if is_edit:
+            kasa_kaynak = edit_row.get('kasa_kaynak')
+            # Bagli kayit ise — kaynaktan duzenleme uyarisi
+            if kasa_kaynak == 'gelir_gider':
+                notify_err('Bu kayit Gelir-Gider modulunden uretilmis. Lütfen Gelir/Gider sayfasından düzenleyin.')
+                ui.navigate.to('/gelir-gider')
+                return
+            if kasa_kaynak == 'cek':
+                notify_err('Bu kayit bir cek hareketinden gelmistir. Lütfen Çekler sayfasından düzenleyin.')
+                ui.navigate.to('/cekler')
+                return
+            # Serbest kasa — DB'den tam kayit cek
+            kasa_rec = get_kasa_by_id(edit_row.get('kasa_id'))
+            if not kasa_rec:
+                notify_err('Kayit bulunamadi')
+                return
+            tur_default = kasa_rec.get('tur', 'GELIR')
+            tarih_default = kasa_rec.get('tarih') or date.today().strftime('%Y-%m-%d')
+            firma_kod_default = kasa_rec.get('firma_kod', '')
+            firma_ad_default = kasa_rec.get('firma_ad', '')
+            tutar_default = float(kasa_rec.get('tutar') or 0)
+            odeme_default = kasa_rec.get('odeme_sekli', 'NAKIT')
+            banka_default = kasa_rec.get('banka', '')
+            kategori_default = kasa_rec.get('kategori', '')
+            aciklama_default = kasa_rec.get('aciklama', '')
+        else:
+            tur_default = default_tur or 'GELIR'
+            tarih_default = date.today().strftime('%Y-%m-%d')
+            firma_kod_default = ''
+            firma_ad_default = ''
+            tutar_default = 0.0
+            odeme_default = 'NAKIT'
+            banka_default = ''
+            kategori_default = ''
+            aciklama_default = ''
+
+        firmalar = get_firma_list()
+        firma_opts = {f['kod']: f"{f['ad']}" for f in firmalar}
+        firma_opts[''] = '(Firma yok — serbest kayit)'
+
+        baslik = ('Tahsilat Düzenle' if tur_default == 'GELIR' else 'Ödeme Düzenle') if is_edit else \
+                 ('Yeni Tahsilat' if tur_default == 'GELIR' else 'Yeni Ödeme')
+
+        with ui.dialog() as dlg, ui.card().classes('alse-dialog').style('width: 90vw; max-width: 560px'):
+            with ui.element('div').classes('alse-dialog-header'):
+                ui.icon('payments' if tur_default == 'GELIR' else 'shopping_cart_checkout')
+                ui.label(baslik).classes('dialog-title')
+
+            with ui.row().classes('w-full q-mt-sm gap-2'):
+                inp_tarih = ui.input('Tarih', value=tarih_default).props('outlined dense type=date').classes('col')
+                inp_tur = ui.select(
+                    options={'GELIR': 'Tahsilat', 'GIDER': 'Ödeme'},
+                    value=tur_default, label='Tür'
+                ).props('outlined dense').classes('col')
+
+            inp_firma = ui.select(
+                options=firma_opts, value=firma_kod_default if firma_kod_default in firma_opts else '',
+                label='Firma', with_input=True,
+            ).classes('w-full q-mt-sm').props('outlined dense')
+
+            with ui.row().classes('w-full q-mt-sm gap-2'):
+                inp_tutar = ui.number('Tutar (TL)', value=tutar_default, format='%.2f').props('outlined dense').classes('col')
+                inp_odeme = ui.select(
+                    options=['NAKIT', 'HAVALE', 'EFT', 'KK', 'CEK', 'DIGER'],
+                    value=odeme_default if odeme_default in ['NAKIT', 'HAVALE', 'EFT', 'KK', 'CEK', 'DIGER'] else 'NAKIT',
+                    label='Ödeme Şekli',
+                ).props('outlined dense').classes('col')
+
+            with ui.row().classes('w-full q-mt-sm gap-2'):
+                inp_banka = ui.input('Banka', value=banka_default).props('outlined dense').classes('col')
+                inp_kategori = ui.input('Kategori', value=kategori_default).props('outlined dense').classes('col')
+
+            inp_aciklama = ui.input('Açıklama', value=aciklama_default).classes('w-full q-mt-sm').props('outlined dense')
+
+            with ui.row().classes('w-full justify-end q-mt-md'):
+                ui.button('İptal', on_click=dlg.close).props('flat color=grey')
+
+                def save():
+                    if not inp_tarih.value:
+                        notify_err('Tarih zorunlu')
+                        return
+                    if not inp_tutar.value or float(inp_tutar.value) <= 0:
+                        notify_err('Tutar > 0 olmalı')
+                        return
+                    firma_kod = inp_firma.value or ''
+                    firma_ad = firma_opts.get(firma_kod, '') if firma_kod else ''
+                    if firma_ad == '(Firma yok — serbest kayit)':
+                        firma_ad = ''
+                    data = {
+                        'tarih': inp_tarih.value,
+                        'firma_kod': firma_kod,
+                        'firma_ad': firma_ad,
+                        'tur': inp_tur.value,
+                        'tutar': float(inp_tutar.value),
+                        'odeme_sekli': inp_odeme.value or 'NAKIT',
+                        'banka': inp_banka.value or '',
+                        'kategori': inp_kategori.value or '',
+                        'aciklama': inp_aciklama.value or '',
+                    }
+                    try:
+                        if is_edit:
+                            update_kasa(edit_row.get('kasa_id'), data)
+                            notify_ok('Kasa kaydı güncellendi')
+                        else:
+                            add_kasa(data)
+                            notify_ok('Kasa kaydı eklendi')
+                        dlg.close()
+                        load_data()
+                    except Exception as e:
+                        notify_err(f'Hata: {e}')
+
+                ui.button('Kaydet', color='primary', on_click=save).props('unelevated')
+        dlg.open()
+
+    def do_edit_kasa(row):
+        open_kasa_dialog(edit_row=row)
+
+    def do_delete_kasa(row):
+        kasa_id = row.get('kasa_id')
+        if not kasa_id:
+            notify_err('Kasa ID bulunamadi')
+            return
+        impact = get_kasa_silme_etkisi(kasa_id)
+        if not impact.get('ok'):
+            notify_err('Kayit bulunamadi')
+            return
+
+        with ui.dialog() as dlg, ui.card().classes('alse-dialog').style('width: 90vw; max-width: 520px'):
+            with ui.element('div').classes('alse-dialog-header'):
+                ui.icon('warning', color='red-6')
+                ui.label('Silme Onayı').classes('dialog-title')
+
+            ui.label('Bu işlem aşağıdaki sonuçları doğuracaktır:').classes('text-body2 q-mt-sm')
+            with ui.column().classes('w-full q-mt-sm gap-1'):
+                for etki in impact['etkiler']:
+                    ui.label(f"• {etki}").classes('text-caption')
+
+            ui.separator().classes('q-my-sm')
+            ui.label('Onaylıyor musunuz?').classes('text-weight-bold text-negative')
+
+            with ui.row().classes('w-full justify-end q-mt-md gap-2'):
+                ui.button('Vazgeç', on_click=dlg.close).props('flat color=grey')
+
+                def confirm():
+                    try:
+                        delete_kasa(kasa_id)
+                        notify_ok('Kayıt silindi')
+                        dlg.close()
+                        load_data()
+                    except Exception as e:
+                        notify_err(f'Hata: {e}')
+
+                ui.button('Evet, Sil', color='negative', on_click=confirm).props('unelevated')
+        dlg.open()
+
     # --- Slot template'leri ---
     # Satir arka plan rengi: tarih bos ise kirmizi (tarihsiz uyarisi),
     # aksi halde tur'e gore cok hafif tint
@@ -479,7 +644,24 @@ def hareketler_page():
                 </q-btn>
             </template>
             <template v-else>
-                <q-chip dense color="grey-4" text-color="grey-9" size="sm">Kasa</q-chip>
+                <q-btn flat round dense icon="drive_file_rename_outline" color="primary" size="sm"
+                    @click="$parent.$emit('edit_kasa', props.row)">
+                    <q-tooltip>{{ props.row.kasa_kaynak === 'gelir_gider' ? 'Gelir-Gider sayfasından düzenle' :
+                                  props.row.kasa_kaynak === 'cek' ? 'Çek sayfasından düzenle' :
+                                  'Düzenle' }}</q-tooltip>
+                </q-btn>
+                <q-btn flat round dense icon="delete_outline" color="negative" size="sm"
+                    @click="$parent.$emit('delete_kasa', props.row)">
+                    <q-tooltip>Sil</q-tooltip>
+                </q-btn>
+                <q-chip dense
+                    :color="props.row.kasa_kaynak === 'gelir_gider' ? 'orange-3' :
+                            props.row.kasa_kaynak === 'cek' ? 'purple-3' : 'grey-3'"
+                    text-color="grey-9" size="sm" class="q-ml-xs"
+                    style="font-size:10px;height:18px;">
+                    {{ props.row.kasa_kaynak === 'gelir_gider' ? 'GG' :
+                       props.row.kasa_kaynak === 'cek' ? 'Çek' : 'Kasa' }}
+                </q-chip>
             </template>
         </q-td>
     ''' % _rcls
@@ -515,6 +697,10 @@ def hareketler_page():
             )
 
             ui.space()
+            ui.button('Yeni Tahsilat', icon='payments', color='positive',
+                      on_click=lambda: open_kasa_dialog(default_tur='GELIR')).props('unelevated')
+            ui.button('Yeni Ödeme', icon='shopping_cart_checkout', color='warning',
+                      on_click=lambda: open_kasa_dialog(default_tur='GIDER')).props('unelevated')
             ui.button('Yeni İşlem', icon='add', color='primary',
                       on_click=lambda: open_hareket_dialog())
 
@@ -550,6 +736,8 @@ def hareketler_page():
 
         table_ref.on('edit', lambda e: do_edit(e.args))
         table_ref.on('delete', lambda e: do_delete(e.args['id']))
+        table_ref.on('edit_kasa', lambda e: do_edit_kasa(e.args))
+        table_ref.on('delete_kasa', lambda e: do_delete_kasa(e.args))
 
 
 
