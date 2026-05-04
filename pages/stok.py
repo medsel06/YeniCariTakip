@@ -112,8 +112,10 @@ def stok_page():
             pass
 
         # None / nonstandart degerleri normalize et — Quasar select degeri options
-        # disinda olunca bazen render sirasinda dialog acilmiyor (ABS GRANÜL(K) bug).
-        _kat_val = (row.get('kategori') or '').strip()
+        # disinda veya bos string olunca render sirasinda dialog acilmiyor
+        # (ABS GRANÜL(K) bug: kategori='' ve options'da '' yok -> dialog patliyor).
+        _kat_raw = (row.get('kategori') or '').strip()
+        _kat_val = _kat_raw if _kat_raw else None  # bos -> None (Quasar None'i temiz handle eder)
         if _kat_val and _kat_val not in kategoriler:
             kategoriler = list(kategoriler) + [_kat_val]
         _birim_options = ['KG', 'ADET', 'METRE', 'LITRE', 'PAKET', 'M3']
