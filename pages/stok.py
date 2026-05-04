@@ -95,7 +95,11 @@ def stok_page():
         dlg.open()
 
     def open_edit_dialog(row):
-        kategoriler = get_kategori_list()
+        try:
+            kategoriler = get_kategori_list()
+        except Exception:
+            kategoriler = []
+
         # Mevcut desi degerini DB'den al
         from db import get_db as _get_db
         _current_desi = 0
@@ -107,20 +111,31 @@ def stok_page():
         except Exception:
             pass
 
+        # None / nonstandart degerleri normalize et — Quasar select degeri options
+        # disinda olunca bazen render sirasinda dialog acilmiyor (ABS GRANÜL(K) bug).
+        _kat_val = (row.get('kategori') or '').strip()
+        if _kat_val and _kat_val not in kategoriler:
+            kategoriler = list(kategoriler) + [_kat_val]
+        _birim_options = ['KG', 'ADET', 'METRE', 'LITRE', 'PAKET', 'M3']
+        _birim_val = (row.get('birim') or 'KG').strip().upper() or 'KG'
+        if _birim_val not in _birim_options:
+            _birim_options = _birim_options + [_birim_val]
+
         with ui.dialog() as dlg, ui.card().classes('alse-dialog').style('width: 90vw; max-width: 500px'):
             with ui.element('div').classes('alse-dialog-header'):
                 ui.icon('edit')
                 ui.label('Ürün Düzenle').classes('dialog-title')
 
             ui.label(f'Kod: {row["kod"]}').classes('text-subtitle2 text-grey-7 q-mt-md')
-            inp_ad = ui.input('Ürün Adı', value=row.get('ad', '')).classes('w-full q-mt-sm').props('outlined dense')
+            inp_ad = ui.input('Ürün Adı', value=row.get('ad', '') or '').classes('w-full q-mt-sm').props('outlined dense')
             inp_kat = ui.select(
                 options=kategoriler, label='Kategori', with_input=True,
-                new_value_mode='add-unique', value=row.get('kategori', '')
+                new_value_mode='add-unique', value=_kat_val
             ).classes('w-full').props('outlined dense')
             inp_birim = ui.select(
-                options=['KG', 'ADET', 'METRE', 'LITRE', 'PAKET', 'M3'],
-                value=row.get('birim', 'KG'), label='Birim'
+                options=_birim_options,
+                value=_birim_val, label='Birim',
+                with_input=True, new_value_mode='add-unique',
             ).classes('w-full').props('outlined dense')
 
             # DESİ alani (sadece uretim takibi aciksa)
@@ -239,7 +254,15 @@ def stok_page():
                 confirmed
             )
 
-        table_ref.on('edit', lambda e: open_edit_dialog(e.args))
+        def _safe_open_edit(e):
+            try:
+                open_edit_dialog(e.args)
+            except Exception as ex:
+                import traceback
+                traceback.print_exc()
+                notify_err(f'Düzenleme açılamadı: {ex}')
+
+        table_ref.on('edit', _safe_open_edit)
         table_ref.on('remove', lambda e: do_delete(e.args))
 
         # Satir tiklama - stok detay sayfasina git

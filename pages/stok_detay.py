@@ -27,7 +27,7 @@ def stok_detay_page(urun_kod: str):
     all_hareketler = get_urun_hareketleri(urun_kod)
     uretim_hareketleri = get_urun_uretim_hareketleri(urun_kod)
     current_year = datetime.now().year
-    state = {'yil': current_year}
+    state = {'yil': None}
     h_table_ref = [None]
 
     def _get_filtered_hareketler():
@@ -102,7 +102,7 @@ def stok_detay_page(urun_kod: str):
                     yil_opts = {0: 'Tümü'}
                     for y in range(min_yr, current_year + 2):
                         yil_opts[y] = str(y)
-                    ui.select(options=yil_opts, value=current_year, label='Yıl', on_change=_on_yil_change).props('outlined dense').style('min-width:90px')
+                    ui.select(options=yil_opts, value=0, label='Yıl', on_change=_on_yil_change).props('outlined dense').style('min-width:90px')
 
                     sekme_state = {'aktif': 'stok'}
                     btn_stok = ui.button('Stok Hrkt.', on_click=lambda: _sekme_degistir('stok')).props('unelevated dense size=sm no-caps').style('background:#334155 !important;color:#fff;border-radius:999px;padding:2px 14px;')
