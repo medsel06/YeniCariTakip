@@ -6,17 +6,19 @@ from db import get_db
 
 def _date_filter(yil=None, ay=None, col='tarih'):
     """Donem filtresi (3 modlu): aylik / yillik / tum zamanlar.
-    Bos tarih ('') ve NULL kayitlari her durumda dislar (mali dogruluk)."""
+    Yil/ay seciliyse bos tarih ('') ve NULL kayitlari dislar (mali dogruluk).
+    Tum zamanlar modunda tarihsiz kayitlar DAHIL — kullanici listede gorup
+    duzeltebilsin (kirmizi satir UI uyarisi pages tarafinda eklenir)."""
     yil = int(yil) if yil else None
     ay = int(ay) if ay else None
     if ay is not None and ay not in range(1, 13):
         ay = None
-    base = f" AND {col} IS NOT NULL AND {col} != ''"
     if yil and ay:
-        return base + f" AND {col} LIKE ?", [f'{yil:04d}-{ay:02d}%']
+        return f" AND {col} IS NOT NULL AND {col} != '' AND {col} LIKE ?", [f'{yil:04d}-{ay:02d}%']
     elif yil:
-        return base + f" AND {col} LIKE ?", [f'{yil:04d}-%']
-    return base, []
+        return f" AND {col} IS NOT NULL AND {col} != '' AND {col} LIKE ?", [f'{yil:04d}-%']
+    # Tum zamanlar — tarihsizler dahil
+    return "", []
 
 
 def get_kasa_list(yil=None, ay=None):

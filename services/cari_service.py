@@ -276,7 +276,10 @@ def _safe_date_parts(yil, ay):
 
 def _build_date_filter(yil, ay):
     """Donem icin (date_flt, devir_flt) ciftini uretir.
-    Bos tarih ('') ve NULL kayitlar her durumda dislanir (mali dogruluk).
+    Yil/ay seciliyse bos tarih ('') ve NULL kayitlari dislar (mali dogruluk —
+    bos string lexicographic karsilastirmada '< 2026-01-01' True dondurur, devir
+    hesabini bozar). Tum zamanlar modunda tarihsizler DAHIL — kullanici
+    listede gorsun, kalemden duzeltsin (kirmizi satir UI uyarisi pages tarafinda).
     """
     if yil and ay:
         prefix = f'{yil:04d}-{ay:02d}'
@@ -287,8 +290,8 @@ def _build_date_filter(yil, ay):
         date_flt = f" AND tarih IS NOT NULL AND tarih != '' AND tarih >= '{yil:04d}-01-01' AND tarih < '{yil + 1:04d}-01-01'"
         devir_flt = f" AND tarih IS NOT NULL AND tarih != '' AND tarih < '{yil:04d}-01-01'"
     else:
-        # Tum zamanlar: devir kavrami yok
-        date_flt = " AND tarih IS NOT NULL AND tarih != ''"
+        # Tum zamanlar: devir kavrami yok, tarihsizler dahil
+        date_flt = ""
         devir_flt = None
     return date_flt, devir_flt
 
