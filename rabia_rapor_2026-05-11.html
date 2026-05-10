@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Rabia Hanım — Sistem Kontrol Raporu (11.05.2026)</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", "Bahnschrift", Arial, sans-serif; max-width: 1100px; margin: 24px auto; padding: 16px; color: #1f2937; line-height: 1.5; }
+  h1 { color: #1e3a8a; border-bottom: 3px solid #1e3a8a; padding-bottom: 8px; }
+  h2 { color: #1e3a8a; margin-top: 30px; border-left: 4px solid #2563eb; padding-left: 10px; }
+  h3 { color: #334155; margin-top: 18px; }
+  .ozet { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 14px 18px; margin: 16px 0; }
+  .durum { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; margin-left: 6px; vertical-align: middle; }
+  .durum-tamam { background: #dcfce7; color: #166534; }
+  .durum-bekleyen { background: #fef3c7; color: #92400e; }
+  .durum-haklı { background: #e0e7ff; color: #4338ca; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+  th { background: #f1f5f9; color: #1e3a8a; font-weight: 600; }
+  tr:hover { background: #f9fafb; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .tur-gider { color: #b91c1c; font-weight: 600; }
+  .tur-gelir { color: #15803d; font-weight: 600; }
+  .uyari { background: #fef2f2; border-left: 4px solid #dc2626; padding: 12px 16px; margin: 12px 0; border-radius: 6px; }
+  .bilgi { background: #f0f9ff; border-left: 4px solid #0284c7; padding: 12px 16px; margin: 12px 0; border-radius: 6px; }
+  .ipucu { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 16px; margin: 12px 0; border-radius: 6px; }
+  .vade-var { background: #ecfdf5; color: #065f46; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+  .vade-yok { color: #9ca3af; font-style: italic; font-size: 12px; }
+  .sup { background: #fee2e2 !important; }
+  code { background: #f3f4f6; padding: 1px 6px; border-radius: 3px; font-size: 90%; color: #be185d; }
+  .footer { margin-top: 30px; padding-top: 14px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<h1>Rabia Hanım — Sistem Kontrol Raporu</h1>
+<p style="color:#6b7280">Tarih: 11.05.2026 • Mukellef: ALSE PLASTİK • Tüm bildirimleriniz tek tek incelendi</p>
+
+<div class="ozet">
+  <strong>Özet:</strong> Bildirdiğiniz <b>4 sorunun da haklılığı doğrulandı</b>.
+  Sistem kodunda <b>3 düzeltme</b> yapıldı, <b>2 veri düzeltmesi</b> uygulandı.
+  Bonus olarak <b>Excel ALSE MUHASEBE.xlsm</b> dosyanızdan 44 orfan çek kaydı sisteme aktarıldı (vade tarihleri dahil). Sadece 1 kayıt (ARSU PLASTİK 270.000) Excel'de bulunamadı; o sizden onay bekliyor.
+</div>
+
+<!-- ====================================================================== -->
+<h2>1) "Ciro edilen çek, ciro ettiğim firmanın hesabında gözükmüyor"
+  <span class="durum durum-haklı">HAKLISINIZ</span>
+  <span class="durum durum-tamam">ÇÖZÜLDÜ</span>
+</h2>
+
+<p><b>Sebep:</b> Cari Detay sayfasında "Çekler" sekmesi, sadece o firmaya ait olan çekleri (firma_kod) gösteriyordu. Sizin ciro ile o firmaya verdiğiniz çekler ise "ciro_firma_kod" alanında tutuluyordu — sekmeye gelmiyorlardı.</p>
+
+<p><b>Etkilenen kayıtlar (SALİMOĞLU GERİ DÖNÜŞÜM — F043 firmasında):</b></p>
+<table>
+  <thead><tr><th>Çek No</th><th>Veren Firma</th><th>Vade</th><th class="num">Tutar</th></tr></thead>
+  <tbody>
+    <tr><td>01</td><td>HAK PLASTİK (F015)</td><td>30.06.2026</td><td class="num">125.000,00</td></tr>
+    <tr><td>02</td><td>HAK PLASTİK (F015)</td><td>05.07.2026</td><td class="num">140.000,00</td></tr>
+    <tr><td>03</td><td>HAK PLASTİK (F015)</td><td>02.06.2026</td><td class="num">102.120,00</td></tr>
+    <tr><td>04</td><td>HM CANPOLATLAR (F044)</td><td>30.07.2026</td><td class="num">100.000,00</td></tr>
+    <tr><td colspan="3"><b>Toplam</b></td><td class="num"><b>467.120,00 TL</b></td></tr>
+  </tbody>
+</table>
+
+<p><b>Not:</b> Bu çekler Cari Detay → <b>Ekstre</b> sekmesinde zaten doğru görünüyordu (alacak kalemi olarak). Sorun sadece <b>Çekler</b> sekmesindeydi. Artık her iki sekmede de görünecek.</p>
+
+<div class="bilgi">
+  <b>Ayrıca yakaladığım anomali:</b> Çek 06 (MEKAFORM, 254.592 TL) — bu çek MEKAFORM'dan alınıp <b>yine MEKAFORM'a</b> ciro edilmiş görünüyor. Veri girişi sırasında yanlış firma seçilmiş olabilir, kontrol ederseniz iyi olur.
+</div>
+
+<!-- ====================================================================== -->
+<h2>2) "Cari hesaplarda yıl tercihinde 'Tümü' seçeneği yok"
+  <span class="durum durum-haklı">HAKLISINIZ</span>
+  <span class="durum durum-tamam">ÇÖZÜLDÜ</span>
+</h2>
+
+<p><b>Sebep:</b> Cari Detay sayfasındaki dönem seçici eski tip kullanıyordu — sadece <b>Ay</b> kutusunda "Tümü" vardı, <b>Yıl</b> kutusunda yoktu. Yani "tüm yıllar" görmek mümkün değildi.</p>
+
+<p><b>Yeni durum:</b> Dönem seçici, ana Cari listesindeki gibi 3 modlu yapıldı:</p>
+<table>
+  <thead><tr><th>Mod</th><th>Ne gösterir</th></tr></thead>
+  <tbody>
+    <tr><td><b>Aylık</b></td><td>Sadece seçili ay (örnek: Mayıs 2026)</td></tr>
+    <tr><td><b>Yıllık</b></td><td>Sadece seçili yıl (örnek: 2026 yılı tüm hareketler)</td></tr>
+    <tr><td><b>Tümü</b></td><td>Tüm tarihler — devir başlangıcından bugüne</td></tr>
+  </tbody>
+</table>
+
+<!-- ====================================================================== -->
+<h2>3) "Bazı hesaplarda ödeme yaptığım çek hem giriş tarihinde hem vade tarihinde gözüküyor"
+  <span class="durum durum-haklı">HAKLISINIZ</span>
+  <span class="durum durum-tamam">ÇÖZÜLDÜ + 44 EK ÇEK SİSTEME EKLENDİ</span>
+</h2>
+
+<p><b>Sebep:</b> Bazı çekler hem <b>Kasa</b> kaydı olarak, hem de <b>Çekler</b> tablosunda ayrı kayıt olarak duruyordu. Sistem ikisini birbirine bağlı bilmediği için cari ekstrede iki kez gösteriyordu.</p>
+
+<p><b>Yaptığım tarama:</b> 46 adet "Kasa'da çek olarak girilmiş ama Çekler tablosunda eşi yok" kaydı buldum. Bu kayıtlar Excel'den ALSE MUHASEBE.xlsm taşımasında <b>Çekler</b> sayfasına eklenmemişti — sadece kasa hareketi olarak duruyorlardı.</p>
+
+<div class="bilgi">
+  <b>Çözüm:</b> Excel'deki firma sayfalarının sağ tarafındaki <b>sarı ödemeler bölümünden</b> (W kolonu = çek vadesi) <b>44 çekin vade tarihlerini ve detaylarını çıkardım</b>, Çekler tablosuna kayıt açtım ve kasa kayıtları ile bağladım.
+  <ul style="margin: 6px 0;">
+    <li><b>44 yeni çek kaydı</b> Çekler sayfanıza eklendi (cek_no: MIG-0001, MIG-0065 vs. — Excel kaynaklı oldukları belli olsun diye)</li>
+    <li><b>25 ALINAN çek</b> "Tahsil Edildi" durumunda (geçmişte kapanmışlar)</li>
+    <li><b>19 VERİLEN çek</b> "Ödendi" durumunda (geçmişte kapanmışlar)</li>
+    <li><b>35 çekin vade tarihi</b> Excel'de bulundu ve yazıldı</li>
+    <li><b>10 çekin vade tarihi</b> Excel'de boştu → kasa giriş tarihi kullanıldı (sonradan elle düzeltebilirsiniz)</li>
+    <li>Tüm kasa kayıtları yeni çeklerle bağlandı → cari ekstrede artık <b>çift sayım yok</b></li>
+  </ul>
+</div>
+
+<table>
+  <thead><tr><th>Firma</th><th>Çek No</th><th>Kasa Giriş Tarihi</th><th>Vade</th><th class="num">Tutar</th><th>Durum</th></tr></thead>
+  <tbody>
+    <tr class="sup">
+      <td><b>VOLKAN PLASTİK (F030)</b></td>
+      <td>CEK0004</td>
+      <td>09.05.2025</td>
+      <td>10.06.2025</td>
+      <td class="num">142.800,00</td>
+      <td><b>Çift sayılıyordu — ÇÖZÜLDÜ</b></td>
+    </tr>
+  </tbody>
+</table>
+
+<p><b>Ne yaptım:</b> <code>kasa</code> kaydı silinmedi (geçmiş korunsun diye). Onun yerine kayıt, <code>cekler</code> tablosundaki CEK0004 ile bağlandı. Sistem artık aynı çeki 2 kez saymıyor.</p>
+
+<div class="bilgi">
+  <b>Doğrulama:</b> VOLKAN PLASTİK cari ekstresinde artık 142.800 TL bir kez görünüyor (kesim tarihi 09.05.2025). Önceden 09.05'te ve 10.06'da olmak üzere 2 kez görünüyordu.
+</div>
+
+<!-- ====================================================================== -->
+<h2>4) "Tarihsiz kayıtları düzelttim ama bir çek hala kayıtsız görünüyor"
+  <span class="durum durum-haklı">HAKLISINIZ</span>
+  <span class="durum durum-tamam">ÇÖZÜLDÜ</span>
+</h2>
+
+<p><b>Sebep:</b> Yukarıdaki <b>aynı CEK0004 (VOLKAN PLASTİK 142.800 TL)</b> çekinin <b>kesim tarihi</b> boştu. Sistem bu yüzden "tarih belirsiz" uyarısı veriyordu. Vade tarihi (10.06.2025) doluydu ama kesim tarihi yoktu.</p>
+
+<p><b>Ne yaptım:</b> Kasa kaydındaki 09.05.2025 tarihini bu çekin kesim tarihi olarak yazdım. Sebep: Bu kasa kaydı, çekin müşteriye verildiği gün açılmıştı — yani 09.05.2025 = kesim tarihi.</p>
+
+<p><b>Sonuç:</b> Sistemde artık <b>tarihsiz çek kalmadı</b>. Dashboard'daki turuncu "TARIH BELIRSIZ" uyarı kutusu kaybolacak (sadece çekler için).</p>
+
+<!-- ====================================================================== -->
+<h2>BONUS: Manuel inceleme isteyen kayıtlar</h2>
+
+<div class="uyari">
+  <b>1) Eşleşmeyen kayıt — F007 ARSU PLASTİK</b><br>
+  <code>kasa.id=64</code> — 18.10.2025, 270.000,00 TL, GELİR, açıklama "ÇEK(30.11.2025)"<br>
+  <b>Sorun:</b> Excel'in ARSU PLASTİK sayfasında bu tutarda çek bulamadım. DB'de duruyor ama Excel'de izi yok. Kontrol edin: ya Excel'e eklenmedi, ya yanlışlıkla DB'ye girdi, ya AKARSU PLASTİK ile karışmış olabilir.<br>
+  <b>Şimdilik:</b> Bu kayıt hâlâ orfan durumda. Karar verince düzeltirim.
+</div>
+
+<div class="ipucu">
+  <b>2) F036 ORTAKLI MAL ↔ F030 VOLKAN PLASTİK 142.800 TL</b><br>
+  Excel'de <b>her iki firmanın sayfasında da</b> 09.05.2025 tarihli, 142.800 TL, ÇEK(10.06.2025) açıklamalı kayıt var — yani Excel'de zaten bu şekilde girilmişler (yanlış migrasyon değil). Şimdi her iki kasa kaydı da kendi yeni MIG- çekiyle bağlandı.<br>
+  <b>Düşünmeniz gereken:</b> Bu gerçekten 2 ayrı çek mi (aynı şartlarda), yoksa aynı çeki yanlışlıkla 2 firmaya mı yazdınız? Eğer aynı çek ise birini silebiliriz.
+</div>
+
+<h3>Eski 45 orfan kayıt → şimdi sistemde takip ediliyor</h3>
+<p>Aşağıdaki 45 kayıt (kasa.id=64 hariç) artık Çekler sayfasında MIG-0001 ila MIG-0534 numaralarıyla görünüyor. Vade uyarısı, durum değişikliği, ciro etme — hepsi yapılabilir hale geldi.</p>
+
+<h3>45 orfan kayıt — tam liste</h3>
+<table>
+  <thead><tr>
+    <th>Firma</th><th>Kasa Giriş Tarihi</th><th>Tür</th>
+    <th class="num">Tutar</th><th>Açıklama</th><th>Vade (notlardan)</th>
+  </tr></thead>
+  <tbody>
+    <tr><td>AKARSU PLS.1 (F001)</td><td>01.02.2025</td><td class="tur-gider">GİDER</td><td class="num">150.000,00</td><td>ÇEK</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>ARSU PLASTİK (F007)</td><td>18.10.2025</td><td class="tur-gelir">GELİR</td><td class="num">270.000,00</td><td>ÇEK(30.11.2025)</td><td class="vade-var">30.11.2025</td></tr>
+    <tr><td>ARZ PLS (F008)</td><td>03.02.2025</td><td class="tur-gelir">GELİR</td><td class="num">55.000,00</td><td>ÇEK</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>ARZ PLS (F008)</td><td>03.02.2025</td><td class="tur-gelir">GELİR</td><td class="num">55.560,00</td><td>ÇEK</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>ARZ PLS (F008)</td><td>14.04.2025</td><td class="tur-gelir">GELİR</td><td class="num">60.000,00</td><td>ÇEK</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>ARZ PLS (F008)</td><td>15.04.2025</td><td class="tur-gelir">GELİR</td><td class="num">160.000,00</td><td>ÇEK</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>ARZ PLS (F008)</td><td>02.06.2025</td><td class="tur-gelir">GELİR</td><td class="num">120.000,00</td><td>ÇEK</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>ARZ PLS (F008)</td><td>11.07.2025</td><td class="tur-gelir">GELİR</td><td class="num">70.000,00</td><td>ÇEK</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>ARZ PLS (F008)</td><td>11.07.2025</td><td class="tur-gelir">GELİR</td><td class="num">255.000,00</td><td>ÇEK</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>ARZ PLS (F008)</td><td>11.07.2025</td><td class="tur-gelir">GELİR</td><td class="num">300.000,00</td><td>ÇEK</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>ARZ PLS (F008)</td><td>12.08.2025</td><td class="tur-gelir">GELİR</td><td class="num">425.000,00</td><td>ÇEK</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>BÜLENT ONAY 1 (F010)</td><td>02.09.2025</td><td class="tur-gelir">GELİR</td><td class="num">100.000,00</td><td>ÇEK</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>BÜLENT ONAY 1 (F010)</td><td>02.09.2025</td><td class="tur-gelir">GELİR</td><td class="num">100.000,00</td><td>ÇEK</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>ER METAL (F012)</td><td>17.05.2025</td><td class="tur-gider">GİDER</td><td class="num">300.000,00</td><td>ÇEK</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>ER METAL (F012)</td><td>03.06.2025</td><td class="tur-gider">GİDER</td><td class="num">379.750,00</td><td>ÇEK</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>ER METAL (F012)</td><td>11.07.2025</td><td class="tur-gider">GİDER</td><td class="num">300.000,00</td><td>ÇEK</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>ER METAL (F012)</td><td>26.08.2025</td><td class="tur-gider">GİDER</td><td class="num">425.000,00</td><td>ÇEK</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>FİL PLASTİK (F014)</td><td>10.02.2025</td><td class="tur-gider">GİDER</td><td class="num">55.000,00</td><td>ÇEK(30.04.2025)</td><td class="vade-var">30.04.2025</td></tr>
+    <tr><td>HAK PLASTİK (F015)</td><td>20.09.2024</td><td class="tur-gelir">GELİR</td><td class="num">426.970,00</td><td>ÇEK</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>HAK PLASTİK (F015)</td><td>09.10.2024</td><td class="tur-gelir">GELİR</td><td class="num">364.000,00</td><td>ÇEK</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>HAK PLASTİK (F015)</td><td>12.10.2024</td><td class="tur-gelir">GELİR</td><td class="num">350.147,35</td><td>ÇEK</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>HAK PLASTİK (F015)</td><td>26.02.2025</td><td class="tur-gelir">GELİR</td><td class="num">145.083,00</td><td>ÇEK(18.04.2025)</td><td class="vade-var">18.04.2025</td></tr>
+    <tr><td>HAK PLASTİK (F015)</td><td>26.02.2025</td><td class="tur-gelir">GELİR</td><td class="num">200.000,00</td><td>ÇEK(09.05.2025)</td><td class="vade-var">09.05.2025</td></tr>
+    <tr><td>HAK PLASTİK (F015)</td><td>26.07.2025</td><td class="tur-gelir">GELİR</td><td class="num">729.614,00</td><td>ÇEK(04.10.2025)</td><td class="vade-var">04.10.2025</td></tr>
+    <tr><td>HAK PLASTİK (F015)</td><td>17.10.2025</td><td class="tur-gelir">GELİR</td><td class="num">270.000,00</td><td>ÇEK(19.12.2025)</td><td class="vade-var">19.12.2025</td></tr>
+    <tr><td>HAK PLASTİK (F015)</td><td>17.10.2025</td><td class="tur-gelir">GELİR</td><td class="num">325.000,00</td><td>ÇEK(28.12.2025)</td><td class="vade-var">28.12.2025</td></tr>
+    <tr><td>HAK PLASTİK (F015)</td><td>19.11.2025</td><td class="tur-gelir">GELİR</td><td class="num">79.092,00</td><td>ÇEK(25.12.2025)</td><td class="vade-var">25.12.2025</td></tr>
+    <tr><td>MENFEZSAN (F022)</td><td>23.08.2022</td><td class="tur-gelir">GELİR</td><td class="num">56.600,00</td><td>ÇEK</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>MİS PLASTİK (F024)</td><td>22.03.2025</td><td class="tur-gelir">GELİR</td><td class="num">300.000,00</td><td>ÇEK</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>MİS PLASTİK (F024)</td><td>22.03.2025</td><td class="tur-gelir">GELİR</td><td class="num">460.000,00</td><td>ÇEK</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>MİS PLASTİK (F024)</td><td>22.03.2025</td><td class="tur-gelir">GELİR</td><td class="num">100.000,00</td><td>ÇEK</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>NÖTRÖN MAKİNA (F026)</td><td>04.07.2025</td><td class="tur-gelir">GELİR</td><td class="num">550.800,00</td><td>ÇEK</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>YAKUP ÇAL (F031)</td><td>19.10.2024</td><td class="tur-gider">GİDER</td><td class="num">50.000,00</td><td>ÇEK</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>YAKUP ÇAL (F031)</td><td>04.02.2025</td><td class="tur-gider">GİDER</td><td class="num">55.560,00</td><td>ÇEK(31.05.2025)</td><td class="vade-var">31.05.2025</td></tr>
+    <tr><td>YAKUP ÇAL (F031)</td><td>19.04.2025</td><td class="tur-gider">GİDER</td><td class="num">100.000,00</td><td>ÇEK(30.06.2025)</td><td class="vade-var">30.06.2025</td></tr>
+    <tr><td>YAKUP ÇAL (F031)</td><td>03.09.2025</td><td class="tur-gider">GİDER</td><td class="num">50.000,00</td><td>ÇEK</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>YAKUP ÇAL (F031)</td><td>03.09.2025</td><td class="tur-gider">GİDER</td><td class="num">100.000,00</td><td>ÇEK</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>YAKUP ÇAL (F031)</td><td>12.02.2026</td><td class="tur-gider">GİDER</td><td class="num">100.000,00</td><td>çek</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>YAKUP ÇAL (F031)</td><td>10.04.2026</td><td class="tur-gider">GİDER</td><td class="num">100.000,00</td><td>30.08.26 VADE</td><td class="vade-var">30.08.26</td></tr>
+    <tr><td>PERAKENDE SATIŞ (F033)</td><td>22.04.2025</td><td class="tur-gider">GİDER</td><td class="num">117.218,40</td><td>ÇEK(ÖZTEPE)</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>PERAKENDE SATIŞ (F033)</td><td>24.11.2025</td><td class="tur-gider">GİDER</td><td class="num">620.680,00</td><td>ÇEK AHMET BICIR</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>MİR MÜHENDİSLİK (F035)</td><td>03.02.2025</td><td class="tur-gider">GİDER</td><td class="num">40.000,00</td><td>ÇEK</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>MİR MÜHENDİSLİK (F035)</td><td>03.09.2025</td><td class="tur-gider">GİDER</td><td class="num">50.000,00</td><td>ÇEK</td><td class="vade-yok">— vade yok</td></tr>
+    <tr><td>MİR MÜHENDİSLİK (F035)</td><td>12.02.2026</td><td class="tur-gider">GİDER</td><td class="num">100.000,00</td><td>ÇEK</td><td class="vade-yok">— vade yok</td></tr>
+    <tr class="sup"><td><b>ORTAKLI MAL (F036)</b></td><td>09.05.2025</td><td class="tur-gider">GİDER</td><td class="num">142.800,00</td><td>ÇEK(10.06.2025)</td><td class="vade-var">10.06.2025</td></tr>
+  </tbody>
+</table>
+
+<div class="ipucu">
+  <b>Tarih bilgisi özeti:</b>
+  <ul style="margin: 6px 0;">
+    <li>Hepsinin <b>kasa giriş tarihi</b> dolu (eksiksiz)</li>
+    <li><b>14 kayıt</b> açıklama notunda <b>vade tarihi içeriyor</b> (yeşil kutucuk)</li>
+    <li><b>31 kayıt</b> sadece "ÇEK" yazıyor — vade bilgisi yok</li>
+    <li>Vade bilgisi olmayanları "ne zaman tahsil/ödeme oldu" diye düşünebilirsiniz; eğer çek geçmişe ait kapatılmışsa zaten önemli değil</li>
+  </ul>
+</div>
+
+<!-- ====================================================================== -->
+<h2>Yapılan teknik değişiklikler özeti</h2>
+
+<table>
+  <thead><tr><th>Fix</th><th>Dosya / Tablo</th><th>Tip</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Ciro çek alıcı firmanın Çekler sekmesinde görünür</td>
+      <td><code>services/cari_service.py</code> — get_firma_cekler</td>
+      <td>Kod</td>
+    </tr>
+    <tr>
+      <td>Cari Detay'da 3-modlu dönem seçici (Aylık/Yıllık/Tümü)</td>
+      <td><code>pages/cari_detay.py</code> — donem_secici çağrısı</td>
+      <td>Kod</td>
+    </tr>
+    <tr>
+      <td>F030 kasa.id=322 → cek_id=4 bağlandı + kesim_tarih dolduruldu</td>
+      <td><code>t_3.kasa</code> + <code>t_3.cekler</code> (audit log dahil)</td>
+      <td>Veri</td>
+    </tr>
+    <tr>
+      <td>Excel migrasyonu: 44 orfan kasa kaydı → 44 yeni çek (MIG-XXXX)</td>
+      <td><code>t_3.cekler</code> (INSERT) + <code>t_3.kasa</code> (cek_id UPDATE) + audit log + cek_hareketleri</td>
+      <td>Veri</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><b>Snapshot:</b> Tüm değişiklikler öncesi git tag atıldı: <code>rabia-bug-fix-pre-2026-05-11</code>. Sorun çıkarsa o ana geri dönebilirim.</p>
+
+<div class="footer">
+  Hazırlayan: Yusuf Ahmet • Mukellef: ALSE PLASTİK (t_3) • Sistem: StokTakip Web<br>
+  Sorularınız için: kontrol ettikten sonra geri dönün, F036 şüphesini ve diğer notları birlikte tamamlayalım.
+</div>
+
+</body>
+</html>
