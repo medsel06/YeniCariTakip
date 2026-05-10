@@ -745,9 +745,14 @@ def get_firma_master_list():
 
 
 def get_firma_cekler(firma_kod):
+    # Firmanin kendi cekleri + bu firmaya ciro edilmis cekler
+    # (ciro alinmis cek de bu firmanin "cek hesabi"ndandir; cari detay Cekler tabinda gorunmesi gerekir)
     with get_db() as conn:
         rows = conn.execute(
-            'SELECT * FROM cekler WHERE firma_kod=? ORDER BY vade_tarih DESC, id DESC',
-            (firma_kod,)
+            '''SELECT * FROM cekler
+               WHERE firma_kod=?
+                  OR (durum='CIRO_EDILDI' AND ciro_firma_kod=?)
+               ORDER BY vade_tarih DESC, id DESC''',
+            (firma_kod, firma_kod)
         ).fetchall()
         return [dict(r) for r in rows]
