@@ -325,7 +325,9 @@ def cari_detay_page(firma_kod: str):
                         placeholder='Ara',
                         on_change=lambda e: (setattr(ekstre_table, 'rows', _filter(ekstre_rows, e.value, ['aciklama'])), ekstre_table.update()),
                     ).props('outlined dense clearable').classes('w-44')
-                    donem_secici(_ekstre_donem_change, include_all=True)
+                    # 3-modlu donem secici: Aylik / Yillik / Tumu (Rabia bildirimi: yil'da 'Tumu' yoktu)
+                    # default_current_month=False -> ilk acilis Tumu modunda
+                    donem_secici(_ekstre_donem_change, include_all=True, mode_toggle=True, default_current_month=False)
 
                 ekstre_table.add_slot('body-cell-tarih', TARIH_SLOT)
                 ekstre_table.add_slot('header-cell-borc', '''
