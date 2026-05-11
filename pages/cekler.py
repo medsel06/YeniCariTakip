@@ -228,29 +228,43 @@ def cekler_page():
             durum_label = DURUM_LABELS.get(durum, durum)
             durum_color = DURUM_COLORS.get(durum, 'grey')
 
-            # 4 satirli kompakt grid: sol = isim/firma, sag = durum/tarih
+            # Semantik kompakt grid: sag kolon = soldaki olayin tarihi
             tutar_str = f'{fmt_para(cek.get("tutar", 0))} TL'
-            ciro_firma_show = cek.get('ciro_firma_ad', '') or '—'
+            ciro_firma_show = cek.get('ciro_firma_ad', '') or ''
+            ciro_var = bool(ciro_firma_show)
 
-            _lbl = 'font-size:11px;color:#64748b;width:72px;flex-shrink:0;'
+            # Ciro tarihi: cek_hareketleri tablosunda yeni_durum='CIRO_EDILDI' kaydinin tarihi
+            ciro_tarih_str = ''
+            if ciro_var:
+                for h in hareketler:
+                    if h.get('yeni_durum') == 'CIRO_EDILDI':
+                        ct = h.get('tarih', '')
+                        if ct and '-' in ct:
+                            p = ct.split('-')
+                            ciro_tarih_str = f'{p[2]}.{p[1]}.{p[0]}'
+                        else:
+                            ciro_tarih_str = ct
+                        break
+
+            _lbl = 'font-size:11px;color:#64748b;width:64px;flex-shrink:0;'
             _val = 'font-size:13px;color:#0f172a;font-weight:600;'
-            _row = 'w-full items-center gap-2 no-wrap'
+            _row = 'w-full items-center gap-2 no-wrap q-py-xs'
 
-            with ui.column().classes('w-full q-mt-xs gap-1').style('padding:2px 0;'):
-                # Satir 1: Cek No | Durum (badge)
-                with ui.row().classes(_row):
+            with ui.column().classes('w-full q-mt-xs gap-0').style('padding:2px 0;'):
+                # Satir 1: Cek No | Durum
+                with ui.row().classes(_row).style('border-bottom:1px dashed #e2e8f0;'):
                     with ui.row().classes('items-center gap-2 col'):
                         ui.label('Çek No').style(_lbl)
                         ui.label(cek.get('cek_no', '-') or '-').style(_val)
-                    with ui.row().classes('items-center gap-2 col justify-end'):
-                        ui.label('Durum').style(_lbl + 'width:auto;')
+                    with ui.row().classes('items-center gap-2 col'):
+                        ui.label('Durum').style(_lbl)
                         with ui.element('q-chip').props(
                             f'dense size=xs color="{durum_color}" text-color="white"'
                         ).style('font-size:10.5px;font-weight:600;'):
                             ui.label(durum_label)
 
-                # Satir 2: Firma | Kesim
-                with ui.row().classes(_row):
+                # Satir 2: Firma | Kesim Tarihi
+                with ui.row().classes(_row).style('border-bottom:1px dashed #e2e8f0;'):
                     with ui.row().classes('items-center gap-2 col'):
                         ui.label('Firma').style(_lbl)
                         ui.label(cek.get('firma_ad', '-') or '-').style(_val)
@@ -258,22 +272,24 @@ def cekler_page():
                         ui.label('Kesim').style(_lbl)
                         ui.label(kesim or '-').style(_val)
 
-                # Satir 3: Ciro Firmasi | Vade
+                # Satir 3: Ciro Firma | Ciro Tarihi (SADECE ciro varsa)
+                if ciro_var:
+                    with ui.row().classes(_row).style('border-bottom:1px dashed #e2e8f0;'):
+                        with ui.row().classes('items-center gap-2 col'):
+                            ui.label('Ciro').style(_lbl)
+                            ui.label(ciro_firma_show).style(_val + 'color:#7c3aed;')
+                        with ui.row().classes('items-center gap-2 col'):
+                            ui.label('Ciro Tarihi').style(_lbl + 'width:auto;')
+                            ui.label(ciro_tarih_str or '-').style(_val + 'color:#7c3aed;')
+
+                # Satir 4: Tutar | Vade
                 with ui.row().classes(_row):
                     with ui.row().classes('items-center gap-2 col'):
-                        ui.label('Ciro').style(_lbl)
-                        ui.label(ciro_firma_show).style(
-                            _val + ('color:#7c3aed;' if ciro_firma_show != '—' else 'color:#94a3b8;font-weight:400;')
-                        )
+                        ui.label('Tutar').style(_lbl)
+                        ui.label(tutar_str).style(_val + 'color:#0369a1;font-size:14px;')
                     with ui.row().classes('items-center gap-2 col'):
                         ui.label('Vade').style(_lbl)
                         ui.label(vade or '-').style(_val)
-
-                # Ayrac + Tutar ortada
-                ui.separator().style('margin:6px 0 4px 0;')
-                with ui.row().classes('w-full items-center justify-center gap-2'):
-                    ui.label('TUTAR').style('font-size:10px;color:#64748b;letter-spacing:0.05em;font-weight:600;')
-                    ui.label(tutar_str).style('font-size:18px;color:#0369a1;font-weight:700;letter-spacing:-0.01em;')
 
             if cek.get('notlar'):
                 with ui.row().classes('w-full items-center q-mt-xs gap-2').style(
