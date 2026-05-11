@@ -273,13 +273,14 @@ def cekler_page():
                         ui.label(kesim or '-').style(_val)
 
                 # Satir 3: Ciro Firma | Ciro Tarihi (SADECE ciro varsa)
+                # Sag taraf label 'Ciro' (sabit genislik) -> kesim/vade ile hizali kalir
                 if ciro_var:
                     with ui.row().classes(_row).style('border-bottom:1px dashed #e2e8f0;'):
                         with ui.row().classes('items-center gap-2 col'):
                             ui.label('Ciro').style(_lbl)
                             ui.label(ciro_firma_show).style(_val + 'color:#7c3aed;')
                         with ui.row().classes('items-center gap-2 col'):
-                            ui.label('Ciro Tarihi').style(_lbl + 'width:auto;')
+                            ui.label('Ciro').style(_lbl)
                             ui.label(ciro_tarih_str or '-').style(_val + 'color:#7c3aed;')
 
                 # Satir 4: Tutar | Vade
