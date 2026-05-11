@@ -422,8 +422,8 @@ def cekler_page():
                             notify_err(f'Hata: {e}')
                     confirm_dialog('\n'.join(msg_lines), confirmed)
                 ui.button('Çeki Tamamen Sil', icon='delete_forever',
-                          color='negative', on_click=_tamamen_sil).props('flat')
-                ui.button('Kapat', on_click=dlg.close).props('flat color=grey')
+                          color='negative', on_click=_tamamen_sil).props('flat no-caps')
+                ui.button('Kapat', on_click=dlg.close).props('flat color=grey no-caps')
         dlg.open()
 
     def open_durum_dialog(cek):
