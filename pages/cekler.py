@@ -228,28 +228,48 @@ def cekler_page():
             durum_label = DURUM_LABELS.get(durum, durum)
             durum_color = DURUM_COLORS.get(durum, 'grey')
 
-            info_pairs = [
-                ('Çek No', cek.get('cek_no', '-')),
-                ('Firma', cek.get('firma_ad', '-') or '-'),
-                ('Ciro Firması', cek.get('ciro_firma_ad', '') or '-'),
-                ('Kesim Tarihi', kesim or '-'),
-                ('Vade Tarihi', vade or '-'),
-                ('Tutar', f'{fmt_para(cek.get("tutar", 0))} TL'),
-            ]
-            with ui.element('div').classes('q-mt-sm'):
-                for label, value in info_pairs:
-                    with ui.row().classes('w-full items-center q-py-xs'):
-                        ui.label(label).classes('text-body2 text-grey-7').style('width:120px')
-                        ui.label(value).classes('text-body2 text-weight-medium')
+            # 2 kolonlu kompakt bilgi gridi
+            tutar_str = f'{fmt_para(cek.get("tutar", 0))} TL'
+            ciro_firma_show = cek.get('ciro_firma_ad', '') or '—'
 
-            with ui.row().classes('q-mt-xs items-center'):
-                ui.label('Durum').classes('text-body2 text-grey-7').style('width:120px')
-                with ui.element('q-chip').props(f'dense color="{durum_color}" text-color="white"'):
-                    ui.label(durum_label).classes('text-weight-bold')
+            _label_st = 'font-size:12px;color:#64748b;width:78px;flex-shrink:0;'
+            _value_st = 'font-size:13px;color:#0f172a;font-weight:600;'
+
+            with ui.row().classes('w-full q-mt-xs gap-3 no-wrap'):
+                # Sol kolon: Cek No, Firma, Ciro Firmasi
+                with ui.column().classes('col gap-1 q-pr-xs'):
+                    with ui.row().classes('w-full items-center gap-2'):
+                        ui.label('Çek No').style(_label_st)
+                        ui.label(cek.get('cek_no', '-') or '-').style(_value_st)
+                    with ui.row().classes('w-full items-center gap-2'):
+                        ui.label('Firma').style(_label_st)
+                        ui.label(cek.get('firma_ad', '-') or '-').style(_value_st)
+                    with ui.row().classes('w-full items-center gap-2'):
+                        ui.label('Ciro Firması').style(_label_st)
+                        ui.label(ciro_firma_show).style(_value_st + ('color:#7c3aed;' if ciro_firma_show != '—' else 'color:#94a3b8;font-weight:400;'))
+
+                # Sag kolon: Kesim, Vade, Tutar, Durum
+                with ui.column().classes('col gap-1 q-pl-xs').style('border-left:1px solid #e2e8f0;'):
+                    with ui.row().classes('w-full items-center gap-2 q-pl-sm'):
+                        ui.label('Kesim').style(_label_st)
+                        ui.label(kesim or '-').style(_value_st)
+                    with ui.row().classes('w-full items-center gap-2 q-pl-sm'):
+                        ui.label('Vade').style(_label_st)
+                        ui.label(vade or '-').style(_value_st)
+                    with ui.row().classes('w-full items-center gap-2 q-pl-sm'):
+                        ui.label('Tutar').style(_label_st)
+                        ui.label(tutar_str).style(_value_st + 'color:#0369a1;')
+                    with ui.row().classes('w-full items-center gap-2 q-pl-sm'):
+                        ui.label('Durum').style(_label_st)
+                        with ui.element('q-chip').props(f'dense color="{durum_color}" text-color="white"'):
+                            ui.label(durum_label).classes('text-weight-bold')
 
             if cek.get('notlar'):
-                ui.separator().classes('q-my-xs')
-                ui.label(f'Not: {cek["notlar"]}').classes('text-body2 text-grey-7')
+                with ui.row().classes('w-full items-center q-mt-xs gap-2').style(
+                    'background:#fffbeb;border-left:3px solid #f59e0b;border-radius:4px;padding:4px 8px;'
+                ):
+                    ui.icon('sticky_note_2').style('color:#b45309;font-size:14px;')
+                    ui.label(f'{cek["notlar"]}').style('font-size:11px;color:#78350f;')
 
             # Durum gecmisi: tablo yapisinda. Sadece son hareket geri alinabilir.
             son_hareket_id = hareketler[-1]['id'] if hareketler else None
