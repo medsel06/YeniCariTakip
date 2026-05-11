@@ -22,7 +22,7 @@
     margin: 13mm 0 10mm 0;
     @top-center {
       content: string(musteri-adi) "  ·  Cari Hesap Ekstresi";
-      font-family: 'DejaVu Sans', 'Liberation Sans', 'Arial', sans-serif;
+      font-family: 'Lato', 'DejaVu Sans', 'Liberation Sans', 'Arial', sans-serif;
       font-size: 8.5pt; color: #475569; font-weight: 500;
       width: 186mm;
       padding-bottom: 4px; padding-top: 6px;
@@ -31,7 +31,7 @@
     }
     @top-right {
       content: "Sayfa " counter(page) " / " counter(pages);
-      font-family: 'DejaVu Sans', 'Liberation Sans', 'Arial', sans-serif;
+      font-family: 'Lato', 'DejaVu Sans', 'Liberation Sans', 'Arial', sans-serif;
       font-size: 8pt; color: #94a3b8; font-weight: 500;
       padding-bottom: 4px; padding-top: 6px;
       padding-right: 12mm;
@@ -80,7 +80,7 @@
   .eks-tbl tbody td.num { text-align: right; font-size: 8.5pt; white-space: nowrap; }
   .eks-tbl tbody td.mkt { text-align: left; padding-left: 4px; font-size: 7.5pt; color: #64748b; white-space: nowrap; }
   .eks-tbl tbody td.tip { font-size: 8pt; font-weight: 600; }
-  .eks-tbl tbody td.ack { font-size: 8.5pt; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .eks-tbl tbody td.ack { font-size: 8.5pt; color: #1e293b; white-space: normal; word-wrap: break-word; line-height: 1.25; }
   .eks-tbl tbody tr.devir td { background: #eff6ff !important; font-weight: 600; }
 
   .eks-tbl tfoot td {
@@ -115,14 +115,22 @@
   </div>
 
   <table class="eks-tbl">
+    <colgroup>
+      <col style="width:9%;">
+      <col style="width:24%;">
+      <col style="width:14%;">
+      <col style="width:17%;">
+      <col style="width:17%;">
+      <col style="width:19%;">
+    </colgroup>
     <thead>
       <tr>
-        <th style="width:54px;">TARİH</th>
-        <th style="width:auto;">AÇIKLAMA</th>
-        <th style="width:78px; text-align:left; padding-left:4px;">MİKTAR</th>
-        <th class="r" style="width:98px;">BORÇ</th>
-        <th class="r" style="width:98px;">ALACAK</th>
-        <th class="r" style="width:108px;">BAKİYE</th>
+        <th>TARİH</th>
+        <th>AÇIKLAMA</th>
+        <th style="text-align:left; padding-left:4px;">MİKTAR</th>
+        <th class="r">BORÇ</th>
+        <th class="r">ALACAK</th>
+        <th class="r">BAKİYE</th>
       </tr>
     </thead>
     <tbody>
