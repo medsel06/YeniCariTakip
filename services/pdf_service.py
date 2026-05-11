@@ -240,7 +240,7 @@ def generate_cari_ekstre_pdf(firma_ad, ekstre_data, donem_label=None, devir=None
         elements.append(Paragraph(f'Donem: {donem_label}', donem_style))
     elements.append(Spacer(1, 3 * mm))
 
-    data = [['Tarih', 'Tür', 'Açıklama', 'Borç', 'Alacak', 'Bakiye']]
+    data = [['Tarih', 'Tür', 'Açıklama', 'Miktar', 'Borç', 'Alacak', 'Bakiye']]
 
     # Devir satiri (donem secili modda devir tablonun en ustunde)
     devir_row_idx = None
@@ -251,10 +251,22 @@ def generate_cari_ekstre_pdf(firma_ad, ekstre_data, donem_label=None, devir=None
             '',
             'Devir',
             Paragraph('<b>Onceki donem devir bakiyesi</b>', styles['TRSmall']),
+            '',
             _fmt(abs(d) if d < 0 else 0, blank_zero=True),
             _fmt(d if d > 0 else 0, blank_zero=True),
             _fmt(d, blank_zero=True),
         ])
+
+    def _fmt_miktar(mk, br):
+        if mk is None or float(mk or 0) == 0:
+            return ''
+        m = float(mk)
+        # Tam sayi ise basamaksiz, kesirli ise 2 basamak
+        if abs(m - int(m)) < 0.005:
+            s = f'{int(m):,}'.replace(',', '.')
+        else:
+            s = f'{m:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')
+        return f'{s} {br or "KG"}'
 
     for row in ekstre_data:
         tarih = row['tarih'] or ''
@@ -271,6 +283,8 @@ def generate_cari_ekstre_pdf(firma_ad, ekstre_data, donem_label=None, devir=None
             tip = 'Tahsilat'
         elif aciklama_l.startswith('odeme'):
             tip = 'Ödeme'
+        elif aciklama_l.startswith(('alınan çek', 'verilen çek', 'çek')):
+            tip = 'Çek'
         else:
             tip = ''
         temiz = aciklama
@@ -282,12 +296,13 @@ def generate_cari_ekstre_pdf(firma_ad, ekstre_data, donem_label=None, devir=None
             tarih,
             tip,
             Paragraph(temiz[:56], styles['TRSmall']),
+            _fmt_miktar(row.get('miktar'), row.get('birim')),
             _fmt(row['borc'], blank_zero=True),
             _fmt(row['alacak'], blank_zero=True),
             _fmt(row['bakiye'], blank_zero=True),
         ])
 
-    col_widths = [20*mm, 16*mm, 59*mm, 24*mm, 24*mm, 24*mm]
+    col_widths = [18*mm, 14*mm, 48*mm, 22*mm, 22*mm, 22*mm, 22*mm]
     t = Table(data, colWidths=col_widths, repeatRows=1)
     t.hAlign = 'CENTER'
     style_cmds = [

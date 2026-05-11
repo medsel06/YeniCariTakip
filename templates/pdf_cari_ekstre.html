@@ -118,9 +118,10 @@
       <tr>
         <th style="width:58px;">TARİH</th>
         <th>AÇIKLAMA</th>
-        <th class="r" style="width:90px;">BORÇ</th>
-        <th class="r" style="width:90px;">ALACAK</th>
-        <th class="r" style="width:95px;">BAKİYE</th>
+        <th class="r" style="width:70px;">MİKTAR</th>
+        <th class="r" style="width:82px;">BORÇ</th>
+        <th class="r" style="width:82px;">ALACAK</th>
+        <th class="r" style="width:90px;">BAKİYE</th>
       </tr>
     </thead>
     <tbody>
@@ -128,6 +129,7 @@
       <tr class="devir">
         <td class="dt">—</td>
         <td class="ack">Devir · Önceki dönem bakiyesi</td>
+        <td class="num"></td>
         <td class="num">{% if devir < 0 %}{{ format_money(-devir) }}{% else %}{% endif %}</td>
         <td class="num">{% if devir > 0 %}{{ format_money(devir) }}{% else %}{% endif %}</td>
         <td class="num {% if devir >= 0 %}bky-pos{% else %}bky-neg{% endif %}"><strong>{{ format_money(devir) }}</strong></td>
@@ -137,6 +139,7 @@
       <tr>
         <td class="dt">{% if r.tarih %}{{ format_date(r.tarih) }}{% endif %}</td>
         <td class="ack">{{ r.aciklama_clean }} <span style="color:#64748b;font-size:7.5pt;">· {{ tip_label(r.tip, r.kaynak) }}</span></td>
+        <td class="num">{% if r.miktar and (r.miktar|abs) > 0.005 %}{{ format_money(r.miktar) }} {{ r.birim or 'KG' }}{% endif %}</td>
         <td class="num">{% if r.borc and r.borc > 0.005 %}{{ format_money(r.borc) }}{% else %}{% endif %}</td>
         <td class="num">{% if r.alacak and r.alacak > 0.005 %}{{ format_money(r.alacak) }}{% else %}{% endif %}</td>
         <td class="num {% if r.bakiye >= 0 %}bky-pos{% else %}bky-neg{% endif %}"><strong>{{ format_money(r.bakiye) }}</strong></td>
@@ -145,7 +148,7 @@
     </tbody>
     <tfoot>
       <tr>
-        <td colspan="2">{{ satirlar|length }} kayıt</td>
+        <td colspan="3">{{ satirlar|length }} kayıt</td>
         <td class="r">{{ format_money(donem_borc) }} ₺</td>
         <td class="r">{{ format_money(donem_alacak) }} ₺</td>
         <td class="r {% if kapanis_bakiye >= 0 %}bky-pos{% else %}bky-neg{% endif %}"><strong>{{ format_money(kapanis_bakiye) }} ₺</strong></td>

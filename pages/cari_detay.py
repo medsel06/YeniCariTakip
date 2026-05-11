@@ -3,15 +3,13 @@ from datetime import date, datetime
 from nicegui import ui
 from layout import create_layout, fmt_para, PARA_SLOT, TARIH_SLOT, notify_ok, notify_err, normalize_search, donem_secici, _get_min_year
 from services.cari_service import (
-    get_firma, get_cari_ekstre, get_firma_hareketler, get_firma_kasa, get_firma_cekler,
+    get_firma, get_cari_ekstre, get_firma_kasa, get_firma_cekler,
 )
 from services.kasa_service import add_kasa
 from services.pdf_service import (
     generate_cari_ekstre_pdf,
     generate_kasa_raporu_pdf,
     generate_cek_raporu_pdf,
-    generate_table_pdf,
-    generate_hizli_mutabakat_pdf,
     save_pdf_preview,
 )
 @ui.page('/cari/{firma_kod}')
@@ -39,9 +37,6 @@ def cari_detay_page(firma_kod: str):
     .cari-ekstre-table .q-table__middle {
       max-height: calc(100vh - 280px) !important;
     }
-    .cari-hareketler-table .q-table__middle {
-      max-height: calc(100vh - 280px) !important;
-    }
     .cari-kasa-table .q-table__middle {
       max-height: calc(100vh - 280px) !important;
     }
@@ -53,9 +48,6 @@ def cari_detay_page(firma_kod: str):
         max-height: calc(100vh - 330px) !important;
       }
       .cari-ekstre-table .q-table__middle {
-        max-height: calc(100vh - 255px) !important;
-      }
-      .cari-hareketler-table .q-table__middle {
         max-height: calc(100vh - 255px) !important;
       }
       .cari-kasa-table .q-table__middle {
@@ -70,9 +62,6 @@ def cari_detay_page(firma_kod: str):
         max-height: calc(100vh - 305px) !important;
       }
       .cari-ekstre-table .q-table__middle {
-        max-height: calc(100vh - 240px) !important;
-      }
-      .cari-hareketler-table .q-table__middle {
         max-height: calc(100vh - 240px) !important;
       }
       .cari-kasa-table .q-table__middle {
@@ -147,6 +136,8 @@ def cari_detay_page(firma_kod: str):
                 row['tip'] = 'GIDER'
             elif ac.startswith('gelir'):
                 row['tip'] = 'GELIR'
+            elif 'cek' in ac or 'ciro' in ac:
+                row['tip'] = 'CEK'
             elif 'devir' in ac:
                 row['tip'] = 'DEVIR'
             else:
@@ -156,7 +147,6 @@ def cari_detay_page(firma_kod: str):
     ekstre_src = _load_ekstre()
     ekstre_rows = _with_ids(ekstre_src)
 
-    hareket_rows = _with_ids(_desc(get_firma_hareketler(firma_kod), 'tarih'))
     kasa_rows = _with_ids(_desc(get_firma_kasa(firma_kod), 'tarih'))
     cek_rows = _with_ids(_desc(get_firma_cekler(firma_kod), 'vade_tarih'))
 
@@ -173,9 +163,8 @@ def cari_detay_page(firma_kod: str):
                     ui.label(f'{fmt_para(son_bakiye)} TL ({bakiye_desc})').style(f'font-size:13px;font-weight:600;color:{bakiye_color};')
 
                 with ui.row().classes('items-center justify-center').style('min-width:0; flex:1;'):
-                    with ui.tabs().classes('q-px-xs q-py-1 rounded-borders bg-blue-1 text-primary cari-top-tabs').style('max-width: 360px;').props('dense no-caps inline-label') as tabs:
+                    with ui.tabs().classes('q-px-xs q-py-1 rounded-borders bg-blue-1 text-primary cari-top-tabs').style('max-width: 320px;').props('dense no-caps inline-label') as tabs:
                         ekstre_tab = ui.tab('Ekstre').classes('text-weight-medium')
-                        hareketler_tab = ui.tab('Hareketler').classes('text-weight-medium')
                         kasa_tab = ui.tab('Kasa').classes('text-weight-medium')
                         cekler_tab = ui.tab('Çekler').classes('text-weight-medium')
 
@@ -296,6 +285,7 @@ def cari_detay_page(firma_kod: str):
                     {'name': 'tarih', 'label': 'Tarih', 'field': 'tarih', 'align': 'center', 'sortable': True},
                     {'name': 'tip', 'label': 'Tür', 'field': 'tip', 'align': 'center', 'sortable': True},
                     {'name': 'aciklama', 'label': 'Açıklama', 'field': 'aciklama', 'align': 'left'},
+                    {'name': 'miktar', 'label': 'Miktar', 'field': 'miktar', 'align': 'right', 'sortable': True},
                     {'name': 'borc', 'label': 'Borç', 'field': 'borc', 'align': 'center'},
                     {'name': 'alacak', 'label': 'Alacak', 'field': 'alacak', 'align': 'center'},
                     {'name': 'bakiye', 'label': 'Bakiye', 'field': 'bakiye', 'align': 'center'},
@@ -365,6 +355,7 @@ def cari_detay_page(firma_kod: str):
                                     props.row.tip === 'ODEME' ? 'orange-8' :
                                     props.row.tip === 'GIDER' ? 'red-7' :
                                     props.row.tip === 'GELIR' ? 'green-9' :
+                                    props.row.tip === 'CEK' ? 'deep-purple-6' :
                                     props.row.tip === 'DEVIR' ? 'indigo-5' : 'grey-6'"
                             class="q-mx-auto">
                             {{ props.row.tip === 'ALIS' ? 'Alış' :
@@ -373,8 +364,17 @@ def cari_detay_page(firma_kod: str):
                                props.row.tip === 'ODEME' ? 'Ödeme' :
                                props.row.tip === 'GIDER' ? 'Gider' :
                                props.row.tip === 'GELIR' ? 'Gelir' :
+                               props.row.tip === 'CEK' ? 'Çek' :
                                props.row.tip === 'DEVIR' ? 'Devir' : '-' }}
                         </q-badge>
+                    </q-td>
+                ''')
+                ekstre_table.add_slot('body-cell-miktar', r'''
+                    <q-td :props="props" class="text-right">
+                        <span v-if="props.row.miktar != null && props.row.miktar !== 0" class="text-grey-9">
+                            {{ Number(props.row.miktar).toLocaleString('tr-TR', {minimumFractionDigits:0, maximumFractionDigits:2}) }}
+                            <span class="text-grey-6 text-caption q-ml-xs">{{ props.row.birim || 'KG' }}</span>
+                        </span>
                     </q-td>
                 ''')
                 ekstre_table.add_slot('body-cell-aciklama', r'''
@@ -382,53 +382,6 @@ def cari_detay_page(firma_kod: str):
                         <span>
                             {{ String(props.value || '').replace(/^\s*(Alış|Alis|Satış|Satis|Tahsilat|Ödeme|Odeme|Gider|Gelir)\s*:?\s*(\([^)]*\))?\s*:?\s*/i, '') }}
                         </span>
-                    </q-td>
-                ''')
-
-            with ui.tab_panel(hareketler_tab).classes('q-pa-none'):
-                hareket_cols = [
-                    {'name': 'tarih', 'label': 'Tarih', 'field': 'tarih', 'align': 'center', 'sortable': True},
-                    {'name': 'tur', 'label': 'Tür', 'field': 'tur', 'align': 'center', 'sortable': True},
-                    {'name': 'urun_ad', 'label': 'Ürün', 'field': 'urun_ad', 'align': 'left', 'sortable': True},
-                    {'name': 'miktar', 'label': 'Miktar', 'field': 'miktar', 'align': 'right'},
-                    {'name': 'birim_fiyat', 'label': 'Birim Fiyat', 'field': 'birim_fiyat', 'align': 'right'},
-                    {'name': 'kdvli_toplam', 'label': 'Toplam', 'field': 'kdvli_toplam', 'align': 'right'},
-                ]
-                hareket_table = ui.table(
-                    columns=hareket_cols,
-                    rows=hareket_rows,
-                    row_key='_rid',
-                    pagination={'rowsPerPage': 50, 'sortBy': 'tarih', 'descending': True},
-                ).classes('w-full cari-detay-table cari-hareketler-table').style('--table-extra-rows: 8;')
-                hareket_table.props('flat bordered dense rows-per-page-options="[30]"')
-
-                with ui.row().classes('w-full items-center gap-1 q-mt-xs'):
-                    ui.input(
-                        placeholder='Ara (urun, tur)...',
-                        on_change=lambda e: (setattr(hareket_table, 'rows', _filter(hareket_rows, e.value, ['urun_ad', 'tur'])), hareket_table.update()),
-                    ).props('outlined dense clearable').classes('w-44')
-                    ui.space()
-
-                    def _pdf_hareket():
-                        rows = [
-                            [r.get('tarih', ''), r.get('tur', ''), r.get('urun_ad', ''), r.get('miktar', 0), r.get('birim_fiyat', 0), r.get('kdvli_toplam', 0)]
-                            for r in hareket_rows
-                        ]
-                        _open_pdf(
-                            generate_table_pdf(f"Cari Hareketler - {firma['ad']}", ['Tarih', 'Tür', 'Ürün', 'Miktar', 'Birim Fiyat', 'Toplam'], rows),
-                            f"cari_hareketler_{firma_kod}.pdf",
-                        )
-
-                    ui.button('PDF', icon='picture_as_pdf', color='primary', on_click=_pdf_hareket).props('dense')
-
-                hareket_table.add_slot('body-cell-tarih', TARIH_SLOT)
-                hareket_table.add_slot('body-cell-birim_fiyat', PARA_SLOT)
-                hareket_table.add_slot('body-cell-kdvli_toplam', PARA_SLOT)
-                hareket_table.add_slot('body-cell-tur', '''
-                    <q-td :props="props">
-                        <q-badge :color="props.value === 'ALIS' ? 'blue' : 'green'">
-                            {{ props.value === 'ALIS' ? 'Alış' : 'Satış' }}
-                        </q-badge>
                     </q-td>
                 ''')
 
