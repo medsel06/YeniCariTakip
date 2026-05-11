@@ -78,6 +78,7 @@
   .eks-tbl tbody tr:nth-child(even) td { background: #fafbfc; }
   .eks-tbl tbody td.dt { font-size: 8pt; color: #475569; white-space: nowrap; }
   .eks-tbl tbody td.num { text-align: right; font-size: 8.5pt; }
+  .eks-tbl tbody td.mkt { text-align: right; font-size: 7.5pt; color: #64748b; }
   .eks-tbl tbody td.tip { font-size: 8pt; font-weight: 600; }
   .eks-tbl tbody td.ack { font-size: 8.5pt; color: #1e293b; }
   .eks-tbl tbody tr.devir td { background: #eff6ff !important; font-weight: 600; }
@@ -139,7 +140,7 @@
       <tr>
         <td class="dt">{% if r.tarih %}{{ format_date(r.tarih) }}{% endif %}</td>
         <td class="ack">{{ r.aciklama_clean }} <span style="color:#64748b;font-size:7.5pt;">· {{ tip_label(r.tip, r.kaynak) }}</span></td>
-        <td class="num">{% if r.miktar and (r.miktar|abs) > 0.005 %}{{ format_money(r.miktar) }} {{ r.birim or 'KG' }}{% endif %}</td>
+        <td class="mkt">{% if r.miktar and (r.miktar|abs) > 0.005 %}{{ format_money(r.miktar) }} {{ r.birim or 'KG' }}{% endif %}</td>
         <td class="num">{% if r.borc and r.borc > 0.005 %}{{ format_money(r.borc) }}{% else %}{% endif %}</td>
         <td class="num">{% if r.alacak and r.alacak > 0.005 %}{{ format_money(r.alacak) }}{% else %}{% endif %}</td>
         <td class="num {% if r.bakiye >= 0 %}bky-pos{% else %}bky-neg{% endif %}"><strong>{{ format_money(r.bakiye) }}</strong></td>

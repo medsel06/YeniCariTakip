@@ -317,6 +317,9 @@ def generate_cari_ekstre_pdf(firma_ad, ekstre_data, donem_label=None, devir=None
         ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F5F5F5')]),
         ('TOPPADDING', (0, 0), (-1, -1), 3),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        # Miktar sutunu (idx=3): kucuk font + gri renk (aciklamadaki tip span gibi)
+        ('FONTSIZE', (3, 1), (3, -1), 7),
+        ('TEXTCOLOR', (3, 1), (3, -1), colors.HexColor('#64748b')),
     ]
     if devir_row_idx is not None:
         # Devir satiri vurgulu (acik mavi arkaplan + bold)
