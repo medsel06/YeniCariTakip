@@ -58,6 +58,20 @@ def _format_money(val) -> str:
     return f"-{s}" if v < 0 else s
 
 
+def _format_qty(val) -> str:
+    """Miktar formati: tam sayi ise basamaksiz, kesirli ise 2 basamak.
+    1050 -> '1.050', 1050.5 -> '1.050,50'"""
+    try:
+        v = float(val or 0)
+    except (TypeError, ValueError):
+        v = 0.0
+    if abs(v - int(v)) < 0.005:
+        s = f"{int(abs(v)):,}".replace(',', '.')
+    else:
+        s = f"{abs(v):,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+    return f"-{s}" if v < 0 else s
+
+
 def _format_money_short(val) -> str:
     """Buyuk tutarlar icin kisa: 1.234.567 -> '1,23 M'."""
     try:
@@ -134,6 +148,7 @@ def _common_ctx(sirket: dict) -> dict:
         'doc_datetime': now.strftime('%d.%m.%Y %H:%M'),
         'format_money': _format_money,
         'format_money_short': _format_money_short,
+        'format_qty': _format_qty,
         'format_date': _format_date,
     }
 

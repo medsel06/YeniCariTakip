@@ -302,7 +302,7 @@ def generate_cari_ekstre_pdf(firma_ad, ekstre_data, donem_label=None, devir=None
             _fmt(row['bakiye'], blank_zero=True),
         ])
 
-    col_widths = [18*mm, 14*mm, 48*mm, 22*mm, 22*mm, 22*mm, 22*mm]
+    col_widths = [18*mm, 14*mm, 42*mm, 26*mm, 22*mm, 22*mm, 22*mm]
     t = Table(data, colWidths=col_widths, repeatRows=1)
     t.hAlign = 'CENTER'
     style_cmds = [
@@ -317,9 +317,11 @@ def generate_cari_ekstre_pdf(firma_ad, ekstre_data, donem_label=None, devir=None
         ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F5F5F5')]),
         ('TOPPADDING', (0, 0), (-1, -1), 3),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
-        # Miktar sutunu (idx=3): kucuk font + gri renk (aciklamadaki tip span gibi)
+        # Miktar sutunu (idx=3): kucuk font + gri renk + sola hizali (aciklamadaki tip span gibi)
         ('FONTSIZE', (3, 1), (3, -1), 7),
         ('TEXTCOLOR', (3, 1), (3, -1), colors.HexColor('#64748b')),
+        ('ALIGN', (3, 1), (3, -1), 'LEFT'),
+        ('LEFTPADDING', (3, 1), (3, -1), 4),
     ]
     if devir_row_idx is not None:
         # Devir satiri vurgulu (acik mavi arkaplan + bold)
