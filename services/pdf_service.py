@@ -302,7 +302,7 @@ def generate_cari_ekstre_pdf(firma_ad, ekstre_data, donem_label=None, devir=None
             _fmt(row['bakiye'], blank_zero=True),
         ])
 
-    col_widths = [18*mm, 14*mm, 35*mm, 24*mm, 26*mm, 26*mm, 28*mm]
+    col_widths = [16*mm, 12*mm, 30*mm, 22*mm, 28*mm, 28*mm, 30*mm]
     t = Table(data, colWidths=col_widths, repeatRows=1)
     t.hAlign = 'CENTER'
     style_cmds = [

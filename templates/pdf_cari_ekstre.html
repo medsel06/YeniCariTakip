@@ -64,23 +64,23 @@
   .eks-tbl thead { display: table-header-group; }
   .eks-tbl tr { page-break-inside: avoid; }
 
-  .eks-tbl { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+  .eks-tbl { width: 100%; border-collapse: collapse; font-size: 8.5pt; table-layout: fixed; }
   .eks-tbl thead th {
     background: #f1f5f9; color: #334155; border-bottom: 1.5px solid #94a3b8;
-    padding: 5px 8px; font-size: 7.5pt; font-weight: 700; text-transform: uppercase;
+    padding: 5px 6px; font-size: 7.5pt; font-weight: 700; text-transform: uppercase;
     letter-spacing: 0.08em; white-space: nowrap;
   }
   .eks-tbl thead th.r { text-align: right; }
   .eks-tbl tbody td {
-    padding: 4px 8px; border-bottom: 0.5px solid #e2e8f0; vertical-align: middle;
-    font-variant-numeric: tabular-nums;
+    padding: 4px 6px; border-bottom: 0.5px solid #e2e8f0; vertical-align: middle;
+    font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis;
   }
   .eks-tbl tbody tr:nth-child(even) td { background: #fafbfc; }
   .eks-tbl tbody td.dt { font-size: 8pt; color: #475569; white-space: nowrap; }
-  .eks-tbl tbody td.num { text-align: right; font-size: 8.5pt; }
-  .eks-tbl tbody td.mkt { text-align: left; padding-left: 4px; font-size: 7.5pt; color: #64748b; }
+  .eks-tbl tbody td.num { text-align: right; font-size: 8.5pt; white-space: nowrap; }
+  .eks-tbl tbody td.mkt { text-align: left; padding-left: 4px; font-size: 7.5pt; color: #64748b; white-space: nowrap; }
   .eks-tbl tbody td.tip { font-size: 8pt; font-weight: 600; }
-  .eks-tbl tbody td.ack { font-size: 8.5pt; color: #1e293b; }
+  .eks-tbl tbody td.ack { font-size: 8.5pt; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .eks-tbl tbody tr.devir td { background: #eff6ff !important; font-weight: 600; }
 
   .eks-tbl tfoot td {
@@ -117,12 +117,12 @@
   <table class="eks-tbl">
     <thead>
       <tr>
-        <th style="width:58px;">TARİH</th>
-        <th style="max-width: 170px;">AÇIKLAMA</th>
-        <th style="width:80px; text-align:left; padding-left:4px;">MİKTAR</th>
-        <th class="r" style="width:92px;">BORÇ</th>
-        <th class="r" style="width:92px;">ALACAK</th>
-        <th class="r" style="width:100px;">BAKİYE</th>
+        <th style="width:54px;">TARİH</th>
+        <th style="width:auto;">AÇIKLAMA</th>
+        <th style="width:78px; text-align:left; padding-left:4px;">MİKTAR</th>
+        <th class="r" style="width:98px;">BORÇ</th>
+        <th class="r" style="width:98px;">ALACAK</th>
+        <th class="r" style="width:108px;">BAKİYE</th>
       </tr>
     </thead>
     <tbody>
