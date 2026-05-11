@@ -222,10 +222,22 @@ def cari_detay_page(firma_kod: str):
                             inp_tutar_o = ui.number('Tutar', value=default_tutar, format='%.2f').props('outlined dense').classes('w-full')
 
                             # Kasa / Banka secimi
+                            # Cek/Senet secenekleri kaldirildi: cek islemleri Cekler sayfasindan yapilir
+                            # (cek_id NULL ile kasa kaydi aciliyordu - orphan/cift sayim sorununa yol aciyordu)
                             inp_yontem = ui.radio(
-                                options={'NAKIT': 'Kasa (Nakit)', 'HAVALE': 'Banka (Havale/EFT)', 'CEK': 'Çek', 'SENET': 'Senet'},
+                                options={'NAKIT': 'Kasa (Nakit)', 'HAVALE': 'Banka (Havale/EFT)'},
                                 value='NAKIT'
                             ).props('inline')
+
+                            # Cek/Senet icin ÷Çekler sayfasi÷na yonlendir
+                            with ui.row().classes('w-full items-center gap-2 q-mt-xs').style(
+                                'background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 6px 10px;'
+                            ):
+                                ui.icon('info_outline').style('color:#1d4ed8;')
+                                ui.label('Çek / Senet için').style('font-size:12px;color:#1e3a8a;')
+                                ui.button('Çekler Sayfası', icon='arrow_forward', on_click=lambda: ui.navigate.to('/cekler')).props(
+                                    'flat dense color=primary size=sm no-caps'
+                                )
 
                             banka_row_o = ui.row().classes('w-full')
                             banka_row_o.set_visibility(False)

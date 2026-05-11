@@ -4,7 +4,8 @@ from nicegui import ui
 from layout import create_layout, fmt_para, PARA_SLOT, TARIH_SLOT, notify_ok, notify_err, confirm_dialog, normalize_search
 from services.cek_service import (
     list_cekler, add_cek, change_durum, delete_cek, update_cek, get_cek_by_id, get_cek_hareketleri,
-    get_valid_transitions, DURUM_LABELS, DURUM_COLORS
+    get_valid_transitions, DURUM_LABELS, DURUM_COLORS,
+    undo_cek_hareketi, update_cek_hareketi, get_cek_silme_etkisi,
 )
 from services.cari_service import get_firma_list
 from services.pdf_service import generate_cek_raporu_pdf, save_pdf_preview
@@ -250,71 +251,104 @@ def cekler_page():
                 ui.separator().classes('q-my-xs')
                 ui.label(f'Not: {cek["notlar"]}').classes('text-body2 text-grey-7')
 
+            # Durum gecmisi: cikis sırasıyla, son hareket en altta. Sadece son hareket geri alinabilir.
+            son_hareket_id = hareketler[-1]['id'] if hareketler else None
+
             if hareketler:
                 ui.separator().classes('q-my-xs')
                 ui.label('Durum Geçmişi').classes('text-subtitle2 text-weight-medium')
-                from layout import TARIH_SLOT
-                hareket_cols = [
-                    {'name': 'tarih', 'label': 'Tarih', 'field': 'tarih', 'align': 'center', 'sortable': True},
-                    {'name': 'eski_durum', 'label': 'Eski Durum', 'field': 'eski_durum', 'align': 'center'},
-                    {'name': 'yeni_durum', 'label': 'Yeni Durum', 'field': 'yeni_durum', 'align': 'center'},
-                    {'name': 'aciklama', 'label': 'Açıklama', 'field': 'aciklama', 'align': 'left'},
-                ]
-                h_table = ui.table(columns=hareket_cols, rows=hareketler, row_key='id').classes('w-full q-mb-xs')
-                h_table.props('flat dense bordered')
-                h_table.add_slot('body-cell-tarih', TARIH_SLOT)
-                h_table.add_slot('body-cell-eski_durum', r"""
-                    <q-td :props="props">
-                        <q-chip v-if="props.value" dense size="sm" text-color="white"
-                            :color="props.value === 'PORTFOYDE' ? 'blue' :
-                                    props.value === 'TAHSILE_VERILDI' ? 'orange' :
-                                    props.value === 'TAHSIL_EDILDI' ? 'green' :
-                                    props.value === 'CIRO_EDILDI' ? 'purple' :
-                                    props.value === 'IADE_EDILDI' ? 'grey' :
-                                    props.value === 'KARSILIKSIZ' ? 'red' :
-                                    props.value === 'KESILDI' ? 'blue' :
-                                    props.value === 'ODENDI' ? 'green' : 'grey'">
-                            {{ props.value === 'PORTFOYDE' ? 'Portföyde' :
-                               props.value === 'TAHSILE_VERILDI' ? 'Tahsile Verildi' :
-                               props.value === 'TAHSIL_EDILDI' ? 'Tahsil Edildi' :
-                               props.value === 'CIRO_EDILDI' ? 'Ciro Edildi' :
-                               props.value === 'IADE_EDILDI' ? 'İade Edildi' :
-                               props.value === 'KARSILIKSIZ' ? 'Karşılıksız' :
-                               props.value === 'KESILDI' ? 'Kesildi' :
-                               props.value === 'ODENDI' ? 'Ödendi' : props.value }}
-                        </q-chip>
-                        <span v-else class="text-grey-5">-</span>
-                    </q-td>
-                """)
-                h_table.add_slot('body-cell-yeni_durum', r"""
-                    <q-td :props="props">
-                        <q-chip v-if="props.value" dense size="sm" text-color="white"
-                            :color="props.value === 'PORTFOYDE' ? 'blue' :
-                                    props.value === 'TAHSILE_VERILDI' ? 'orange' :
-                                    props.value === 'TAHSIL_EDILDI' ? 'green' :
-                                    props.value === 'CIRO_EDILDI' ? 'purple' :
-                                    props.value === 'IADE_EDILDI' ? 'grey' :
-                                    props.value === 'KARSILIKSIZ' ? 'red' :
-                                    props.value === 'KESILDI' ? 'blue' :
-                                    props.value === 'ODENDI' ? 'green' : 'grey'">
-                            {{ props.value === 'PORTFOYDE' ? 'Portföyde' :
-                               props.value === 'TAHSILE_VERILDI' ? 'Tahsile Verildi' :
-                               props.value === 'TAHSIL_EDILDI' ? 'Tahsil Edildi' :
-                               props.value === 'CIRO_EDILDI' ? 'Ciro Edildi' :
-                               props.value === 'IADE_EDILDI' ? 'İade Edildi' :
-                               props.value === 'KARSILIKSIZ' ? 'Karşılıksız' :
-                               props.value === 'KESILDI' ? 'Kesildi' :
-                               props.value === 'ODENDI' ? 'Ödendi' : props.value }}
-                        </q-chip>
-                        <span v-else class="text-grey-5">-</span>
-                    </q-td>
-                """)
+
+                # Ciro firma bilgisini cek dict'ten al, satira ekle
+                ciro_firma_ad = cek.get('ciro_firma_ad', '') or ''
+                ciro_firma_kod = cek.get('ciro_firma_kod', '') or ''
+                ciro_info_text = f' → {ciro_firma_ad}' if ciro_firma_ad else (f' → {ciro_firma_kod}' if ciro_firma_kod else '')
+
+                for h in hareketler:
+                    h_id = h['id']
+                    h_tarih = h.get('tarih', '')
+                    if h_tarih and '-' in h_tarih:
+                        p = h_tarih.split('-')
+                        h_tarih_str = f"{p[2]}.{p[1]}.{p[0]}"
+                    else:
+                        h_tarih_str = h_tarih or '-'
+                    eski = h.get('eski_durum') or ''
+                    yeni = h.get('yeni_durum') or ''
+                    aciklama_h = h.get('aciklama', '') or ''
+                    eski_lbl = DURUM_LABELS.get(eski, eski) if eski else 'Başlangıç'
+                    yeni_lbl = DURUM_LABELS.get(yeni, yeni)
+                    yeni_color = DURUM_COLORS.get(yeni, 'grey')
+                    # Ciro hareketinde firma bilgisini eklemek
+                    extra = ciro_info_text if yeni == 'CIRO_EDILDI' else ''
+
+                    with ui.row().classes('w-full items-center gap-2 q-py-xs').style(
+                        'border-bottom: 1px solid #eef2f7;'
+                    ):
+                        ui.label(h_tarih_str).style('width:78px;font-size:12px;color:#475569;')
+                        with ui.row().classes('items-center gap-1 no-wrap'):
+                            if eski:
+                                with ui.element('q-chip').props(f'dense size=sm color="{DURUM_COLORS.get(eski, "grey")}" text-color=white'):
+                                    ui.label(eski_lbl)
+                            else:
+                                ui.label('—').style('color:#94a3b8;')
+                            ui.icon('arrow_forward').style('font-size:14px;color:#64748b;')
+                            with ui.element('q-chip').props(f'dense size=sm color="{yeni_color}" text-color=white'):
+                                ui.label(yeni_lbl)
+                        if extra:
+                            ui.label(extra).style('font-size:12px;font-weight:600;color:#7c3aed;')
+                        if aciklama_h:
+                            ui.label(aciklama_h).style('font-size:12px;color:#64748b;font-style:italic;flex:1;')
+                        else:
+                            ui.space()
+
+                        # Son hareket icin geri al butonu
+                        if h_id == son_hareket_id:
+                            def make_undo(hid=h_id, yd=yeni, ed=eski):
+                                def _undo():
+                                    msg = f"'{DURUM_LABELS.get(yd,yd)}' durumunu geri al?"
+                                    if ed is None or ed == '':
+                                        msg = "Bu cekin TUM gecmisini ve cek kaydini sil?"
+                                    elif yd in ('TAHSIL_EDILDI', 'ODENDI'):
+                                        msg += f"\n\nBagli kasa kaydi da silinecek."
+                                    elif yd == 'CIRO_EDILDI':
+                                        msg += "\n\nCiro firmasi bilgisi temizlenecek."
+                                    def confirmed():
+                                        ok, message = undo_cek_hareketi(hid)
+                                        if ok:
+                                            notify_ok(message)
+                                            dlg.close()
+                                            load_data()
+                                        else:
+                                            notify_err(message)
+                                    confirm_dialog(msg, confirmed)
+                                return _undo
+                            ui.button(icon='undo', on_click=make_undo()).props(
+                                'flat round dense color=negative size=sm'
+                            ).tooltip('Geri Al')
+                        else:
+                            # Eski hareketler icin sadece bilgi: degistirilemez
+                            ui.icon('lock_outline').style('color:#cbd5e1;font-size:18px;').tooltip('Daha sonra durum degisikligi var, geri alinamaz')
             else:
                 ui.label('Hareket bulunamadı').classes('text-grey-5 q-mb-xs')
 
             ui.separator().classes('q-my-xs')
-            with ui.row().classes('w-full justify-end'):
-                ui.button('Kapat', on_click=dlg.close).props('flat')
+            with ui.row().classes('w-full justify-end gap-2'):
+                # Cek tamamen sil (tum gecmisi ile)
+                def _tamamen_sil():
+                    etki = get_cek_silme_etkisi(cek['id'])
+                    msg_lines = ['<b>Bu islem geri alinamaz!</b>', '']
+                    msg_lines.extend(etki.get('etkiler', []))
+                    def confirmed():
+                        try:
+                            delete_cek(cek['id'])
+                            notify_ok('Cek tamamen silindi')
+                            dlg.close()
+                            load_data()
+                        except Exception as e:
+                            notify_err(f'Hata: {e}')
+                    confirm_dialog('\n'.join(msg_lines), confirmed)
+                ui.button('Çeki Tamamen Sil', icon='delete_forever',
+                          color='negative', on_click=_tamamen_sil).props('flat')
+                ui.button('Kapat', on_click=dlg.close).props('flat color=grey')
         dlg.open()
 
     def open_durum_dialog(cek):
@@ -392,16 +426,6 @@ def cekler_page():
                 ui.button('Kaydet', color='primary', on_click=save).props('unelevated')
         dlg.open()
 
-    def do_delete(cek_id):
-        def confirmed():
-            try:
-                delete_cek(cek_id)
-                notify_ok('Çek silindi')
-                load_data()
-            except Exception as e:
-                notify_err(f'Hata: {e}')
-        confirm_dialog('Bu çeki silmek istediğinize emin misiniz?', confirmed)
-
     # --- Slot template'leri ---
     tarih_slot_tpl = r'''
         <q-td :props="props">
@@ -448,6 +472,9 @@ def cekler_page():
         </q-td>
     '''
 
+    # Sil butonu kaldirildi: art1k modal icinden "Geri Al" (durum bazli) veya
+    # "Cekı Tamamen Sil" (cascade onayli) yapilir. Sebep: ana tablodaki sil
+    # ciroyu da bil1med1k1ce siliyord — bu data integrity bozard1.
     actions_slot = r'''
         <q-td :props="props">
             <q-btn flat round dense icon="edit" color="primary" size="sm"
@@ -457,10 +484,6 @@ def cekler_page():
             <q-btn flat round dense icon="swap_horiz" color="primary" size="sm"
                 @click.stop="$parent.$emit('change_durum', props.row)">
                 <q-tooltip>Durum Değiştir</q-tooltip>
-            </q-btn>
-            <q-btn flat round dense icon="delete" color="negative" size="sm"
-                @click.stop="$parent.$emit('delete', props.row)">
-                <q-tooltip>Sil</q-tooltip>
             </q-btn>
         </q-td>
     '''
@@ -484,7 +507,6 @@ def cekler_page():
         tbl.add_slot('body-cell-actions', actions_slot)
         tbl.on('edit', lambda e: open_edit_dialog(e.args))
         tbl.on('change_durum', lambda e: open_durum_dialog(e.args))
-        tbl.on('delete', lambda e: do_delete(e.args['id']))
         tbl.on('rowClick', lambda e: open_detail_dialog(e.args[1]))
 
     # --- PAGE CONTENT ---

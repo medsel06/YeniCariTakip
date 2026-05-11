@@ -150,9 +150,124 @@ def get_cek_by_id(cek_id):
 
 
 def delete_cek(cek_id):
+    """Tum cek + hareketleri + bagli kasa kayitlarini siler."""
     with get_db() as conn:
+        # Once bagli kasa kayitlarini sil (cift sayim olmasin diye cek_id IS NOT NULL atilmislar)
+        conn.execute('DELETE FROM kasa WHERE cek_id=?', (cek_id,))
         conn.execute('DELETE FROM cek_hareketleri WHERE cek_id=?', (cek_id,))
         conn.execute('DELETE FROM cekler WHERE id=?', (cek_id,))
+
+
+def get_cek_silme_etkisi(cek_id):
+    """Cek silinmeden once etki analizi (kullanici onayli sertlestirme icin)."""
+    with get_db() as conn:
+        cek = conn.execute('SELECT * FROM cekler WHERE id=?', (cek_id,)).fetchone()
+        if not cek:
+            return {'ok': False, 'etkiler': ['Cek bulunamadi']}
+        cek_d = dict(cek)
+        etkiler = [f"Cek silinecek: {cek_d.get('cek_no','-')} - {cek_d.get('tutar',0):,.2f} TL"]
+        hareket_sayi = conn.execute(
+            'SELECT COUNT(*) AS c FROM cek_hareketleri WHERE cek_id=?', (cek_id,)
+        ).fetchone()['c']
+        if hareket_sayi:
+            etkiler.append(f"{hareket_sayi} adet durum hareketi silinecek")
+        kasa_kayit = conn.execute(
+            'SELECT COUNT(*) AS c, COALESCE(SUM(tutar),0) AS t FROM kasa WHERE cek_id=?', (cek_id,)
+        ).fetchone()
+        if kasa_kayit['c']:
+            etkiler.append(
+                f"{int(kasa_kayit['c'])} adet kasa kaydi (toplam {float(kasa_kayit['t']):,.2f} TL) silinecek"
+            )
+        if cek_d.get('durum') == 'CIRO_EDILDI' and cek_d.get('ciro_firma_kod'):
+            etkiler.append(f"Ciro firmasi ({cek_d.get('ciro_firma_ad','-')}) ekstresinden kayit kalkacak")
+        return {'ok': True, 'cek': cek_d, 'etkiler': etkiler}
+
+
+def undo_cek_hareketi(hareket_id):
+    """Tek bir cek durum gecisini geri al (event-sourcing).
+    - En son durum geri alinabilir; arada bir hareketi silmek yasak (integrity)
+    - TAHSIL_EDILDI/ODENDI geri alinirsa bagli kasa kaydi da silinir
+    - CIRO_EDILDI geri alinirsa ciro_firma_kod/ad temizlenir
+    - PORTFOYDE / KESILDI (ilk olay) geri alinirsa cek tamamen silinir (cek bos kalir)
+    """
+    with get_db() as conn:
+        hareket = conn.execute(
+            'SELECT * FROM cek_hareketleri WHERE id=?', (hareket_id,)
+        ).fetchone()
+        if not hareket:
+            return False, 'Hareket bulunamadi'
+        cek_id = hareket['cek_id']
+        # Sadece en son hareketi geri al — sonrasi varsa hata
+        son = conn.execute(
+            'SELECT id FROM cek_hareketleri WHERE cek_id=? ORDER BY tarih DESC, id DESC LIMIT 1',
+            (cek_id,)
+        ).fetchone()
+        if not son or son['id'] != hareket_id:
+            return False, 'Sadece en son durum geri alinabilir. Daha sonraki durumlar var.'
+
+        cek = conn.execute('SELECT * FROM cekler WHERE id=?', (cek_id,)).fetchone()
+        if not cek:
+            return False, 'Cek bulunamadi'
+
+        eski = hareket['eski_durum']
+        yeni = hareket['yeni_durum']
+        now = datetime.now().strftime('%Y-%m-%d')
+
+        # Eger ilk hareket ise (eski_durum NULL) -> cek tamamen silinir
+        if eski is None:
+            conn.execute('DELETE FROM kasa WHERE cek_id=?', (cek_id,))
+            conn.execute('DELETE FROM cek_hareketleri WHERE cek_id=?', (cek_id,))
+            conn.execute('DELETE FROM cekler WHERE id=?', (cek_id,))
+            return True, 'Cek tamamen silindi (ilk olay geri alindi)'
+
+        # Bagli kasa kaydi varsa sil
+        if yeni in ('TAHSIL_EDILDI', 'ODENDI'):
+            conn.execute('DELETE FROM kasa WHERE cek_id=?', (cek_id,))
+
+        # CIRO_EDILDI geri alinirsa ciro firma bilgisi temizle
+        if yeni == 'CIRO_EDILDI':
+            conn.execute(
+                "UPDATE cekler SET ciro_firma_kod='', ciro_firma_ad='' WHERE id=?",
+                (cek_id,)
+            )
+
+        # Cek durumunu eski duruma geri al
+        conn.execute('UPDATE cekler SET durum=? WHERE id=?', (eski, cek_id))
+        # tahsil_tarih de temizlenmeli (TAHSIL_EDILDI/ODENDI geri alindiysa)
+        if yeni in ('TAHSIL_EDILDI', 'ODENDI'):
+            conn.execute('UPDATE cekler SET tahsil_tarih=NULL WHERE id=?', (cek_id,))
+
+        # Hareketi sil
+        conn.execute('DELETE FROM cek_hareketleri WHERE id=?', (hareket_id,))
+
+        # Log
+        conn.execute('''
+            INSERT INTO cek_hareketleri (cek_id, tarih, eski_durum, yeni_durum, aciklama)
+            VALUES (?,?,?,?,?)
+        ''', (cek_id, now, yeni, eski, f'Geri alindi: {yeni} → {eski}'))
+
+        return True, f'Durum geri alindi: {yeni} → {eski}'
+
+
+def update_cek_hareketi(hareket_id, tarih=None, aciklama=None):
+    """Bir cek hareketinin tarih ve/veya aciklamasini guncelle."""
+    with get_db() as conn:
+        h = conn.execute('SELECT * FROM cek_hareketleri WHERE id=?', (hareket_id,)).fetchone()
+        if not h:
+            return False, 'Hareket bulunamadi'
+        sets = []
+        args = []
+        if tarih is not None:
+            sets.append('tarih=?')
+            args.append(tarih)
+        if aciklama is not None:
+            sets.append('aciklama=?')
+            args.append(aciklama)
+        if not sets:
+            return False, 'Guncellenecek alan yok'
+        args.append(hareket_id)
+        conn.execute(f'UPDATE cek_hareketleri SET {", ".join(sets)} WHERE id=?', args)
+        return True, 'Hareket guncellendi'
 
 
 def get_cek_hareketleri(cek_id):
