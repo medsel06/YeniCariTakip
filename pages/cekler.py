@@ -251,82 +251,137 @@ def cekler_page():
                 ui.separator().classes('q-my-xs')
                 ui.label(f'Not: {cek["notlar"]}').classes('text-body2 text-grey-7')
 
-            # Durum gecmisi: cikis sırasıyla, son hareket en altta. Sadece son hareket geri alinabilir.
+            # Durum gecmisi: tablo yapisinda. Sadece son hareket geri alinabilir.
             son_hareket_id = hareketler[-1]['id'] if hareketler else None
+            ciro_firma_ad = cek.get('ciro_firma_ad', '') or ''
+            ciro_firma_kod = cek.get('ciro_firma_kod', '') or ''
+            ciro_label = ciro_firma_ad or ciro_firma_kod or ''
 
             if hareketler:
                 ui.separator().classes('q-my-xs')
-                ui.label('Durum Geçmişi').classes('text-subtitle2 text-weight-medium')
+                ui.label('Durum Geçmişi').classes('text-subtitle2 text-weight-medium q-mb-xs')
 
-                # Ciro firma bilgisini cek dict'ten al, satira ekle
-                ciro_firma_ad = cek.get('ciro_firma_ad', '') or ''
-                ciro_firma_kod = cek.get('ciro_firma_kod', '') or ''
-                ciro_info_text = f' → {ciro_firma_ad}' if ciro_firma_ad else (f' → {ciro_firma_kod}' if ciro_firma_kod else '')
-
+                # Her satira gerekli alanlari hazirla
+                h_rows = []
                 for h in hareketler:
-                    h_id = h['id']
-                    h_tarih = h.get('tarih', '')
-                    if h_tarih and '-' in h_tarih:
-                        p = h_tarih.split('-')
-                        h_tarih_str = f"{p[2]}.{p[1]}.{p[0]}"
-                    else:
-                        h_tarih_str = h_tarih or '-'
-                    eski = h.get('eski_durum') or ''
-                    yeni = h.get('yeni_durum') or ''
-                    aciklama_h = h.get('aciklama', '') or ''
-                    eski_lbl = DURUM_LABELS.get(eski, eski) if eski else 'Başlangıç'
-                    yeni_lbl = DURUM_LABELS.get(yeni, yeni)
-                    yeni_color = DURUM_COLORS.get(yeni, 'grey')
-                    # Ciro hareketinde firma bilgisini eklemek
-                    extra = ciro_info_text if yeni == 'CIRO_EDILDI' else ''
+                    h_d = dict(h)
+                    h_d['_is_son'] = (h_d['id'] == son_hareket_id)
+                    h_d['_ciro_firma'] = ciro_label if h_d.get('yeni_durum') == 'CIRO_EDILDI' else ''
+                    h_rows.append(h_d)
 
-                    with ui.row().classes('w-full items-center gap-2 q-py-xs').style(
-                        'border-bottom: 1px solid #eef2f7;'
-                    ):
-                        ui.label(h_tarih_str).style('width:78px;font-size:12px;color:#475569;')
-                        with ui.row().classes('items-center gap-1 no-wrap'):
-                            if eski:
-                                with ui.element('q-chip').props(f'dense size=sm color="{DURUM_COLORS.get(eski, "grey")}" text-color=white'):
-                                    ui.label(eski_lbl)
-                            else:
-                                ui.label('—').style('color:#94a3b8;')
-                            ui.icon('arrow_forward').style('font-size:14px;color:#64748b;')
-                            with ui.element('q-chip').props(f'dense size=sm color="{yeni_color}" text-color=white'):
-                                ui.label(yeni_lbl)
-                        if extra:
-                            ui.label(extra).style('font-size:12px;font-weight:600;color:#7c3aed;')
-                        if aciklama_h:
-                            ui.label(aciklama_h).style('font-size:12px;color:#64748b;font-style:italic;flex:1;')
-                        else:
-                            ui.space()
+                hareket_cols = [
+                    {'name': 'tarih', 'label': 'Tarih', 'field': 'tarih', 'align': 'center'},
+                    {'name': 'eski_durum', 'label': 'Önceki', 'field': 'eski_durum', 'align': 'center'},
+                    {'name': 'yeni_durum', 'label': 'Yeni Durum', 'field': 'yeni_durum', 'align': 'center'},
+                    {'name': 'aciklama', 'label': 'Açıklama', 'field': 'aciklama', 'align': 'left'},
+                    {'name': 'actions', 'label': '', 'field': 'actions', 'align': 'center'},
+                ]
+                h_table = ui.table(columns=hareket_cols, rows=h_rows, row_key='id').classes('w-full q-mb-xs')
+                h_table.props('flat dense bordered')
 
-                        # Son hareket icin geri al butonu
-                        if h_id == son_hareket_id:
-                            def make_undo(hid=h_id, yd=yeni, ed=eski):
-                                def _undo():
-                                    msg = f"'{DURUM_LABELS.get(yd,yd)}' durumunu geri al?"
-                                    if ed is None or ed == '':
-                                        msg = "Bu cekin TUM gecmisini ve cek kaydini sil?"
-                                    elif yd in ('TAHSIL_EDILDI', 'ODENDI'):
-                                        msg += f"\n\nBagli kasa kaydi da silinecek."
-                                    elif yd == 'CIRO_EDILDI':
-                                        msg += "\n\nCiro firmasi bilgisi temizlenecek."
-                                    def confirmed():
-                                        ok, message = undo_cek_hareketi(hid)
-                                        if ok:
-                                            notify_ok(message)
-                                            dlg.close()
-                                            load_data()
-                                        else:
-                                            notify_err(message)
-                                    confirm_dialog(msg, confirmed)
-                                return _undo
-                            ui.button(icon='undo', on_click=make_undo()).props(
-                                'flat round dense color=negative size=sm'
-                            ).tooltip('Geri Al')
+                # Tarih DD.MM.YYYY
+                h_table.add_slot('body-cell-tarih', r'''
+                    <q-td :props="props" class="text-center" style="font-size:12px;color:#475569;">
+                        {{ props.value ? props.value.split('-').reverse().join('.') : '' }}
+                    </q-td>
+                ''')
+
+                # Eski durum chip (yoksa "—" gri)
+                h_table.add_slot('body-cell-eski_durum', r'''
+                    <q-td :props="props" class="text-center">
+                        <q-chip v-if="props.value" dense size="sm" text-color="white"
+                            :color="props.value === 'PORTFOYDE' ? 'blue' :
+                                    props.value === 'TAHSILE_VERILDI' ? 'orange' :
+                                    props.value === 'TAHSIL_EDILDI' ? 'green' :
+                                    props.value === 'CIRO_EDILDI' ? 'purple' :
+                                    props.value === 'IADE_EDILDI' ? 'grey' :
+                                    props.value === 'KARSILIKSIZ' ? 'red' :
+                                    props.value === 'KESILDI' ? 'blue' :
+                                    props.value === 'ODENDI' ? 'green' : 'grey'">
+                            {{ props.value === 'PORTFOYDE' ? 'Portföyde' :
+                               props.value === 'TAHSILE_VERILDI' ? 'Tahsile Verildi' :
+                               props.value === 'TAHSIL_EDILDI' ? 'Tahsil Edildi' :
+                               props.value === 'CIRO_EDILDI' ? 'Ciro Edildi' :
+                               props.value === 'IADE_EDILDI' ? 'İade Edildi' :
+                               props.value === 'KARSILIKSIZ' ? 'Karşılıksız' :
+                               props.value === 'KESILDI' ? 'Kesildi' :
+                               props.value === 'ODENDI' ? 'Ödendi' : props.value }}
+                        </q-chip>
+                        <span v-else style="color:#94a3b8;font-style:italic;">Başlangıç</span>
+                    </q-td>
+                ''')
+
+                # Yeni durum chip
+                h_table.add_slot('body-cell-yeni_durum', r'''
+                    <q-td :props="props" class="text-center">
+                        <q-chip dense size="sm" text-color="white"
+                            :color="props.value === 'PORTFOYDE' ? 'blue' :
+                                    props.value === 'TAHSILE_VERILDI' ? 'orange' :
+                                    props.value === 'TAHSIL_EDILDI' ? 'green' :
+                                    props.value === 'CIRO_EDILDI' ? 'purple' :
+                                    props.value === 'IADE_EDILDI' ? 'grey' :
+                                    props.value === 'KARSILIKSIZ' ? 'red' :
+                                    props.value === 'KESILDI' ? 'blue' :
+                                    props.value === 'ODENDI' ? 'green' : 'grey'">
+                            {{ props.value === 'PORTFOYDE' ? 'Portföyde' :
+                               props.value === 'TAHSILE_VERILDI' ? 'Tahsile Verildi' :
+                               props.value === 'TAHSIL_EDILDI' ? 'Tahsil Edildi' :
+                               props.value === 'CIRO_EDILDI' ? 'Ciro Edildi' :
+                               props.value === 'IADE_EDILDI' ? 'İade Edildi' :
+                               props.value === 'KARSILIKSIZ' ? 'Karşılıksız' :
+                               props.value === 'KESILDI' ? 'Kesildi' :
+                               props.value === 'ODENDI' ? 'Ödendi' : props.value }}
+                        </q-chip>
+                    </q-td>
+                ''')
+
+                # Aciklama (ciro firma bilgisi varsa mor font, sonra normal aciklama)
+                h_table.add_slot('body-cell-aciklama', r'''
+                    <q-td :props="props" class="text-left" style="font-size:12px;">
+                        <span v-if="props.row._ciro_firma" style="color:#7c3aed;font-weight:600;">
+                            <q-icon name="arrow_forward" size="xs" /> {{ props.row._ciro_firma }}
+                        </span>
+                        <span v-if="props.row._ciro_firma && props.value" style="color:#cbd5e1;"> · </span>
+                        <span v-if="props.value" style="color:#64748b;font-style:italic;">{{ props.value }}</span>
+                    </q-td>
+                ''')
+
+                # Aksiyon: son satira "Geri Al" butonu, digerlerine kilit ikonu
+                h_table.add_slot('body-cell-actions', r'''
+                    <q-td :props="props" class="text-center">
+                        <q-btn v-if="props.row._is_son" flat round dense icon="undo" color="negative" size="sm"
+                            @click="$parent.$emit('undo_hareket', props.row)">
+                            <q-tooltip>Geri Al</q-tooltip>
+                        </q-btn>
+                        <q-icon v-else name="lock_outline" size="sm" color="grey-5">
+                            <q-tooltip>Sonrasinda durum degisikligi var, geri alinamaz</q-tooltip>
+                        </q-icon>
+                    </q-td>
+                ''')
+
+                def _handle_undo(e):
+                    row = e.args
+                    hid = row.get('id')
+                    yd = row.get('yeni_durum', '')
+                    ed = row.get('eski_durum')
+                    msg = f"'{DURUM_LABELS.get(yd,yd)}' durumunu geri al?"
+                    if not ed:
+                        msg = "Bu cekin TUM gecmisi ve cek kaydi silinecek. Onayliyor musunuz?"
+                    elif yd in ('TAHSIL_EDILDI', 'ODENDI'):
+                        msg += "\n\nBagli kasa kaydi da silinecek."
+                    elif yd == 'CIRO_EDILDI':
+                        msg += "\n\nCiro firmasi bilgisi temizlenecek."
+                    def confirmed():
+                        ok, message = undo_cek_hareketi(hid)
+                        if ok:
+                            notify_ok(message)
+                            dlg.close()
+                            load_data()
                         else:
-                            # Eski hareketler icin sadece bilgi: degistirilemez
-                            ui.icon('lock_outline').style('color:#cbd5e1;font-size:18px;').tooltip('Daha sonra durum degisikligi var, geri alinamaz')
+                            notify_err(message)
+                    confirm_dialog(msg, confirmed)
+
+                h_table.on('undo_hareket', _handle_undo)
             else:
                 ui.label('Hareket bulunamadı').classes('text-grey-5 q-mb-xs')
 
