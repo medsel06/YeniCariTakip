@@ -217,8 +217,14 @@ def get_public_db():
 # --- HELPERS ---
 
 def _col_exists(conn, table, column):
+    # current_schema() = search_path'in ilk schema'si. _create_business_tables
+    # cagrilirken SET search_path TO <tenant>, public yapilmis olur — yani
+    # current_schema() tenant'i verir. init_db() public'te calisir => public.
+    # Onceki versiyon table_schema filtresi yapmadigi icin baska tenant'larda
+    # mevcut kolon bulununca yeni tenant'ta ALTER atlaniyordu.
     cur = conn.execute(
-        "SELECT 1 FROM information_schema.columns WHERE table_name=%s AND column_name=%s",
+        "SELECT 1 FROM information_schema.columns "
+        "WHERE table_schema=current_schema() AND table_name=%s AND column_name=%s",
         (table, column)
     )
     result = cur.fetchone()
