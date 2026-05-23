@@ -50,6 +50,11 @@ def stok_page():
                 options=kategoriler, label='Kategori', with_input=True,
                 new_value_mode='add-unique'
             ).classes('w-full').props('outlined dense')
+            # Quasar bug fix: kullanici yeni kategori yazip Enter basmadan Kaydet'e
+            # tiklarsa input-value commit edilmiyor. input-value event'i ile son
+            # yazilan text'i yakaliyoruz, save'de fallback olarak kullaniyoruz.
+            _kat_pending = {'text': ''}
+            inp_kat.on('input-value', lambda e: _kat_pending.update({'text': str(e.args or '').strip()}))
             inp_birim = ui.select(
                 options=['KG', 'ADET', 'METRE', 'LITRE', 'PAKET', 'M3'],
                 value='KG', label='Birim'
@@ -78,6 +83,9 @@ def stok_page():
                             kat_val = kat_val.strip()
                         else:
                             kat_val = ''
+                        # Yazildi ama Enter basilmadi -> pending text'i kullan
+                        if not kat_val and _kat_pending.get('text'):
+                            kat_val = _kat_pending['text']
                         add_urun({
                             'kod': inp_kod.value.strip(),
                             'ad': inp_ad.value.strip(),
@@ -134,11 +142,15 @@ def stok_page():
                 options=kategoriler, label='Kategori', with_input=True,
                 new_value_mode='add-unique', value=_kat_val
             ).classes('w-full').props('outlined dense')
+            _kat_pending = {'text': ''}
+            inp_kat.on('input-value', lambda e: _kat_pending.update({'text': str(e.args or '').strip()}))
             inp_birim = ui.select(
                 options=_birim_options,
                 value=_birim_val, label='Birim',
                 with_input=True, new_value_mode='add-unique',
             ).classes('w-full').props('outlined dense')
+            _birim_pending = {'text': ''}
+            inp_birim.on('input-value', lambda e: _birim_pending.update({'text': str(e.args or '').strip()}))
 
             # DESİ alani (sadece uretim takibi aciksa)
             _ayar = get_company_settings()
@@ -163,10 +175,17 @@ def stok_page():
                             kat_val = kat_val.strip()
                         else:
                             kat_val = ''
+                        if not kat_val and _kat_pending.get('text'):
+                            kat_val = _kat_pending['text']
+                        birim_val = (inp_birim.value or '').strip() if isinstance(inp_birim.value, str) else ''
+                        if not birim_val and _birim_pending.get('text'):
+                            birim_val = _birim_pending['text']
+                        if not birim_val:
+                            birim_val = 'KG'
                         update_urun(row['kod'], {
                             'ad': inp_ad.value.strip(),
                             'kategori': kat_val,
-                            'birim': inp_birim.value or 'KG',
+                            'birim': birim_val,
                             'desi_degeri': float(inp_desi.value or 0) if inp_desi else _current_desi,
                         })
                         notify_ok('Ürün güncellendi')
