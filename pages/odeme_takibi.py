@@ -72,7 +72,7 @@ def odeme_takibi_page():
                     'durum': r['durum'],
                 })
             tbl = ui.table(columns=columns, rows=disp, row_key='id',
-                           pagination={'rowsPerPage': 50}).classes('w-full').props('flat bordered').style('min-height:65vh')
+                           pagination={'rowsPerPage': 0}).classes('w-full').props('flat bordered hide-bottom')
             tbl.add_slot('body-cell-durum', r'''
                 <q-td :props="props">
                     <q-chip dense :color="props.value==='ODENDI'?'positive':props.value==='KISMI'?'orange':'grey'" text-color="white">
@@ -91,6 +91,15 @@ def odeme_takibi_page():
             tbl.on('ode', lambda e: _ode_dialog(e.args))
             tbl.on('edit', lambda e: _form(e.args))
             tbl.on('sil', lambda e: _sil(e.args))
+
+            # Dinamik toplam satiri (filtreye gore) — pagination yerine tek kompakt satir
+            top_tutar = sum(float(r['tutar'] or 0) for r in rows)
+            top_kalan = sum(float(r['tutar'] or 0) - float(r['odenen'] or 0) for r in rows)
+            with ui.row().classes('w-full items-center justify-end no-wrap q-px-md') \
+                    .style('background:#eceff1;border-radius:0 0 6px 6px;gap:18px;height:34px'):
+                ui.label(f"{len(rows)} kayıt").classes('text-caption text-grey-7')
+                ui.label(f"Toplam: {fmt_para(top_tutar)} TL").classes('text-caption text-weight-bold')
+                ui.label(f"Kalan: {fmt_para(top_kalan)} TL").classes('text-caption text-weight-bold text-primary')
 
     def _form(row=None):
         duzenle = row is not None
