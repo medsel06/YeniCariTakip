@@ -26,16 +26,16 @@ def odeme_takibi_page():
         .odeme-tbl tbody td { border-bottom: 1px solid #e0e0e0; }
         .odeme-tbl .q-table__middle {
             min-height: 0 !important;
-            max-height: calc(100vh - 300px) !important;
+            max-height: calc(100vh - 210px) !important;
             overflow: auto !important;
             overscroll-behavior: contain;
         }
         .odeme-tbl .q-table { table-layout: fixed; }
         @media (max-width: 1200px) {
-            .odeme-tbl .q-table__middle { max-height: calc(100vh - 270px) !important; }
+            .odeme-tbl .q-table__middle { max-height: calc(100vh - 190px) !important; }
         }
         @media (max-width: 900px) {
-            .odeme-tbl .q-table__middle { max-height: calc(100vh - 260px) !important; }
+            .odeme-tbl .q-table__middle { max-height: calc(100vh - 180px) !important; }
         }
     ''')
 
