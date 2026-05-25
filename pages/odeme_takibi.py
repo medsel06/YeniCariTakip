@@ -29,15 +29,17 @@ def odeme_takibi_page():
         ozet_box.clear()
         o = get_ozet()
         with ozet_box:
-            with ui.row().classes('w-full q-gutter-md'):
+            # Kompakt badge satiri (tabloyu asagi itmez)
+            with ui.row().classes('items-center q-gutter-sm q-py-xs'):
                 for baslik, deger, renk in [
-                    ('Açık Borç (ödenecek)', o['acik_borc'], 'negative'),
-                    ('Açık Alacak (tahsil)', o['acik_alacak'], 'positive'),
-                    ('Geçmiş Vade Borç', o['gecmis_borc'], 'orange'),
+                    ('Açık Borç', o['acik_borc'], 'negative'),
+                    ('Açık Alacak', o['acik_alacak'], 'positive'),
+                    ('Geçmiş Vade', o['gecmis_borc'], 'orange'),
                 ]:
-                    with ui.card().classes('q-pa-md').style('min-width: 220px'):
-                        ui.label(baslik).classes('text-caption text-grey-7')
-                        ui.label(f"{fmt_para(deger)} TL").classes(f'text-h6 text-weight-bold text-{renk}')
+                    with ui.element('div').classes('row items-center no-wrap q-px-sm q-py-xs') \
+                            .style('background:#f5f5f5;border-radius:14px;gap:6px'):
+                        ui.label(baslik + ':').classes('text-caption text-grey-7')
+                        ui.label(f"{fmt_para(deger)} TL").classes(f'text-caption text-weight-bold text-{renk}')
 
     def _tablo():
         tablo_box.clear()
