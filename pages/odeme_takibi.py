@@ -72,7 +72,7 @@ def odeme_takibi_page():
                     'durum': r['durum'],
                 })
             tbl = ui.table(columns=columns, rows=disp, row_key='id',
-                           pagination={'rowsPerPage': 0}).classes('w-full').props('flat bordered hide-bottom')
+                           pagination={'rowsPerPage': 0}).classes('w-full').props('flat bordered hide-bottom dense').style('height: 420px')
             tbl.add_slot('body-cell-durum', r'''
                 <q-td :props="props">
                     <q-chip dense :color="props.value==='ODENDI'?'positive':props.value==='KISMI'?'orange':'grey'" text-color="white">
