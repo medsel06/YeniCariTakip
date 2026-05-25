@@ -679,10 +679,36 @@ def _create_business_tables(conn):
             iban TEXT DEFAULT '',
             hesap_no TEXT DEFAULT '',
             acilis_bakiye NUMERIC(15,2) DEFAULT 0,
+            kart_limiti NUMERIC(15,2) DEFAULT 0,
             aktif INTEGER DEFAULT 1,
             created_at TEXT DEFAULT ''
         )
     ''')
+    if not _col_exists(conn, 'banka_hesaplari', 'kart_limiti'):
+        conn.execute("ALTER TABLE banka_hesaplari ADD COLUMN kart_limiti NUMERIC(15,2) DEFAULT 0")
+
+    # --- ODEME TAKIBI (vade/borc/alacak plani — GIDER YARATMAZ) ---
+    # Bir borc/alacak GERCEK gider/satis kaydiyla zaten dogar; bu tablo sadece
+    # "ne zaman odenecek/tahsil edilecek" takvimini tutar. Odenince para hareketi
+    # (kasa) olusturulur, kart/cari kapanir — tekrar gider yazilmaz.
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS odeme_takibi (
+            id SERIAL PRIMARY KEY,
+            tip TEXT NOT NULL DEFAULT 'BORC',
+            kaynak TEXT DEFAULT 'DIGER',
+            firma_kod TEXT DEFAULT '',
+            firma_ad TEXT DEFAULT '',
+            banka_hesap_id INTEGER,
+            aciklama TEXT DEFAULT '',
+            tutar NUMERIC(15,2) DEFAULT 0,
+            odenen NUMERIC(15,2) DEFAULT 0,
+            vade_tarih TEXT DEFAULT '',
+            durum TEXT DEFAULT 'ACIK',
+            kasa_id INTEGER,
+            created_at TEXT DEFAULT ''
+        )
+    ''')
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_odeme_takibi_vade ON odeme_takibi(vade_tarih, durum)")
 
     # --- HAFTALIK BILANCO TABLOLARI ---
     conn.execute('''

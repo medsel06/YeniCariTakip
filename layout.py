@@ -20,6 +20,7 @@ MENU_GROUPS = [
         ('/gelir-gider', 'receipt', 'Gelir / Gider'),
         ('/personel', 'badge', 'Personel'),
         ('/cekler', 'description', 'Çek / Senet'),
+        ('/odeme-takibi', 'event_repeat', 'Ödeme Takibi'),
         ('/uretim', 'precision_manufacturing', 'Üretim'),
     ]),
     ('Finans Analiz', 'bar_chart', [

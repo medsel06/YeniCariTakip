@@ -35,14 +35,15 @@ def add_banka_hesap(data):
     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     with get_db() as conn:
         cur = conn.execute('''
-            INSERT INTO banka_hesaplari (ad, tip, iban, hesap_no, acilis_bakiye, aktif, created_at)
-            VALUES (?,?,?,?,?,?,?) RETURNING id
+            INSERT INTO banka_hesaplari (ad, tip, iban, hesap_no, acilis_bakiye, kart_limiti, aktif, created_at)
+            VALUES (?,?,?,?,?,?,?,?) RETURNING id
         ''', (
             data['ad'].strip(),
             data.get('tip', 'BANKA'),
             data.get('iban', '').strip(),
             data.get('hesap_no', '').strip(),
             float(data.get('acilis_bakiye', 0) or 0),
+            float(data.get('kart_limiti', 0) or 0),
             1 if data.get('aktif', True) else 0,
             now,
         ))
@@ -52,7 +53,7 @@ def add_banka_hesap(data):
 def update_banka_hesap(hesap_id, data):
     with get_db() as conn:
         conn.execute('''
-            UPDATE banka_hesaplari SET ad=?, tip=?, iban=?, hesap_no=?, acilis_bakiye=?, aktif=?
+            UPDATE banka_hesaplari SET ad=?, tip=?, iban=?, hesap_no=?, acilis_bakiye=?, kart_limiti=?, aktif=?
             WHERE id=?
         ''', (
             data['ad'].strip(),
@@ -60,6 +61,7 @@ def update_banka_hesap(hesap_id, data):
             data.get('iban', '').strip(),
             data.get('hesap_no', '').strip(),
             float(data.get('acilis_bakiye', 0) or 0),
+            float(data.get('kart_limiti', 0) or 0),
             1 if data.get('aktif', True) else 0,
             hesap_id,
         ))

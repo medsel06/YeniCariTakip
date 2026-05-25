@@ -24,6 +24,7 @@ import pages.stok
 import pages.stok_detay
 import pages.kasa
 import pages.banka
+import pages.odeme_takibi
 import pages.cekler
 import pages.uretim
 import pages.raporlar
