@@ -658,6 +658,31 @@ def _create_business_tables(conn):
         conn.execute("ALTER TABLE urunler ADD COLUMN aktif INTEGER DEFAULT 1")
     if not _col_exists(conn, 'kasa', 'kategori'):
         conn.execute("ALTER TABLE kasa ADD COLUMN kategori TEXT DEFAULT ''")
+    # Banka modulu: kasa hareketini bir banka hesabina bagla (NULL = nakit)
+    if not _col_exists(conn, 'kasa', 'banka_hesap_id'):
+        conn.execute("ALTER TABLE kasa ADD COLUMN banka_hesap_id INTEGER")
+    # Transfer (nakit<->banka, banka<->banka) iki bacagi ayni UUID ile baglar
+    if not _col_exists(conn, 'kasa', 'transfer_id'):
+        conn.execute("ALTER TABLE kasa ADD COLUMN transfer_id TEXT DEFAULT ''")
+    # Transfer bacagi mi? 1 ise cari/gelir-gider raporlarina sizmaz
+    if not _col_exists(conn, 'kasa', 'is_transfer'):
+        conn.execute("ALTER TABLE kasa ADD COLUMN is_transfer INTEGER DEFAULT 0")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_kasa_banka_hesap ON kasa(banka_hesap_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_kasa_transfer ON kasa(transfer_id)")
+
+    # --- BANKA HESAPLARI ---
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS banka_hesaplari (
+            id SERIAL PRIMARY KEY,
+            ad TEXT NOT NULL,
+            tip TEXT DEFAULT 'BANKA',
+            iban TEXT DEFAULT '',
+            hesap_no TEXT DEFAULT '',
+            acilis_bakiye NUMERIC(15,2) DEFAULT 0,
+            aktif INTEGER DEFAULT 1,
+            created_at TEXT DEFAULT ''
+        )
+    ''')
 
     # --- HAFTALIK BILANCO TABLOLARI ---
     conn.execute('''

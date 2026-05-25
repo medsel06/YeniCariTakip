@@ -22,20 +22,25 @@ def _date_filter(yil=None, ay=None, col='tarih'):
 
 
 def get_kasa_list(yil=None, ay=None):
+    """NAKIT kasa hareketleri (banka_hesap_id IS NULL). Banka hareketleri
+    banka sayfasinda gosterilir."""
     flt, params = _date_filter(yil, ay)
     with get_db() as conn:
         rows = conn.execute(
-            f"SELECT * FROM kasa WHERE 1=1{flt} ORDER BY tarih DESC, COALESCE(created_at, tarih || ' 00:00:00.000000') DESC, id DESC",
+            f"SELECT * FROM kasa WHERE banka_hesap_id IS NULL{flt} ORDER BY tarih DESC, COALESCE(created_at, tarih || ' 00:00:00.000000') DESC, id DESC",
             params
         ).fetchall()
         return [dict(r) for r in rows]
 
 
 def get_kasa_bakiye(yil=None, ay=None):
+    """NAKIT kasa bakiyesi (banka_hesap_id IS NULL). Banka hesaplari haric —
+    onlar banka_service.get_banka_bakiye ile hesaplanir. Transfer bacaklari
+    (is_transfer=1) nakit bakiyeyi etkiler cunku para gercekten girer/cikar."""
     flt, params = _date_filter(yil, ay)
     with get_db() as conn:
-        giris = conn.execute(f"SELECT COALESCE(SUM(tutar),0) FROM kasa WHERE tur='GELIR'{flt}", params).fetchone()[0]
-        cikis = conn.execute(f"SELECT COALESCE(SUM(tutar),0) FROM kasa WHERE tur='GIDER'{flt}", params).fetchone()[0]
+        giris = conn.execute(f"SELECT COALESCE(SUM(tutar),0) FROM kasa WHERE tur='GELIR' AND banka_hesap_id IS NULL{flt}", params).fetchone()[0]
+        cikis = conn.execute(f"SELECT COALESCE(SUM(tutar),0) FROM kasa WHERE tur='GIDER' AND banka_hesap_id IS NULL{flt}", params).fetchone()[0]
         return {'giris': giris, 'cikis': cikis, 'bakiye': giris - cikis}
 
 

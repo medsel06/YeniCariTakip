@@ -16,6 +16,7 @@ MENU_GROUPS = [
         ('/firma-master', 'domain', 'Firmalar'),
         ('/stok', 'inventory_2', 'Stok'),
         ('/kasa', 'account_balance', 'Kasa'),
+        ('/banka', 'account_balance_wallet', 'Banka'),
         ('/gelir-gider', 'receipt', 'Gelir / Gider'),
         ('/personel', 'badge', 'Personel'),
         ('/cekler', 'description', 'Çek / Senet'),
