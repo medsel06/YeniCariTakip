@@ -18,9 +18,17 @@ def odeme_takibi_page():
     if not create_layout(active_path='/odeme-takibi', page_title='Ödeme Takibi'):
         return
 
-    # Satirlari daralt (daha cok satir gorunur)
-    ui.add_css('.odeme-tbl td, .odeme-tbl th { padding: 2px 10px !important; }'
-               '.odeme-tbl tbody tr { height: 34px; }')
+    # Tablo satir sayisi kadar uzasin; sabit yukseklik bos gri alan olusturmasin.
+    ui.add_css('''
+        .odeme-tbl td, .odeme-tbl th { padding: 2px 10px !important; }
+        .odeme-tbl tbody tr { height: 34px; background: #fff; }
+        .odeme-tbl tbody td { border-bottom: 1px solid #e0e0e0; }
+        .odeme-tbl .q-table__middle {
+            max-height: none !important;
+            overflow: visible !important;
+        }
+        .odeme-tbl .q-table { table-layout: fixed; }
+    ''')
 
     filtre = {'tip': None}
     tablo_box = None
@@ -76,8 +84,12 @@ def odeme_takibi_page():
                     'kalan': fmt_para(kalan),
                     'durum': DURUM_TR.get(r['durum'], r['durum']),
                 })
-            tbl = ui.table(columns=columns, rows=disp, row_key='id',
-                           pagination={'rowsPerPage': 0}).classes('w-full odeme-tbl').props('flat bordered hide-bottom dense').style('height: calc(100vh - 210px)')
+            tbl = ui.table(
+                columns=columns,
+                rows=disp,
+                row_key='id',
+                pagination={'rowsPerPage': len(disp) or 1},
+            ).classes('w-full odeme-tbl').props('flat bordered hide-bottom dense')
             tbl.add_slot('body-cell-durum', r'''
                 <q-td :props="props">
                     <q-chip dense square :color="props.value==='Ödendi'?'positive':props.value==='Kısmi'?'orange':'grey'" text-color="white"
