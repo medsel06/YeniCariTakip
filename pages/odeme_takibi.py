@@ -10,12 +10,17 @@ from services.cari_service import get_firma_list
 from services.banka_service import list_banka_hesaplari
 
 KAYNAK = {'CARI': 'Cari', 'KART': 'Kredi Kartı', 'VERGI': 'Vergi', 'SGK': 'SGK', 'CEK': 'Çek', 'DIGER': 'Diğer'}
+DURUM_TR = {'ACIK': 'Açık', 'ODENDI': 'Ödendi', 'KISMI': 'Kısmi'}
 
 
 @ui.page('/odeme-takibi')
 def odeme_takibi_page():
     if not create_layout(active_path='/odeme-takibi', page_title='Ödeme Takibi'):
         return
+
+    # Satirlari daralt (daha cok satir gorunur)
+    ui.add_css('.odeme-tbl td, .odeme-tbl th { padding: 2px 10px !important; }'
+               '.odeme-tbl tbody tr { height: 34px; }')
 
     filtre = {'tip': None}
     tablo_box = None
@@ -69,13 +74,14 @@ def odeme_takibi_page():
                     'aciklama': r.get('aciklama', '') or '',
                     'tutar': fmt_para(r['tutar']),
                     'kalan': fmt_para(kalan),
-                    'durum': r['durum'],
+                    'durum': DURUM_TR.get(r['durum'], r['durum']),
                 })
             tbl = ui.table(columns=columns, rows=disp, row_key='id',
-                           pagination={'rowsPerPage': 0}).classes('w-full').props('flat bordered hide-bottom dense').style('height: 420px')
+                           pagination={'rowsPerPage': 0}).classes('w-full odeme-tbl').props('flat bordered hide-bottom dense').style('height: 440px')
             tbl.add_slot('body-cell-durum', r'''
                 <q-td :props="props">
-                    <q-chip dense :color="props.value==='ODENDI'?'positive':props.value==='KISMI'?'orange':'grey'" text-color="white">
+                    <q-chip dense square :color="props.value==='Ödendi'?'positive':props.value==='Kısmi'?'orange':'grey'" text-color="white"
+                        style="font-size:10px;height:18px;padding:0 6px">
                         {{ props.value }}
                     </q-chip>
                 </q-td>''')
