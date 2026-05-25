@@ -27,32 +27,30 @@ def banka_page():
     def _kartlar():
         kartlar_box.clear()
         hesaplar = [h for h in get_tum_banka_bakiyeler() if h['tip'] == state['tip']]
+        is_kart_tip = state['tip'] == 'KREDI_KARTI'
         with kartlar_box:
             if not hesaplar:
                 ui.label(f"Tanımlı {TIP_LABEL[state['tip']].lower()} yok. \"Yeni\" ile ekleyin.").classes('text-grey-6 q-pa-sm')
                 return
-            with ui.row().classes('w-full q-gutter-sm'):
-                for h in hesaplar:
+            # SATIR (liste) gorunumu — her hesap tek ince satir
+            with ui.column().classes('w-full gap-0').style('border:1px solid #e0e0e0;border-radius:8px;overflow:hidden'):
+                for i, h in enumerate(hesaplar):
                     bakiye = h['bakiye']
-                    is_kart = h['tip'] == 'KREDI_KARTI'
-                    # Kart icin bakiye negatif = borc. Renk ona gore.
                     renk = 'text-negative' if bakiye < 0 else 'text-positive'
                     sel = state['secili'] == h['id']
-                    card = ui.card().classes('q-pa-sm cursor-pointer').style(
-                        f"min-width: 190px; max-width: 230px; border:1px solid {'#1976d2' if sel else '#e0e0e0'};"
-                        f"border-radius:10px; {'background:#e3f2fd;' if sel else ''}")
-                    with card.on('click', lambda hid=h['id']: _sec(hid)):
-                        with ui.row().classes('items-center justify-between w-full no-wrap'):
-                            ui.label(h['ad']).classes('text-weight-bold text-body2').style('overflow:hidden;text-overflow:ellipsis')
-                            ui.icon('credit_card' if is_kart else 'account_balance',
-                                    color='deep-purple' if is_kart else 'indigo').style('font-size:18px')
-                        ui.label(f"{fmt_para(bakiye)} TL").classes(f'text-subtitle1 text-weight-bold {renk}')
-                        if is_kart and h.get('kart_limiti'):
-                            kullanilabilir = float(h['kart_limiti']) + bakiye  # bakiye negatif
-                            ui.label(f"Limit: {fmt_para(h['kart_limiti'])} | Kullanılabilir: {fmt_para(kullanilabilir)}").classes('text-caption text-grey-6')
-                        with ui.row().classes('w-full justify-end gap-0'):
-                            ui.button(icon='edit', on_click=lambda e, hh=h: _form(hh)).props('flat round dense size=sm color=primary')
-                            ui.button(icon='delete', on_click=lambda e, hh=h: _sil(hh)).props('flat round dense size=sm color=negative')
+                    bg = '#e3f2fd' if sel else ('#fafafa' if i % 2 else '#ffffff')
+                    satir = ui.row().classes('w-full items-center no-wrap cursor-pointer q-px-sm') \
+                        .style(f'background:{bg};min-height:38px;border-bottom:1px solid #eee')
+                    with satir.on('click', lambda hid=h['id']: _sec(hid)):
+                        ui.icon('credit_card' if is_kart_tip else 'account_balance',
+                                color='deep-purple' if is_kart_tip else 'indigo').style('font-size:18px')
+                        ui.label(h['ad']).classes('text-body2 text-weight-medium').style('flex:1;min-width:120px')
+                        if is_kart_tip and h.get('kart_limiti'):
+                            kullanilabilir = float(h['kart_limiti']) + bakiye
+                            ui.label(f"Limit {fmt_para(h['kart_limiti'])} · Kull. {fmt_para(kullanilabilir)}").classes('text-caption text-grey-6').style('min-width:200px;text-align:right')
+                        ui.label(f"{fmt_para(bakiye)} TL").classes(f'text-body2 text-weight-bold {renk}').style('min-width:130px;text-align:right')
+                        ui.button(icon='edit', on_click=lambda e, hh=h: _form(hh)).props('flat round dense size=sm color=primary')
+                        ui.button(icon='delete', on_click=lambda e, hh=h: _sil(hh)).props('flat round dense size=sm color=negative')
 
     def _sec(hid):
         state['secili'] = hid
