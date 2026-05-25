@@ -81,7 +81,10 @@ def add_cek(data):
         return cek_id
 
 
-def change_durum(cek_id, new_durum, aciklama='', ciro_firma_kod='', ciro_firma_ad=''):
+def change_durum(cek_id, new_durum, aciklama='', ciro_firma_kod='', ciro_firma_ad='', banka_hesap_id=None):
+    """banka_hesap_id verilirse tahsil/ödeme bankaya/bankadan işlenir (NULL=nakit).
+    Oluşan kasa kaydı cek_id taşıdığı için cari ledger'da çift sayılmaz; banka
+    bakiyesine ise banka_hesap_id üzerinden yansır."""
     with get_db() as conn:
         cek = conn.execute('SELECT * FROM cekler WHERE id=?', (cek_id,)).fetchone()
         if not cek:
@@ -112,19 +115,21 @@ def change_durum(cek_id, new_durum, aciklama='', ciro_firma_kod='', ciro_firma_a
             VALUES (?,?,?,?,?)
         ''', (cek_id, now, old_durum, new_durum, aciklama))
 
-        # Kasa entegrasyonu
+        # Kasa entegrasyonu. banka_hesap_id dolu ise para bankaya/bankadan,
+        # NULL ise nakit kasaya islenir. odeme_sekli buna gore BANKA/CEK.
+        _odeme_sekli = 'BANKA' if banka_hesap_id else 'CEK'
         if new_durum == 'TAHSIL_EDILDI':
             conn.execute('''
-                INSERT INTO kasa (tarih, firma_kod, firma_ad, tur, tutar, odeme_sekli, aciklama, cek_id)
-                VALUES (?,?,?,?,?,?,?,?)
+                INSERT INTO kasa (tarih, firma_kod, firma_ad, tur, tutar, odeme_sekli, aciklama, cek_id, banka_hesap_id)
+                VALUES (?,?,?,?,?,?,?,?,?)
             ''', (now, cek['firma_kod'], cek['firma_ad'], 'GELIR', cek['tutar'],
-                  'CEK', f"Çek tahsilat: {cek['cek_no']}", cek_id))
+                  _odeme_sekli, f"Çek tahsilat: {cek['cek_no']}", cek_id, banka_hesap_id))
         elif new_durum == 'ODENDI':
             conn.execute('''
-                INSERT INTO kasa (tarih, firma_kod, firma_ad, tur, tutar, odeme_sekli, aciklama, cek_id)
-                VALUES (?,?,?,?,?,?,?,?)
+                INSERT INTO kasa (tarih, firma_kod, firma_ad, tur, tutar, odeme_sekli, aciklama, cek_id, banka_hesap_id)
+                VALUES (?,?,?,?,?,?,?,?,?)
             ''', (now, cek['firma_kod'], cek['firma_ad'], 'GIDER', cek['tutar'],
-                  'CEK', f"Çek ödeme: {cek['cek_no']}", cek_id))
+                  _odeme_sekli, f"Çek ödeme: {cek['cek_no']}", cek_id, banka_hesap_id))
 
         return True, 'Durum güncellendi'
 

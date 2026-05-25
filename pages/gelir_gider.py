@@ -10,6 +10,7 @@ from services.gelir_gider_service import (
     add_gelir_gider, update_gelir_gider, delete_gelir_gider,
     GELIR_KATEGORILER, GIDER_KATEGORILER, ONE_CIKAN_GIDER_KATEGORILER,
 )
+from services.banka_service import list_banka_hesaplari
 from services.kasa_service import add_kasa
 from services.cari_service import get_firma_list, add_firma, generate_firma_kod
 from services.pdf_service import generate_table_pdf, save_pdf_preview
@@ -197,7 +198,7 @@ def gelir_gider_page():
                 inp_durum = ui.radio(
                     options={
                         'NAKIT': 'Nakit (Kasa)',
-                        'HAVALE': 'Havale / EFT (Banka)',
+                        'BANKA': 'Banka',
                         'CEK': 'Çek',
                         'SENET': 'Senet',
                         'ODENMEDI': 'Ödenmedi (Cari borç)',
@@ -217,7 +218,8 @@ def gelir_gider_page():
                     banka_row = ui.row().classes('w-full')
                     banka_row.set_visibility(False)
                     with banka_row:
-                        inp_banka = ui.input('Banka (isteğe bağlı)').props('outlined dense').classes('col')
+                        _bopts = {str(h['id']): h['ad'] for h in list_banka_hesaplari(sadece_aktif=True)}
+                        inp_banka = ui.select(_bopts, label='Banka Hesabı').props('outlined dense').classes('col')
 
                 # Vade tarih - ODENMEDI secilince gorunsun
                 vade_container = ui.row().classes('w-full')
@@ -285,7 +287,7 @@ def gelir_gider_page():
                     val = inp_durum.value or 'NAKIT'
                     vade_container.set_visibility(val == 'ODENMEDI')
                     odeme_container.set_visibility(val != 'ODENMEDI')
-                    banka_row.set_visibility(val == 'HAVALE')
+                    banka_row.set_visibility(val == 'BANKA')
                     if val != 'ODENMEDI':
                         # Odenen'i toplamla eslestir
                         inp_odenen.value = _guncel_toplam()
@@ -312,13 +314,15 @@ def gelir_gider_page():
                 od_dr = edit_row.get('odeme_durumu') or ''
                 if od_dr == 'ODENMEDI':
                     inp_durum.value = 'ODENMEDI'
-                elif odm_sk == 'HAVALE':
-                    inp_durum.value = 'HAVALE'
+                elif odm_sk in ('HAVALE', 'BANKA', 'EFT'):
+                    inp_durum.value = 'BANKA'
                 else:
                     inp_durum.value = 'NAKIT'
                 vade_container.set_visibility(inp_durum.value == 'ODENMEDI')
                 odeme_container.set_visibility(inp_durum.value != 'ODENMEDI')
-                banka_row.set_visibility(inp_durum.value == 'HAVALE')
+                banka_row.set_visibility(inp_durum.value == 'BANKA')
+                if edit_row.get('banka_hesap_id'):
+                    inp_banka.value = str(edit_row.get('banka_hesap_id'))
                 inp_vade.value = edit_row.get('vade_tarih', '') or ''
                 inp_aciklama.value = edit_row.get('aciklama', '')
                 recalc()
@@ -349,10 +353,13 @@ def gelir_gider_page():
 
                     durum = inp_durum.value or 'NAKIT'
                     odenen = float(inp_odenen.value or 0) if durum != 'ODENMEDI' else 0
-                    banka_val = (inp_banka.value or '').strip() if durum == 'HAVALE' else ''
+                    banka_hesap_id = int(inp_banka.value) if (durum == 'BANKA' and inp_banka.value) else None
+                    if durum == 'BANKA' and not banka_hesap_id:
+                        notify_err('Banka hesabı seçmelisiniz')
+                        return
 
-                    if durum == 'HAVALE':
-                        odeme_sekli = 'HAVALE'
+                    if durum == 'BANKA':
+                        odeme_sekli = 'BANKA'
                     elif durum == 'ODENMEDI':
                         odeme_sekli = ''
                     else:
@@ -389,6 +396,7 @@ def gelir_gider_page():
                         'firma_ad': firma_ad,
                         'odeme_durumu': odeme_durumu,
                         'vade_tarih': inp_vade.value if durum == 'ODENMEDI' else '',
+                        'banka_hesap_id': banka_hesap_id,
                     }
 
                     try:
@@ -405,8 +413,6 @@ def gelir_gider_page():
                                 kasa_aciklama = f'{kat}'
                                 if data['aciklama']:
                                     kasa_aciklama += f': {data["aciklama"]}'
-                                if banka_val:
-                                    kasa_aciklama += f' ({banka_val})'
                                 if odeme_durumu == 'KISMI':
                                     kasa_aciklama += f' [Kismi ödeme: {odenen:.2f} / {toplam:.2f}]'
                                 add_kasa({
@@ -418,7 +424,7 @@ def gelir_gider_page():
                                     'odeme_sekli': odeme_sekli,
                                     'aciklama': kasa_aciklama,
                                     'gelir_gider_id': gg_id,
-                                    'banka': banka_val,
+                                    'banka_hesap_id': banka_hesap_id,
                                 })
 
                             if odeme_durumu == 'KISMI':

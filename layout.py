@@ -896,4 +896,57 @@ def confirm_dialog(message, on_confirm):
     dlg.open()
 
 
+def odeme_banka_secici(*, odeme_value='NAKIT', banka_hesap_id=None, secenekler=None,
+                       extra_on_change=None, label='Ödeme Şekli'):
+    """Ödeme şekli select + reaktif banka hesabı dropdown (TÜM dialog'larda ortak).
+
+    'BANKA' seçilince tanımlı aktif banka hesaplarından dropdown görünür (input değil).
+    Eski 'HAVALE'/'EFT' değerleri okuma sırasında 'BANKA'ya map edilir (geri uyum).
+
+    Returns SimpleNamespace:
+      .odeme              -> ödeme şekli ui.select
+      .banka              -> banka hesabı ui.select
+      .resolve_banka_id() -> seçili banka_hesap_id (int) ya da None
+      .has_hesap          -> tanımlı aktif banka hesabı var mı (bool)
+    """
+    from types import SimpleNamespace
+    from services.banka_service import list_banka_hesaplari
+
+    if secenekler is None:
+        secenekler = {'NAKIT': 'Nakit', 'BANKA': 'Banka', 'CEK': 'Çek', 'SENET': 'Senet'}
+
+    # Geri uyum: eski HAVALE/EFT/DIGER -> BANKA/NAKIT
+    ov = (odeme_value or 'NAKIT').upper()
+    if ov in ('HAVALE', 'EFT'):
+        ov = 'BANKA'
+    if ov not in secenekler:
+        ov = next(iter(secenekler))
+
+    hesaplar = list_banka_hesaplari(sadece_aktif=True)
+    banka_opts = {str(h['id']): h['ad'] for h in hesaplar}
+
+    inp_odeme = ui.select(secenekler, value=ov, label=label).props('outlined dense').classes('w-full')
+    inp_banka = ui.select(
+        banka_opts, label='Banka Hesabı',
+        value=str(banka_hesap_id) if banka_hesap_id else None,
+    ).props('outlined dense').classes('w-full')
+    inp_banka.set_visibility(ov == 'BANKA')
+
+    def _on_change(e):
+        inp_banka.set_visibility(e.value == 'BANKA')
+        if extra_on_change:
+            extra_on_change(e)
+    inp_odeme.on_value_change(_on_change)
+
+    def resolve_banka_id():
+        if inp_odeme.value == 'BANKA' and inp_banka.value:
+            return int(inp_banka.value)
+        return None
+
+    return SimpleNamespace(
+        odeme=inp_odeme, banka=inp_banka,
+        resolve_banka_id=resolve_banka_id, has_hesap=bool(banka_opts),
+    )
+
+
 

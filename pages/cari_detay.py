@@ -6,6 +6,7 @@ from services.cari_service import (
     get_firma, get_cari_ekstre, get_firma_kasa, get_firma_cekler,
 )
 from services.kasa_service import add_kasa
+from services.banka_service import list_banka_hesaplari
 from services.pdf_service import (
     generate_cari_ekstre_pdf,
     generate_kasa_raporu_pdf,
@@ -225,7 +226,7 @@ def cari_detay_page(firma_kod: str):
                             # Cek/Senet secenekleri kaldirildi: cek islemleri Cekler sayfasindan yapilir
                             # (cek_id NULL ile kasa kaydi aciliyordu - orphan/cift sayim sorununa yol aciyordu)
                             inp_yontem = ui.radio(
-                                options={'NAKIT': 'Kasa (Nakit)', 'HAVALE': 'Banka (Havale/EFT)'},
+                                options={'NAKIT': 'Kasa (Nakit)', 'BANKA': 'Banka'},
                                 value='NAKIT'
                             ).props('inline')
 
@@ -242,10 +243,11 @@ def cari_detay_page(firma_kod: str):
                             banka_row_o = ui.row().classes('w-full')
                             banka_row_o.set_visibility(False)
                             with banka_row_o:
-                                inp_banka_o = ui.input('Banka (isteğe bağlı)').props('outlined dense').classes('col')
+                                _bopts_o = {str(h['id']): h['ad'] for h in list_banka_hesaplari(sadece_aktif=True)}
+                                inp_banka_o = ui.select(_bopts_o, label='Banka Hesabı').props('outlined dense').classes('col')
 
                             def _on_yontem(_e):
-                                banka_row_o.set_visibility(inp_yontem.value == 'HAVALE')
+                                banka_row_o.set_visibility(inp_yontem.value == 'BANKA')
                             inp_yontem.on_value_change(_on_yontem)
 
                             inp_aciklama_o = ui.input('Açıklama').props('outlined dense').classes('w-full')
@@ -259,10 +261,11 @@ def cari_detay_page(firma_kod: str):
                                     notify_err("Tutar 0'dan büyük olmalı")
                                     return
                                 yontem = inp_yontem.value or 'NAKIT'
-                                banka = (inp_banka_o.value or '').strip() if yontem == 'HAVALE' else ''
+                                banka_hesap_id = int(inp_banka_o.value) if (yontem == 'BANKA' and inp_banka_o.value) else None
+                                if yontem == 'BANKA' and not banka_hesap_id:
+                                    notify_err('Banka hesabı seçmelisiniz')
+                                    return
                                 acik = (inp_aciklama_o.value or '').strip()
-                                if banka and yontem == 'HAVALE':
-                                    acik = f'{acik} ({banka})' if acik else banka
                                 if not acik:
                                     acik = 'Tahsilat' if is_tahsilat else 'Ödeme'
                                 try:
@@ -274,7 +277,7 @@ def cari_detay_page(firma_kod: str):
                                         'tutar': tutar,
                                         'odeme_sekli': yontem,
                                         'aciklama': acik,
-                                        'banka': banka,
+                                        'banka_hesap_id': banka_hesap_id,
                                     })
                                     notify_ok('Tahsilat kaydedildi' if is_tahsilat else 'Ödeme kaydedildi')
                                     odlg.close()

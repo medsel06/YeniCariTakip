@@ -96,27 +96,29 @@ def _create_or_update_kasa_for_gg(conn, rec_id, data):
         return
     # GG GIDER -> kasa GIDER (para cikis), GG GELIR -> kasa GELIR (para giris)
     kasa_tur = data.get('tur', 'GIDER')
+    banka_hesap_id = data.get('banka_hesap_id')
     bagli = conn.execute('SELECT id FROM kasa WHERE gelir_gider_id=?', (rec_id,)).fetchone()
     if bagli:
         conn.execute('''
             UPDATE kasa
-            SET tarih=?, firma_kod=?, firma_ad=?, tur=?, tutar=?, odeme_sekli=?, aciklama=?
+            SET tarih=?, firma_kod=?, firma_ad=?, tur=?, tutar=?, odeme_sekli=?, aciklama=?, banka_hesap_id=?
             WHERE id=?
         ''', (
             data['tarih'], data.get('firma_kod', ''), data.get('firma_ad', ''),
             kasa_tur, tutar, data.get('odeme_sekli', ''),
             f"GG: {data.get('aciklama', '') or data.get('kategori', '')}",
+            banka_hesap_id,
             bagli['id']
         ))
     else:
         conn.execute('''
-            INSERT INTO kasa (tarih, firma_kod, firma_ad, tur, tutar, odeme_sekli, aciklama, gelir_gider_id)
-            VALUES (?,?,?,?,?,?,?,?)
+            INSERT INTO kasa (tarih, firma_kod, firma_ad, tur, tutar, odeme_sekli, aciklama, gelir_gider_id, banka_hesap_id)
+            VALUES (?,?,?,?,?,?,?,?,?)
         ''', (
             data['tarih'], data.get('firma_kod', ''), data.get('firma_ad', ''),
             kasa_tur, tutar, data.get('odeme_sekli', ''),
             f"GG: {data.get('aciklama', '') or data.get('kategori', '')}",
-            rec_id,
+            rec_id, banka_hesap_id,
         ))
 
 

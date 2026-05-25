@@ -8,6 +8,7 @@ from services.cek_service import (
     undo_cek_hareketi, update_cek_hareketi, get_cek_silme_etkisi,
 )
 from services.cari_service import get_firma_list
+from services.banka_service import list_banka_hesaplari
 from services.pdf_service import generate_cek_raporu_pdf, save_pdf_preview
 
 
@@ -490,8 +491,20 @@ def cekler_page():
                     options=firma_options, label='Ciro Edilecek Firma', with_input=True
                 ).classes('w-full').props('outlined dense')
 
+            # Tahsil/Ödeme hesabi: nakit kasa veya banka (TAHSIL_EDILDI/ODENDI'de gorunur)
+            hesap_opts = {'__nakit__': 'Nakit Kasa'}
+            for h in list_banka_hesaplari(sadece_aktif=True):
+                hesap_opts[str(h['id'])] = h['ad']
+            hesap_container = ui.column().classes('w-full')
+            hesap_container.set_visibility(False)
+            with hesap_container:
+                inp_hesap = ui.select(
+                    options=hesap_opts, value='__nakit__', label='Tahsilat / Ödeme Hesabı'
+                ).classes('w-full').props('outlined dense')
+
             def on_durum_change(e):
                 ciro_container.set_visibility(e.value == 'CIRO_EDILDI')
+                hesap_container.set_visibility(e.value in ('TAHSIL_EDILDI', 'ODENDI'))
 
             inp_yeni.on_value_change(on_durum_change)
 
@@ -510,12 +523,19 @@ def cekler_page():
                         if ciro_kod and ciro_kod in firma_options:
                             ciro_ad = firma_options[ciro_kod]
 
+                    banka_hesap_id = None
+                    if inp_yeni.value in ('TAHSIL_EDILDI', 'ODENDI'):
+                        hv = inp_hesap.value
+                        if hv and hv != '__nakit__':
+                            banka_hesap_id = int(hv)
+
                     try:
                         ok, msg = change_durum(
                             cek_id, inp_yeni.value,
                             aciklama=inp_aciklama.value.strip() if inp_aciklama.value else '',
                             ciro_firma_kod=ciro_kod,
-                            ciro_firma_ad=ciro_ad
+                            ciro_firma_ad=ciro_ad,
+                            banka_hesap_id=banka_hesap_id,
                         )
                         if ok:
                             notify_ok(msg)

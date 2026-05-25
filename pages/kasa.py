@@ -1,7 +1,7 @@
 """ALSE Plastik Hammadde - Kasa Sayfası"""
 from datetime import date, datetime
 from nicegui import ui
-from layout import create_layout, fmt_para, PARA_SLOT, TARIH_SLOT, notify_ok, notify_err, confirm_dialog, normalize_search, donem_popover_btn
+from layout import create_layout, fmt_para, PARA_SLOT, TARIH_SLOT, notify_ok, notify_err, confirm_dialog, normalize_search, donem_popover_btn, odeme_banka_secici
 from services.kasa_service import get_kasa_list, get_kasa_bakiye, add_kasa, delete_kasa, update_kasa, get_kasa_by_id
 from services.cari_service import get_firma_list
 from services.cek_service import list_cekler_portfoyde, generate_firma_cek_no, add_cek, change_durum
@@ -111,15 +111,17 @@ def kasa_page():
             # Tutar
             inp_tutar = ui.number(label='Tutar', value=0, format='%.2f').classes('w-full').props('outlined dense')
 
-            # Odeme Sekli
-            inp_odeme = ui.select(
-                options={'NAKIT': 'Nakit', 'HAVALE': 'Havale', 'CEK': 'Çek', 'SENET': 'Senet', 'DIGER': 'Diğer'},
-                label='Ödeme Şekli', value='NAKIT'
-            ).classes('w-full').props('outlined dense')
+            # Odeme Sekli + Banka secici (ortak bilesen)
+            secici = odeme_banka_secici(
+                odeme_value='NAKIT',
+                secenekler={'NAKIT': 'Nakit', 'BANKA': 'Banka', 'CEK': 'Çek', 'SENET': 'Senet'},
+            )
+            inp_odeme = secici.odeme
 
-            # --- Çek ek alanları (başlangıçta gizli) ---
+            # --- Çek ek alanları (ödeme şekli/banka'dan sonra, başlangıçta gizli) ---
             cek_container = ui.column().classes('w-full')
             cek_container.set_visibility(False)
+            inp_odeme.on_value_change(lambda e: cek_container.set_visibility(e.value == 'CEK'))
 
             with cek_container:
                 ui.separator().classes('q-my-xs')
@@ -160,10 +162,6 @@ def kasa_page():
                     firma_cek_container.set_visibility(e.value == 'FIRMA')
                     ciro_container.set_visibility(e.value == 'CIRO')
                 inp_cek_turu.on_value_change(on_cek_turu_change)
-
-            def on_odeme_change(e):
-                cek_container.set_visibility(e.value == 'CEK')
-            inp_odeme.on_value_change(on_odeme_change)
 
             # Açıklama
             inp_aciklama = ui.input('Açıklama').classes('w-full').props('outlined dense')
@@ -246,6 +244,12 @@ def kasa_page():
                                 load_data()
                                 return
 
+                        # Banka secildiyse hesap zorunlu
+                        banka_hesap_id = secici.resolve_banka_id()
+                        if odeme_secili == 'BANKA' and not banka_hesap_id:
+                            notify_err('Banka hesabı seçmelisiniz')
+                            return
+
                         kasa_data = {
                             'tarih': inp_tarih.value,
                             'firma_kod': firma_kod,
@@ -255,6 +259,7 @@ def kasa_page():
                             'odeme_sekli': odeme_secili,
                             'aciklama': inp_aciklama.value.strip() if inp_aciklama.value else '',
                             'kategori': inp_kategori.value or '',
+                            'banka_hesap_id': banka_hesap_id,
                         }
                         if cek_id_ref:
                             kasa_data['cek_id'] = cek_id_ref
@@ -297,10 +302,12 @@ def kasa_page():
 
             inp_tutar = ui.number(label='Tutar', value=row.get('tutar', 0), format='%.2f').classes('w-full').props('outlined dense')
 
-            inp_odeme = ui.select(
-                options={'NAKIT': 'Nakit', 'HAVALE': 'Havale', 'CEK': 'Çek', 'SENET': 'Senet', 'DIGER': 'Diğer'},
-                label='Ödeme Şekli', value=row.get('odeme_sekli', 'NAKIT')
-            ).classes('w-full').props('outlined dense')
+            secici = odeme_banka_secici(
+                odeme_value=row.get('odeme_sekli', 'NAKIT'),
+                banka_hesap_id=row.get('banka_hesap_id'),
+                secenekler={'NAKIT': 'Nakit', 'BANKA': 'Banka', 'CEK': 'Çek', 'SENET': 'Senet'},
+            )
+            inp_odeme = secici.odeme
 
             inp_aciklama = ui.input('Açıklama', value=row.get('aciklama', '')).classes('w-full').props('outlined dense')
 
@@ -320,6 +327,10 @@ def kasa_page():
                     if firma_kod and firma_kod in firma_options:
                         firma_ad = firma_options[firma_kod]
 
+                    banka_hesap_id = secici.resolve_banka_id()
+                    if (inp_odeme.value or '') == 'BANKA' and not banka_hesap_id:
+                        notify_err('Banka hesabı seçmelisiniz')
+                        return
                     try:
                         update_kasa(row['id'], {
                             'tarih': inp_tarih.value,
@@ -329,6 +340,7 @@ def kasa_page():
                             'tutar': float(inp_tutar.value),
                             'odeme_sekli': inp_odeme.value or '',
                             'aciklama': inp_aciklama.value.strip() if inp_aciklama.value else '',
+                            'banka_hesap_id': banka_hesap_id,
                         })
                         notify_ok('Kasa kaydı güncellendi')
                         dlg.close()
