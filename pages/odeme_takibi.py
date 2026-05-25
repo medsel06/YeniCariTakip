@@ -29,17 +29,15 @@ def odeme_takibi_page():
         ozet_box.clear()
         o = get_ozet()
         with ozet_box:
-            # Kompakt badge satiri (tabloyu asagi itmez)
-            with ui.row().classes('items-center q-gutter-sm q-py-xs'):
-                for baslik, deger, renk in [
-                    ('Açık Borç', o['acik_borc'], 'negative'),
-                    ('Açık Alacak', o['acik_alacak'], 'positive'),
-                    ('Geçmiş Vade', o['gecmis_borc'], 'orange'),
-                ]:
-                    with ui.element('div').classes('row items-center no-wrap q-px-sm q-py-xs') \
-                            .style('background:#f5f5f5;border-radius:14px;gap:6px'):
-                        ui.label(baslik + ':').classes('text-caption text-grey-7')
-                        ui.label(f"{fmt_para(deger)} TL").classes(f'text-caption text-weight-bold text-{renk}')
+            for baslik, deger, renk in [
+                ('Açık Borç', o['acik_borc'], 'negative'),
+                ('Açık Alacak', o['acik_alacak'], 'positive'),
+                ('Geçmiş Vade', o['gecmis_borc'], 'orange'),
+            ]:
+                with ui.element('div').classes('row items-center no-wrap q-px-sm') \
+                        .style('background:#f5f5f5;border-radius:14px;gap:5px;height:28px'):
+                    ui.label(baslik + ':').classes('text-caption text-grey-7')
+                    ui.label(f"{fmt_para(deger)} TL").classes(f'text-caption text-weight-bold text-{renk}')
 
     def _tablo():
         tablo_box.clear()
@@ -73,7 +71,8 @@ def odeme_takibi_page():
                     'kalan': fmt_para(kalan),
                     'durum': r['durum'],
                 })
-            tbl = ui.table(columns=columns, rows=disp, row_key='id').classes('w-full').props('flat bordered dense')
+            tbl = ui.table(columns=columns, rows=disp, row_key='id',
+                           pagination={'rowsPerPage': 50}).classes('w-full').props('flat bordered').style('min-height:65vh')
             tbl.add_slot('body-cell-durum', r'''
                 <q-td :props="props">
                     <q-chip dense :color="props.value==='ODENDI'?'positive':props.value==='KISMI'?'orange':'grey'" text-color="white">
@@ -169,13 +168,14 @@ def odeme_takibi_page():
                        lambda: (delete_odeme_takibi(row['id']), notify_ok('Silindi'), _refresh()))
 
     # --- PAGE ---
-    with ui.column().classes('w-full q-pa-sm'):
-        with ui.row().classes('w-full items-center justify-between q-mb-sm'):
+    with ui.column().classes('w-full q-pa-sm gap-1'):
+        with ui.row().classes('w-full items-center justify-between'):
             ui.label('Ödeme / Tahsilat Takibi').classes('text-h6 text-weight-bold')
-            ui.button('Yeni Plan', icon='add', on_click=lambda: _form(), color='primary').props('unelevated')
-        with ui.row().classes('gap-2 q-mb-sm'):
+            ui.button('Yeni Plan', icon='add', on_click=lambda: _form(), color='primary').props('unelevated dense')
+        # Filtre butonlari + ozet badge'ler ayni satirda
+        with ui.row().classes('w-full items-center gap-2'):
             for lbl, val in [('Tümü', None), ('Borçlar', 'BORC'), ('Alacaklar', 'ALACAK')]:
                 ui.button(lbl, on_click=lambda v=val: (filtre.update(tip=v), _tablo())).props('outline dense size=sm')
-        ozet_box = ui.column().classes('w-full')
+            ozet_box = ui.row().classes('items-center gap-2 q-ml-sm')
         tablo_box = ui.column().classes('w-full')
     _refresh()
