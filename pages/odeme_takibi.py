@@ -18,16 +18,25 @@ def odeme_takibi_page():
     if not create_layout(active_path='/odeme-takibi', page_title='Ödeme Takibi'):
         return
 
-    # Tablo satir sayisi kadar uzasin; sabit yukseklik bos gri alan olusturmasin.
+    # Stok sayfasindaki davranis: scroll sayfada degil, tablo govdesinde kalsin.
+    # Min-height'i sifirliyoruz ki az kayitta altta bos gri alan olusmasin.
     ui.add_css('''
         .odeme-tbl td, .odeme-tbl th { padding: 2px 10px !important; }
         .odeme-tbl tbody tr { height: 34px; background: #fff; }
         .odeme-tbl tbody td { border-bottom: 1px solid #e0e0e0; }
         .odeme-tbl .q-table__middle {
-            max-height: none !important;
-            overflow: visible !important;
+            min-height: 0 !important;
+            max-height: calc(100vh - 300px) !important;
+            overflow: auto !important;
+            overscroll-behavior: contain;
         }
         .odeme-tbl .q-table { table-layout: fixed; }
+        @media (max-width: 1200px) {
+            .odeme-tbl .q-table__middle { max-height: calc(100vh - 270px) !important; }
+        }
+        @media (max-width: 900px) {
+            .odeme-tbl .q-table__middle { max-height: calc(100vh - 260px) !important; }
+        }
     ''')
 
     filtre = {'tip': None}
