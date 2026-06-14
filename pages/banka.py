@@ -73,11 +73,21 @@ def banka_page():
                 {'name': 'tarih', 'label': 'Tarih', 'field': 'tarih', 'align': 'left', 'sortable': True},
                 {'name': 'tur', 'label': 'G/Ç', 'field': 'tur', 'align': 'center'},
                 {'name': 'tutar', 'label': 'Tutar', 'field': 'tutar', 'align': 'right', 'sortable': True},
+                {'name': 'bakiye', 'label': 'Bakiye', 'field': 'bakiye', 'align': 'right'},
                 {'name': 'aciklama', 'label': 'Açıklama', 'field': 'aciklama', 'align': 'left'},
             ]
+            # Yuruyen (birikmis) bakiye: acilistan baslayip eskiden yeniye birikir.
+            # hareketler yeni->eski sirali; ters cevirip hesapla, sirayi koru.
+            acilis = float(h.get('acilis_bakiye', 0) or 0)
+            _bk = acilis
+            for r in reversed(hareketler):
+                tutar = float(r.get('tutar', 0) or 0)
+                _bk += tutar if r.get('tur') == 'GELIR' else -tutar
+                r['_yuruyen'] = _bk
             rows = [{'tarih': (r.get('tarih') or '')[:10],
                      'tur': 'Giriş' if r.get('tur') == 'GELIR' else 'Çıkış',
                      'tutar': fmt_para(r.get('tutar', 0)),
+                     'bakiye': fmt_para(r.get('_yuruyen', 0)),
                      'aciklama': r.get('aciklama', '') or ''} for r in hareketler]
             ui.table(columns=cols, rows=rows, row_key='aciklama',
                      pagination={'rowsPerPage': 20}).classes('w-full').props('flat bordered dense')

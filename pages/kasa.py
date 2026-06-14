@@ -1,7 +1,7 @@
 """ALSE Plastik Hammadde - Kasa Sayfası"""
 from datetime import date, datetime
 from nicegui import ui
-from layout import create_layout, fmt_para, PARA_SLOT, TARIH_SLOT, notify_ok, notify_err, confirm_dialog, normalize_search, donem_popover_btn, odeme_banka_secici
+from layout import create_layout, fmt_para, PARA_SLOT, BAKIYE_SLOT, TARIH_SLOT, notify_ok, notify_err, confirm_dialog, normalize_search, donem_popover_btn, odeme_banka_secici
 from services.kasa_service import get_kasa_list, get_kasa_bakiye, add_kasa, delete_kasa, update_kasa, get_kasa_by_id
 from services.cari_service import get_firma_list
 from services.cek_service import list_cekler_portfoyde, generate_firma_cek_no, add_cek, change_durum
@@ -33,11 +33,25 @@ def kasa_page():
         {'name': 'firma_ad', 'label': 'Firma', 'field': 'firma_ad', 'align': 'left', 'sortable': True},
         {'name': 'tur', 'label': 'Tür', 'field': 'tur', 'align': 'center', 'sortable': True},
         {'name': 'tutar', 'label': 'Tutar', 'field': 'tutar', 'align': 'right', 'sortable': True},
+        {'name': 'yuruyen_bakiye', 'label': 'Bakiye', 'field': 'yuruyen_bakiye', 'align': 'right', 'sortable': False},
         {'name': 'odeme_sekli', 'label': 'Ödeme Şekli', 'field': 'odeme_sekli', 'align': 'center',
          'sortable': True},
         {'name': 'aciklama', 'label': 'Açıklama', 'field': 'aciklama', 'align': 'left', 'sortable': False},
         {'name': 'actions', 'label': 'İşlemler', 'field': 'actions', 'align': 'center', 'sortable': False},
     ]
+
+    def _compute_bakiye(rows):
+        """Yuruyen (birikmis) bakiye hesapla. rows yeni->eski sirali gelir;
+        bakiye eskiden yeniye birikir. En ust (en yeni) satir = guncel bakiye.
+        Nakit kasada acilis 0."""
+        bakiye = 0.0
+        for r in reversed(rows):
+            tutar = float(r.get('tutar', 0) or 0)
+            if r.get('tur') == 'GELIR':
+                bakiye += tutar
+            else:
+                bakiye -= tutar
+            r['yuruyen_bakiye'] = bakiye
 
     def _filter_rows(rows):
         q = normalize_search(search_val['text'])
@@ -55,6 +69,7 @@ def kasa_page():
     def load_data():
         nonlocal table_ref, all_rows
         all_rows = get_kasa_list(yil=state['yil'], ay=state['ay'])
+        _compute_bakiye(all_rows)
         apply_filters()
         bakiye = get_kasa_bakiye(yil=state['yil'], ay=state['ay'])
         if card_giris:
@@ -421,6 +436,7 @@ def kasa_page():
     # --- PAGE CONTENT ---
     with ui.column().classes('w-full q-pa-sm'):
         all_rows = get_kasa_list(yil=state['yil'], ay=state['ay'])
+        _compute_bakiye(all_rows)
 
         bakiye = get_kasa_bakiye(yil=state['yil'], ay=state['ay'])
 
@@ -488,13 +504,14 @@ def kasa_page():
         # Table
         table_ref = ui.table(
             columns=columns, rows=all_rows, row_key='id',
-            pagination={'rowsPerPage': 50, 'sortBy': 'tarih', 'descending': True}
+            pagination={'rowsPerPage': 50}
         ).classes('w-full').style('--table-extra-rows: 2;')
         table_ref.props('flat bordered dense')
 
         # Slot - tarih ve tutar NaN fix
         table_ref.add_slot('body-cell-tarih', TARIH_SLOT)
         table_ref.add_slot('body-cell-tutar', PARA_SLOT)
+        table_ref.add_slot('body-cell-yuruyen_bakiye', BAKIYE_SLOT)
 
         # Row coloring by tur (GELIR=green, GIDER=red)
         table_ref.add_slot('body-cell-tur', r'''

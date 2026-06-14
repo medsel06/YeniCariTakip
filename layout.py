@@ -570,6 +570,14 @@ PARA_SLOT = r'''
     </q-td>
 '''
 
+BAKIYE_SLOT = r'''
+    <q-td :props="props">
+        <span :style="(Number(props.value)||0) < 0 ? 'color:#b91c1c;font-weight:600;' : 'font-weight:600;'">
+        {{ ((Number(props.value)||0) < 0 ? '-' : '') + Math.abs(Number(props.value)||0).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' TL' }}
+        </span>
+    </q-td>
+'''
+
 MIKTAR_SLOT = r'''
     <q-td :props="props">
         {{ props.value != null && props.value !== 0 ? props.value.toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) : '' }}
