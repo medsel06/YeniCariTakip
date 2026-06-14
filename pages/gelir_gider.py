@@ -406,8 +406,10 @@ def gelir_gider_page():
                         else:
                             gg_id = add_gelir_gider(data)
 
-                            # Odenen > 0 ise kasa kaydi olustur (kismi veya tam)
-                            if odenen > 0.001:
+                            # Sadece KISMI odemede kasa kaydini burada olustur.
+                            # ODENDI (tam) durumunda add_gelir_gider() zaten otomatik
+                            # kasa kaydi olusturuyor -> mukerrer kayit olmasin diye buraya girme.
+                            if odeme_durumu == 'KISMI':
                                 kasa_tur = 'GELIR' if inp_tur.value == 'GELIR' else 'GIDER'
                                 kat = inp_kategori.value or ''
                                 kasa_aciklama = f'{kat}'

@@ -123,7 +123,7 @@ def get_banka_hareketler(hesap_id, yil=None, ay=None):
     with get_db() as conn:
         rows = conn.execute(
             f"SELECT * FROM kasa WHERE banka_hesap_id=?{flt} "
-            f"ORDER BY tarih, COALESCE(created_at, tarih || ' 00:00:00.000000'), id",
+            f"ORDER BY tarih DESC, COALESCE(created_at, tarih || ' 00:00:00.000000') DESC, id DESC",
             [hesap_id] + params
         ).fetchall()
         return [dict(r) for r in rows]
