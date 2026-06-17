@@ -1,7 +1,7 @@
 """Ödeme / Tahsilat Takibi — vade planı sayfası."""
 from datetime import date, datetime
 from nicegui import ui
-from layout import create_layout, fmt_para, notify_ok, notify_err, confirm_dialog, donem_secici
+from layout import create_layout, fmt_para, notify_ok, notify_err, confirm_dialog, segment_group, donem_popover_btn
 from services.odeme_takibi_service import (
     list_odeme_takibi, get_ozet, add_odeme_takibi, update_odeme_takibi,
     delete_odeme_takibi, ode, get_vadeli_cari, get_cek_vadeleri,
@@ -112,15 +112,20 @@ def odeme_takibi_page():
         gecmis = sum(r['kalan'] for r in data
                      if r['durum'] != 'ODENDI' and r.get('vade_tarih') and r['vade_tarih'] < bugun)
         with ozet_box:
-            for baslik, deger, renk in [
-                ('Açık Borç', acik_borc, 'negative'),
-                ('Açık Alacak', acik_alacak, 'positive'),
-                ('Geçmiş Vade', gecmis, 'orange'),
+            for baslik, deger, bg, fg, icon in [
+                ('Açık Borç', acik_borc, '#fef2f2', '#b91c1c', 'south_west'),
+                ('Açık Alacak', acik_alacak, '#f0fdf4', '#15803d', 'north_east'),
+                ('Geçmiş Vade', gecmis, '#fff7ed', '#c2410c', 'warning_amber'),
             ]:
-                with ui.element('div').classes('row items-center no-wrap q-px-sm') \
-                        .style('background:#f5f5f5;border-radius:14px;gap:5px;height:28px'):
-                    ui.label(baslik + ':').classes('text-caption text-grey-7')
-                    ui.label(f"{fmt_para(deger)} TL").classes(f'text-caption text-weight-bold text-{renk}')
+                with ui.element('div').style(
+                    f'background:{bg};border:1px solid {fg}33;border-radius:10px;'
+                    'padding:7px 16px;min-width:170px;'
+                ):
+                    with ui.row().classes('items-center no-wrap gap-2'):
+                        ui.icon(icon).style(f'color:{fg};font-size:22px')
+                        with ui.column().classes('gap-0'):
+                            ui.label(baslik).style('font-size:9.5px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.5px')
+                            ui.label(f"{fmt_para(deger)} ₺").style(f'font-size:15px;font-weight:800;color:{fg};line-height:1.1')
 
     def _tablo(data):
         tablo_box.clear()
@@ -171,7 +176,10 @@ def odeme_takibi_page():
                 pagination={'rowsPerPage': len(disp) or 1},
             ).classes('w-full odeme-tbl').props('flat bordered hide-bottom dense')
             tbl.add_slot('body-cell-vade_tarih', r'''
-                <q-td :props="props">
+                <q-td :props="props"
+                    :style="props.row._urg==='GECIKTI' ? 'border-left:4px solid #ef4444;' :
+                            props.row._urg==='YAKLASIYOR' ? 'border-left:4px solid #ec4899;' :
+                            'border-left:4px solid transparent;'">
                     <span style="display:inline-block;padding:2px 8px;border-radius:6px;font-weight:700;font-size:11px;white-space:nowrap;"
                         :style="props.row._urg==='GECIKTI' ? 'background:#fee2e2;color:#b91c1c;' :
                                 props.row._urg==='YAKLASIYOR' ? 'background:#fce7f3;color:#be185d;' :
@@ -369,23 +377,40 @@ def odeme_takibi_page():
                        lambda: (delete_odeme_takibi(row['id']), notify_ok('Silindi'), _refresh()))
 
     # --- PAGE ---
-    with ui.column().classes('w-full q-pa-sm gap-1'):
+    with ui.column().classes('w-full q-pa-sm gap-2'):
         with ui.row().classes('w-full items-center justify-between'):
             ui.label('Ödeme / Tahsilat Takibi').classes('text-h6 text-weight-bold')
             ui.button('Yeni Plan', icon='add', on_click=lambda: _form(), color='primary').props('unelevated dense')
-        # Filtre butonlari + ozet badge'ler ayni satirda
-        with ui.row().classes('w-full items-center gap-2'):
-            for lbl, val in [('Tümü', None), ('Borçlar', 'BORC'), ('Alacaklar', 'ALACAK')]:
-                ui.button(lbl, on_click=lambda v=val: (filtre.update(tip=v), _refresh())).props('outline dense size=sm')
-            ui.separator().props('vertical')
-            for lbl, val in [('Tüm Kaynaklar', None), ('Cari', 'CARI'), ('Çek/Senet', 'CEK'), ('Manuel', 'MANUEL')]:
-                ui.button(lbl, on_click=lambda v=val: (filtre.update(kaynak=v), _refresh())).props('outline dense size=sm')
-            ui.separator().props('vertical')
+
+        # --- Filtre cubugu: bagli segmentler + tek pill donem ---
+        with ui.row().classes('w-full items-center gap-4 q-row-mobile-wrap'):
+            def _on_tip(key):
+                filtre.update(tip=None if key in (None, 'ALL') else key)
+                _refresh()
+            with ui.column().classes('gap-0'):
+                ui.label('Göster').style('font-size:9px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:0.5px')
+                segment_group(
+                    [('ALL', 'Tümü', '#475569'), ('BORC', 'Borçlar', '#dc2626'), ('ALACAK', 'Alacaklar', '#16a34a')],
+                    _on_tip, active='ALL')
+
+            def _on_kaynak(key):
+                filtre.update(kaynak=None if key in (None, 'ALL') else key)
+                _refresh()
+            with ui.column().classes('gap-0'):
+                ui.label('Kaynak').style('font-size:9px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:0.5px')
+                segment_group(
+                    [('ALL', 'Tümü', '#475569'), ('CARI', 'Cari', '#2563eb'),
+                     ('CEK', 'Çek/Senet', '#ea580c'), ('MANUEL', 'Manuel', '#64748b')],
+                    _on_kaynak, active='ALL')
 
             def _on_donem(yil, ay):
                 filtre.update(yil=yil, ay=ay)
                 _refresh()
-            donem_secici(_on_donem, include_all=True, mode_toggle=True, default_current_month=True)
-            ozet_box = ui.row().classes('items-center gap-2 q-ml-sm')
+            with ui.column().classes('gap-0'):
+                ui.label('Dönem').style('font-size:9px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:0.5px')
+                donem_popover_btn(_on_donem, default_current_month=True)
+
+        # --- Ozet mini kartlar ---
+        ozet_box = ui.row().classes('w-full items-center gap-2')
         tablo_box = ui.column().classes('w-full')
     _refresh()
