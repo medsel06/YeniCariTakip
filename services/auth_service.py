@@ -57,7 +57,7 @@ def ensure_default_admin():
                 conn2.execute(
                     "INSERT INTO users (username, full_name, password_hash, role, is_active, tenant_id, created_at, updated_at) "
                     "VALUES (%s, %s, %s, %s, 1, %s, %s, %s)",
-                    ('admin', 'Administrator', hash_password('admin123'), 'admin', tenant_id, now, now)
+                    ('admin', 'Administrator', hash_password(os.environ.get('APP_ADMIN_PASSWORD', 'admin123')), 'admin', tenant_id, now, now)
                 )
         else:
             # Users bos mu? (ilk kurulumda tenant var ama user yok olabilir)
@@ -69,7 +69,7 @@ def ensure_default_admin():
                     conn.execute(
                         "INSERT INTO users (username, full_name, password_hash, role, is_active, tenant_id, created_at, updated_at) "
                         "VALUES (%s, %s, %s, %s, 1, %s, %s, %s)",
-                        ('admin', 'Administrator', hash_password('admin123'), 'admin', tenant['id'], now, now)
+                        ('admin', 'Administrator', hash_password(os.environ.get('APP_ADMIN_PASSWORD', 'admin123')), 'admin', tenant['id'], now, now)
                     )
 
 

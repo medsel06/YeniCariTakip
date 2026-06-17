@@ -84,6 +84,25 @@ def api_auth(handler):
     return wrapper
 
 
+def api_admin(handler):
+    """Login + admin rolu zorunlu (kullanici yonetimi, yedek gibi hassas uclar icin)."""
+    @wraps(handler)
+    async def wrapper(request: Request, *args, **kwargs):
+        user, tenant = _get_user_and_tenant(request)
+        if not user or not tenant:
+            return _json({'error': 'unauthorized', 'message': 'Giriş yapılmamış'}, status=401)
+        if (user.get('role') or '') != 'admin':
+            return _json({'error': 'forbidden', 'message': 'Bu işlem için yetkiniz yok'}, status=403)
+        set_tenant_schema(tenant)
+        try:
+            return await handler(request, *args, **kwargs)
+        except Exception as e:
+            return _json({'error': 'server_error', 'message': str(e)}, status=500)
+        finally:
+            set_tenant_schema(None)
+    return wrapper
+
+
 # ============= ME / SESSION =============
 
 @app.get('/api/me')
@@ -714,14 +733,14 @@ async def api_hareket_detay(request: Request, rec_id: int):
 # ============= USERS (Ayarlar) =============
 
 @app.get('/api/users')
-@api_auth
+@api_admin
 async def api_users(request: Request):
     from services import auth_service
     return _json(auth_service.list_users())
 
 
 @app.post('/api/users')
-@api_auth
+@api_admin
 async def api_user_create(request: Request):
     from services import auth_service
     data = await request.json()
@@ -730,7 +749,7 @@ async def api_user_create(request: Request):
 
 
 @app.put('/api/users/{uid}')
-@api_auth
+@api_admin
 async def api_user_update(request: Request, uid: int):
     from services import auth_service
     data = await request.json()
@@ -739,7 +758,7 @@ async def api_user_update(request: Request, uid: int):
 
 
 @app.put('/api/users/{uid}/password')
-@api_auth
+@api_admin
 async def api_user_password(request: Request, uid: int):
     from services import auth_service
     data = await request.json()
@@ -748,7 +767,7 @@ async def api_user_password(request: Request, uid: int):
 
 
 @app.delete('/api/users/{uid}')
-@api_auth
+@api_admin
 async def api_user_delete(request: Request, uid: int):
     from services import auth_service
     auth_service.delete_user(uid)
@@ -758,14 +777,14 @@ async def api_user_delete(request: Request, uid: int):
 # ============= BACKUP =============
 
 @app.get('/api/backups')
-@api_auth
+@api_admin
 async def api_backups(request: Request):
     from services import backup_service
     return _json(backup_service.list_backups())
 
 
 @app.post('/api/backups')
-@api_auth
+@api_admin
 async def api_backup_create(request: Request):
     from services import backup_service
     path = backup_service.create_backup()

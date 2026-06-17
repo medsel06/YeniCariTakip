@@ -265,6 +265,6 @@ if __name__ in {"__main__", "__mp_main__"}:
         reload=False,
         show=not app_mode,
         log_config=None if getattr(sys, 'frozen', False) else None,
-        storage_secret='cari_takip_storage_secret_2026',
+        storage_secret=os.environ.get('APP_STORAGE_SECRET', 'cari_takip_storage_secret_2026'),
     )
 

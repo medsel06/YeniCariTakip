@@ -17,7 +17,6 @@ def login_page():
 
             inp_user = ui.input('Kullanici Adi').props('outlined dense').classes('w-full')
             inp_pass = ui.input('Sifre', password=True, password_toggle_button=True).props('outlined dense').classes('w-full')
-            ui.label('Ilk kurulum: admin / admin123').classes('text-caption text-grey-7 q-mt-xs')
 
             def _login():
                 try:
