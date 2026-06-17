@@ -171,6 +171,14 @@ def dashboard_page():
             r = dict(row)
             r['aciliyet'] = '7_GUN'
             tum_uyarilar.append(r)
+        for row in uyarilar.get('otuz_gun', []):
+            r = dict(row)
+            r['aciliyet'] = '30_GUN'
+            tum_uyarilar.append(r)
+        for row in uyarilar.get('doksan_gun', []):
+            r = dict(row)
+            r['aciliyet'] = '90_GUN'
+            tum_uyarilar.append(r)
 
         if not tum_uyarilar:
             with ui.card().classes('w-full q-pa-xs'):
@@ -197,10 +205,14 @@ def dashboard_page():
                         <q-badge dense text-color="white"
                             :color="props.value === 'GECMİS' ? 'red-4' :
                                     props.value === 'BUGUN' ? 'red-3' :
-                                    props.value === '3_GUN' ? 'orange-4' : 'amber-6'">
+                                    props.value === '3_GUN' ? 'orange-4' :
+                                    props.value === '7_GUN' ? 'amber-6' :
+                                    props.value === '30_GUN' ? 'blue-4' : 'blue-grey-4'">
                             {{ props.value === 'GECMİS' ? 'Geçmiş' :
                                props.value === 'BUGUN' ? 'Bugün' :
-                               props.value === '3_GUN' ? '3 Gün' : '7 Gün' }}
+                               props.value === '3_GUN' ? '3 Gün' :
+                               props.value === '7_GUN' ? '7 Gün' :
+                               props.value === '30_GUN' ? '1 Ay' : '3 Ay' }}
                         </q-badge>
                     </q-td>
                 ''')

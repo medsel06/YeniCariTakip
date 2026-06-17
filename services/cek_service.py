@@ -285,11 +285,17 @@ def get_cek_hareketleri(cek_id):
 
 
 def get_vade_uyarilari():
-    """Dashboard icin vade uyarilari"""
+    """Dashboard icin vade uyarilari.
+    Pencere 3 ay (90 gun): vadesine 3 ay kalan ALINAN (tahsil) / VERILEN (odeme)
+    cek-senetler dashboard'da gosterilir. Aciliyet kovalari:
+    gecmis / bugun / 3 gun / 7 gun / 30 gun / 90 gun.
+    """
     from datetime import timedelta
     today = datetime.now().date()
     d3 = (today + timedelta(days=3)).strftime('%Y-%m-%d')
     d7 = (today + timedelta(days=7)).strftime('%Y-%m-%d')
+    d30 = (today + timedelta(days=30)).strftime('%Y-%m-%d')
+    d90 = (today + timedelta(days=90)).strftime('%Y-%m-%d')
     today_str = today.strftime('%Y-%m-%d')
 
     with get_db() as conn:
@@ -305,6 +311,14 @@ def get_vade_uyarilari():
             "SELECT * FROM cekler WHERE vade_tarih > ? AND vade_tarih <= ? AND durum IN ('PORTFOYDE','TAHSILE_VERILDI','KESILDI')",
             (d3, d7)
         ).fetchall()
+        otuz_gun = conn.execute(
+            "SELECT * FROM cekler WHERE vade_tarih > ? AND vade_tarih <= ? AND durum IN ('PORTFOYDE','TAHSILE_VERILDI','KESILDI')",
+            (d7, d30)
+        ).fetchall()
+        doksan_gun = conn.execute(
+            "SELECT * FROM cekler WHERE vade_tarih > ? AND vade_tarih <= ? AND durum IN ('PORTFOYDE','TAHSILE_VERILDI','KESILDI')",
+            (d30, d90)
+        ).fetchall()
         gecmis = conn.execute(
             "SELECT * FROM cekler WHERE vade_tarih < ? AND durum IN ('PORTFOYDE','TAHSILE_VERILDI','KESILDI')",
             (today_str,)
@@ -315,6 +329,8 @@ def get_vade_uyarilari():
         'bugun': [dict(r) for r in bugun],
         'uc_gun': [dict(r) for r in uc_gun],
         'yedi_gun': [dict(r) for r in yedi_gun],
+        'otuz_gun': [dict(r) for r in otuz_gun],
+        'doksan_gun': [dict(r) for r in doksan_gun],
     }
 
 
