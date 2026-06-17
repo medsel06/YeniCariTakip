@@ -48,11 +48,13 @@ def cari_page():
             all_data = load_data()
             table.rows = get_filtered()
             table.update()
+            _render_ozet()
 
         def on_tur_change(new_tur):
             tur_filter['value'] = new_tur
             table.rows = get_filtered()
             table.update()
+            _render_ozet()
 
         # Arama + Tur segment + Donem popover + Buton tek satir
         with ui.row().classes('w-full items-center gap-2 q-mb-xs'):
@@ -74,6 +76,34 @@ def cari_page():
             ui.space()
             ui.button('Yeni Firma', icon='add', on_click=lambda: open_new_firma_dialog()) \
                 .props('color=primary')
+
+        # --- Ozet kartlari: Toplam Alacak / Borc / Net (gorunen satirlara gore) ---
+        ozet_box = ui.row().classes('w-full items-center gap-2 q-mb-xs')
+
+        def _render_ozet():
+            ozet_box.clear()
+            rows = get_filtered()
+            t_alacak = sum(float(r.get('bakiye') or 0) for r in rows if float(r.get('bakiye') or 0) > 0)
+            t_borc = sum(-float(r.get('bakiye') or 0) for r in rows if float(r.get('bakiye') or 0) < 0)
+            net = t_alacak - t_borc
+            net_fg = '#15803d' if net >= 0 else '#b91c1c'
+            net_bg = '#f0fdf4' if net >= 0 else '#fef2f2'
+
+            def _stat(baslik, deger, bg, fg, icon):
+                with ui.element('div').style(
+                    f'background:{bg};border:1px solid {fg}33;border-radius:10px;padding:6px 16px;min-width:170px;'
+                ):
+                    with ui.row().classes('items-center no-wrap gap-2'):
+                        ui.icon(icon).style(f'color:{fg};font-size:22px')
+                        with ui.column().classes('gap-0'):
+                            ui.label(baslik).style('font-size:9px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.5px')
+                            ui.label(f"{fmt_para(deger)} TL").style(f'font-size:16px;font-weight:800;color:{fg};line-height:1.1')
+
+            with ozet_box:
+                _stat('Toplam Alacak', t_alacak, '#f0fdf4', '#15803d', 'trending_up')
+                _stat('Toplam Borç', t_borc, '#fef2f2', '#b91c1c', 'trending_down')
+                _stat('Net Bakiye', net, net_bg, net_fg, 'account_balance')
+                ui.label(f"{len(rows)} firma").classes('text-caption text-grey-6 q-ml-sm')
 
         # Tablo
         columns = [
@@ -125,14 +155,19 @@ def cari_page():
             all_data = load_data()
             table.rows = get_filtered()
             table.update()
+            _render_ozet()
 
         # Arama handler
         def on_search(e):
             search_value['text'] = e.args if isinstance(e.args, str) else (e.args or '')
             table.rows = get_filtered()
             table.update()
+            _render_ozet()
 
         search_input.on('update:model-value', lambda e: on_search(e))
+
+        # Ilk ozet render
+        _render_ozet()
 
         # Satir tiklama - cari detaya git
         table.on('rowClick', lambda e: ui.navigate.to(f'/cari/{e.args[1]["kod"]}'))

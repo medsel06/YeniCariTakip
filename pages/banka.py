@@ -32,6 +32,32 @@ def banka_page():
             if not hesaplar:
                 ui.label(f"Tanımlı {TIP_LABEL[state['tip']].lower()} yok. \"Yeni\" ile ekleyin.").classes('text-grey-6 q-pa-sm')
                 return
+
+            # --- Ozet seridi (en ustte toplamlar) ---
+            def _stat(baslik, deger, bg, fg, icon):
+                with ui.element('div').style(
+                    f'background:{bg};border:1px solid {fg}33;border-radius:10px;padding:6px 16px;min-width:160px;'
+                ):
+                    with ui.row().classes('items-center no-wrap gap-2'):
+                        ui.icon(icon).style(f'color:{fg};font-size:22px')
+                        with ui.column().classes('gap-0'):
+                            ui.label(baslik).style('font-size:9px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.5px')
+                            ui.label(f"{fmt_para(deger)} TL").style(f'font-size:16px;font-weight:800;color:{fg};line-height:1.1')
+
+            with ui.row().classes('w-full items-center gap-2 q-mb-sm'):
+                if is_kart_tip:
+                    toplam_borc = sum(-float(h['bakiye']) for h in hesaplar if float(h['bakiye']) < 0)
+                    toplam_limit = sum(float(h.get('kart_limiti', 0) or 0) for h in hesaplar)
+                    kullanilabilir = toplam_limit - toplam_borc
+                    _stat('Toplam Kart Borcu', toplam_borc, '#fef2f2', '#b91c1c', 'credit_card')
+                    _stat('Toplam Limit', toplam_limit, '#eef2ff', '#4338ca', 'speed')
+                    _stat('Kullanılabilir', kullanilabilir, '#f0fdf4', '#15803d', 'check_circle')
+                else:
+                    toplam = sum(float(h['bakiye']) for h in hesaplar)
+                    _fg = '#15803d' if toplam >= 0 else '#b91c1c'
+                    _bg = '#f0fdf4' if toplam >= 0 else '#fef2f2'
+                    _stat('Toplam Banka Bakiyesi', toplam, _bg, _fg, 'account_balance')
+
             # SATIR (liste) gorunumu — her hesap tek ince satir
             with ui.column().classes('w-full gap-0').style('border:1px solid #e0e0e0;border-radius:8px;overflow:hidden'):
                 for i, h in enumerate(hesaplar):
