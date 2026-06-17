@@ -1562,6 +1562,36 @@ table.tbl.mock-table tbody tr.selected td {
   --row-selected: #0c3d45;
   --table-stripe: #061821;
 }
+/* Light tema: dark'ta tanimli ama light'ta eksik kalan yuzey degiskenleri
+   (sidebar/topbar/satir) — bunlar olmadan light'ta yuzeyler seffaf kaliyordu. */
+:root[data-theme="light"] {
+  --sidebar: #ffffff;
+  --sidebar-2: #f1f6f8;
+  --topbar: rgba(255,255,255,.92);
+  --row-selected: #e3eef1;
+  --table-stripe: #f5f9fb;
+}
+:root[data-theme="light"] body { background: #eef4f6; }
+:root[data-theme="light"] .sb { background: #ffffff; border-right-color: #dce7ea; }
+/* Light tema metin okunabilirligi: dark-first sabit acik renkler light'ta gorunmuyordu.
+   Sadece light'ta gecerli; dark hic etkilenmez. */
+:root[data-theme="light"] .sb-item,
+:root[data-theme="light"] .shortcut-hd,
+:root[data-theme="light"] .shortcut-btn,
+:root[data-theme="light"] .sb-mini-action,
+:root[data-theme="light"] .tb-link,
+:root[data-theme="light"] .tx-count,
+:root[data-theme="light"] .tool-btn,
+:root[data-theme="light"] table.tbl.mock-table tbody td,
+:root[data-theme="light"] .doc-type,
+:root[data-theme="light"] .row-menu,
+:root[data-theme="light"] .pager,
+:root[data-theme="light"] .mini-table td,
+:root[data-theme="light"] .age-row,
+:root[data-theme="light"] .donut-center span,
+:root[data-theme="light"] .bank-line { color: var(--text-2) !important; }
+:root[data-theme="light"] .sb-item.active,
+:root[data-theme="light"] .top-search input { color: var(--text) !important; }
 html[data-theme="dark"], :root[data-theme="dark"] body {
   background:
     radial-gradient(circle at 18% -14%, rgba(51, 214, 223, .085), transparent 34vw),
