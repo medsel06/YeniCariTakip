@@ -1,5 +1,5 @@
 """Ödeme / Tahsilat Takibi — vade planı sayfası."""
-from datetime import date
+from datetime import date, datetime
 from nicegui import ui
 from layout import create_layout, fmt_para, notify_ok, notify_err, confirm_dialog, donem_secici
 from services.odeme_takibi_service import (
@@ -55,6 +55,22 @@ def odeme_takibi_page():
         if filtre['ay']:
             return str(vt)[:7] == f"{filtre['yil']}-{filtre['ay']:02d}"
         return str(vt)[:4] == str(filtre['yil'])
+
+    def _urgency(vt, durumraw):
+        """Vade aciliyeti: ODENDI ise yok; vadesi gectiyse GECIKTI (kirmizi);
+        0-7 gun kala YAKLASIYOR (pembe). Doner: (urg, gun_kalan)."""
+        if durumraw == 'ODENDI' or not vt:
+            return ('', None)
+        try:
+            d = datetime.strptime(str(vt)[:10], '%Y-%m-%d').date()
+        except ValueError:
+            return ('', None)
+        gk = (d - _now).days
+        if gk < 0:
+            return ('GECIKTI', gk)
+        if gk <= 7:
+            return ('YAKLASIYOR', gk)
+        return ('', gk)
 
     def _load_all():
         """Manuel + cari vadeli (FIFO) + cek/senet vadelerini tek listede birlestirir."""
@@ -128,6 +144,15 @@ def odeme_takibi_page():
                 src = r['_src']
                 rid = f"M{r.get('id')}" if src == 'MANUEL' else (
                     f"C{r.get('hareket_id')}" if src == 'CARI' else f"K{r.get('cek_id')}")
+                vt = r.get('vade_tarih', '') or ''
+                urg, gk = _urgency(vt, r['durum'])
+                vade_disp = '-' if not vt else '.'.join(reversed(str(vt)[:10].split('-')))
+                if urg == 'GECIKTI':
+                    urgtext = f"{abs(gk)} gün geçti"
+                elif urg == 'YAKLASIYOR':
+                    urgtext = 'bugün' if gk == 0 else f"{gk} gün kaldı"
+                else:
+                    urgtext = ''
                 disp.append({
                     '_rid': rid, '_src': src,
                     'id': r.get('id'), 'firma_kod': r.get('firma_kod', '') or '',
@@ -137,22 +162,27 @@ def odeme_takibi_page():
                     'aciklama': r.get('aciklama', '') or '',
                     'tutar': fmt_para(r['tutar']), '_kalanraw': r['kalan'],
                     'kalan': fmt_para(r['kalan']),
-                    'vade_tarih': r.get('vade_tarih', '') or '-', '_vraw': r.get('vade_tarih', '') or '',
+                    'vade_tarih': vade_disp, '_vade_disp': vade_disp,
+                    '_urg': urg, '_urgtext': urgtext,
                     'durum': DURUM_TR.get(r['durum'], r['durum']), '_durumraw': r['durum'],
                 })
             tbl = ui.table(
                 columns=columns, rows=disp, row_key='_rid',
                 pagination={'rowsPerPage': len(disp) or 1},
             ).classes('w-full odeme-tbl').props('flat bordered hide-bottom dense')
-            tbl.add_slot('body-cell-vade_tarih', f'''
+            tbl.add_slot('body-cell-vade_tarih', r'''
                 <q-td :props="props">
-                    <span :style="(props.row._vraw && props.row._vraw < '{bugun}' && props.row._durumraw !== 'ODENDI') ? 'color:#b91c1c;font-weight:700' : ''">
-                        {{{{ props.row._vraw ? props.row._vraw.split('-').reverse().join('.') : '-' }}}}
+                    <span style="display:inline-block;padding:2px 8px;border-radius:6px;font-weight:700;font-size:11px;white-space:nowrap;"
+                        :style="props.row._urg==='GECIKTI' ? 'background:#fee2e2;color:#b91c1c;' :
+                                props.row._urg==='YAKLASIYOR' ? 'background:#fce7f3;color:#be185d;' :
+                                'background:transparent;color:#334155;'">
+                        {{ props.row._vade_disp }}
+                        <q-tooltip v-if="props.row._urgtext">{{ props.row._urgtext }}</q-tooltip>
                     </span>
                 </q-td>''')
             tbl.add_slot('body-cell-kaynak', r'''
                 <q-td :props="props">
-                    <div class="column items-start" style="gap:2px;">
+                    <div class="row items-center no-wrap justify-center" style="gap:4px;">
                         <q-chip dense square text-color="white"
                             :icon="props.row._kkod==='KART' ? 'credit_card' :
                                    props.row._kkod==='CARI' ? 'people' :
@@ -166,15 +196,13 @@ def odeme_takibi_page():
                                     props.row._kkod==='VERGI' ? 'red-7' :
                                     props.row._kkod==='SGK' ? 'teal-7' :
                                     (props.row._kkod==='KREDI' || props.row._kkod==='BANKA_KREDI') ? 'indigo-7' : 'blue-grey-5'"
-                            style="font-size:10.5px;height:20px;">
+                            style="font-size:10.5px;height:20px;margin:0;">
                             {{ props.value }}
                         </q-chip>
-                        <span style="font-size:9px;letter-spacing:0.2px;display:inline-flex;align-items:center;gap:2px;"
-                            :style="props.row._src==='MANUEL' ? 'color:#64748b;' : 'color:#0891b2;'">
-                            <q-icon :name="props.row._src==='MANUEL' ? 'edit' : 'autorenew'" size="11px" />
-                            {{ props.row._src==='MANUEL' ? 'manuel' : 'otomatik' }}
-                            <q-tooltip v-if="props.row._src!=='MANUEL'">Vadeli işlem / çek kaydından otomatik oluştu</q-tooltip>
-                        </span>
+                        <q-icon :name="props.row._src==='MANUEL' ? 'edit_note' : 'autorenew'" size="14px"
+                            :color="props.row._src==='MANUEL' ? 'grey-6' : 'cyan-7'">
+                            <q-tooltip>{{ props.row._src==='MANUEL' ? 'Manuel eklendi' : 'Otomatik oluştu (vadeli işlem / çek)' }}</q-tooltip>
+                        </q-icon>
                     </div>
                 </q-td>''')
             tbl.add_slot('body-cell-durum', r'''
@@ -200,7 +228,7 @@ def odeme_takibi_page():
                         @click="$parent.$emit('goto_cek', props.row)"><q-tooltip>Çek Sayfası</q-tooltip></q-btn>
                 </q-td>''')
             tbl.on('ode', lambda e: _ode_dialog(e.args))
-            tbl.on('edit', lambda e: _form(e.args))
+            tbl.on('edit', lambda e: _edit_manuel(e.args))
             tbl.on('sil', lambda e: _sil(e.args))
             tbl.on('cari_ode', lambda e: _cari_ode_dialog(e.args))
             tbl.on('goto_cek', lambda e: ui.navigate.to('/cekler'))
@@ -326,6 +354,15 @@ def odeme_takibi_page():
                         notify_err(f'Hata: {e}')
                 ui.button('Onayla', color='positive', on_click=_save).props('unelevated')
         dlg.open()
+
+    def _edit_manuel(disp_row):
+        """Manuel kaydi DUZENLE: tablodaki gosterim satiri degil, ham DB kaydiyla ac."""
+        rid = disp_row.get('id')
+        rec = next((x for x in list_odeme_takibi() if x['id'] == rid), None)
+        if rec:
+            _form(rec)
+        else:
+            notify_err('Kayıt bulunamadı')
 
     def _sil(row):
         confirm_dialog(f"'{row['aciklama']}' kaydını silmek istediğinize emin misiniz?",

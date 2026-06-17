@@ -81,15 +81,24 @@ def get_vadeli_cari():
             "ORDER BY firma_kod, tur, COALESCE(NULLIF(vade_tarih,''), tarih), tarih, id"
         ).fetchall()
 
+        # NOT: gelir_gider_id dolu kasa kayitlari haric — onlar gelir/gider borcunu kapatir,
+        # alis/satis vadesini degil (cift kapama olmasin).
         havuz = {
-            'SATIS': dict(_sum_by_firma(conn, "tur='GELIR' AND cek_id IS NULL AND COALESCE(is_transfer,0)=0")),
-            'ALIS': dict(_sum_by_firma(conn, "tur='GIDER' AND cek_id IS NULL AND COALESCE(is_transfer,0)=0")),
+            'SATIS': dict(_sum_by_firma(conn, "tur='GELIR' AND cek_id IS NULL AND gelir_gider_id IS NULL AND COALESCE(is_transfer,0)=0")),
+            'ALIS': dict(_sum_by_firma(conn, "tur='GIDER' AND cek_id IS NULL AND gelir_gider_id IS NULL AND COALESCE(is_transfer,0)=0")),
         }
-        # Cek ile kapanmalar
+        # Cek ile kapanmalar (karsiliksiz/iade odeme sayilmaz)
         for k, v in _cek_sum_by_firma(conn, "cek_turu='ALINAN' AND durum NOT IN ('KARSILIKSIZ','IADE_EDILDI')").items():
             havuz['SATIS'][k] = havuz['SATIS'].get(k, 0) + v
-        for k, v in _cek_sum_by_firma(conn, "cek_turu='VERILEN' AND durum NOT IN ('IADE_EDILDI')").items():
+        for k, v in _cek_sum_by_firma(conn, "cek_turu='VERILEN' AND durum NOT IN ('IADE_EDILDI','KARSILIKSIZ')").items():
             havuz['ALIS'][k] = havuz['ALIS'].get(k, 0) + v
+        # Ciro edilen alinan cek, ciro firmasina olan borcu (ALIS) kapatir
+        for r in conn.execute(
+            "SELECT ciro_firma_kod AS fk, COALESCE(SUM(tutar),0) AS t FROM cekler "
+            "WHERE durum='CIRO_EDILDI' AND ciro_firma_kod IS NOT NULL AND ciro_firma_kod != '' "
+            "GROUP BY ciro_firma_kod"
+        ).fetchall():
+            havuz['ALIS'][r['fk']] = havuz['ALIS'].get(r['fk'], 0) + float(r['t'] or 0)
 
         # FIFO dagitimi: kalan havuzu firma+yon bazinda takip et
         kalan_havuz = {'SATIS': {}, 'ALIS': {}}
