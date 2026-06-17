@@ -3599,8 +3599,10 @@ let FIRMALAR_MASTER = []; // CUSTOMERS'ın superset'i (NACE, is_alani, risk_limi
 // TODO Faz 2/3: tüm bu let array'leri /api/* endpoint'lerinden gelecek
 
 const ODEME_SEKLI = ['Nakit','Havale','Kredi Kartı','Çek','Senet','Diğer'];
-const CEK_DURUM = {portfoyde:'Portföyde',tahsil:'Tahsil',karsiliksiz:'Karşılıksız',ciro:'Ciro',iade:'İade'};
-const CEK_DURUM_K = {portfoyde:'info',tahsil:'good',karsiliksiz:'bad',ciro:'warn',iade:'mute'};
+const CEK_DURUM = {portfoyde:'Portföyde',tahsile_verildi:'Tahsile Verildi',tahsil_edildi:'Tahsil Edildi',ciro_edildi:'Ciro Edildi',iade_edildi:'İade Edildi',karsiliksiz:'Karşılıksız',kesildi:'Kesildi',odendi:'Ödendi'};
+const CEK_DURUM_K = {portfoyde:'info',tahsile_verildi:'warn',tahsil_edildi:'good',ciro_edildi:'warn',iade_edildi:'mute',karsiliksiz:'bad',kesildi:'info',odendi:'good'};
+const CEK_DURUM_UP = {PORTFOYDE:'Portföyde',TAHSILE_VERILDI:'Tahsile Verildi',TAHSIL_EDILDI:'Tahsil Edildi',CIRO_EDILDI:'Ciro Edildi',IADE_EDILDI:'İade Edildi',KARSILIKSIZ:'Karşılıksız',KESILDI:'Kesildi',ODENDI:'Ödendi'};
+const CEK_TRANS = {ALINAN:{PORTFOYDE:['TAHSILE_VERILDI','CIRO_EDILDI','IADE_EDILDI'],TAHSILE_VERILDI:['TAHSIL_EDILDI','KARSILIKSIZ','IADE_EDILDI']},VERILEN:{KESILDI:['ODENDI','KARSILIKSIZ']}};
 
 // ============= KASA PAGE =============
 function Kasa({onNew}){
@@ -4148,7 +4150,11 @@ function CeklerPage({onNew}){
   const [tab,setTab]=React.useState('alinan');
   const [ls,setLs]=React.useState('');
   const [durum,setDurum]=React.useState('all');
+  const [durumCek,setDurumCek]=React.useState(null);
   const q=ls.toLowerCase().trim();
+  const _hasTrans=(c)=>((CEK_TRANS[c.tip]||{})[(c.durum||'').toUpperCase()]||[]).length>0;
+  const _canUndo=(c)=>(c.tip==='ALINAN'&&c.durum!=='portfoyde')||(c.tip==='VERILEN'&&c.durum!=='kesildi');
+  const undoCek=async(c)=>{if(!confirm('Bu çekin SON durum değişikliği geri alınsın mı?'))return;const r=await apiPost('/api/cekler/'+c.id+'/undo',{});if(r&&r.ok){window.__toast&&window.__toast(r.message||'Geri alındı');window.__reload&&window.__reload();}else alert((r&&r.message)||'Geri alınamadı');};
   const list = CEKLER.filter(c=>{
     if(tab==='alinan' && c.tip!=='ALINAN') return false;
     if(tab==='verilen' && c.tip!=='VERILEN') return false;
@@ -4189,12 +4195,47 @@ function CeklerPage({onNew}){
             <td className="tdate">{fmtD(c.vade_tarihi)}</td>
             <td className="tnum" style={{fontWeight:600}}>{fmt(c.tutar||0)}</td>
             <td><Chip k={CEK_DURUM_K[c.durum]||'mute'}>{CEK_DURUM[c.durum]||c.durum}</Chip></td>
-            <td><div className="hstack" style={{gap:4}}><button className="btn btn-icon btn-ghost btn-sm" title="Düzenle"><ISet size={13}/></button><button className="btn btn-icon btn-ghost btn-sm" style={{color:'var(--bad)'}} title="Sil" onClick={(e)=>{e.stopPropagation();handleDelete('/api/cekler',c.id,'Bu çek kaydını silmek istiyor musunuz?')}}><IX size={13}/></button></div></td>
+            <td><div className="hstack" style={{gap:4}}>
+              {_hasTrans(c)&&<button className="btn btn-icon btn-ghost btn-sm" title="Durum Değiştir" style={{color:'var(--info)'}} onClick={(e)=>{e.stopPropagation();setDurumCek(c)}}><ISwap size={13}/></button>}
+              {_canUndo(c)&&<button className="btn btn-icon btn-ghost btn-sm" title="Son durumu geri al" style={{color:'var(--warn)',fontWeight:700}} onClick={(e)=>{e.stopPropagation();undoCek(c)}}>↩</button>}
+              <button className="btn btn-icon btn-ghost btn-sm" style={{color:'var(--bad)'}} title="Sil" onClick={(e)=>{e.stopPropagation();handleDelete('/api/cekler',c.id,'Bu çek kaydını silmek istiyor musunuz?')}}><IX size={13}/></button>
+            </div></td>
           </tr>)}
         </tbody>
       </table></div>
     </div>
+    {durumCek&&<CekDurumModal cek={durumCek} onClose={()=>setDurumCek(null)} onSaved={(m)=>{setDurumCek(null);window.__toast&&window.__toast(m);window.__reload&&window.__reload();}}/>}
   </div>;
+}
+
+// ============= ÇEK DURUM MODAL =============
+function CekDurumModal({cek,onClose,onSaved}){
+  const cur=(cek.durum||'').toUpperCase();
+  const trans=(CEK_TRANS[cek.tip]||{})[cur]||[];
+  const [yeni,setYeni]=React.useState(trans[0]||'');
+  const [ciro,setCiro]=React.useState('');
+  const [hesap,setHesap]=React.useState('__nakit__');
+  const [aciklama,setAciklama]=React.useState('');
+  const isCiro=yeni==='CIRO_EDILDI';
+  const isTahsil=yeni==='TAHSIL_EDILDI'||yeni==='ODENDI';
+  const hesaplar=BANKA.filter(b=>b.aktif);
+  const submit=async(e)=>{e.preventDefault();if(!yeni){alert('Yeni durum seçin');return;}
+    if(isCiro&&!ciro){alert('Ciro edilecek firmayı seçin');return;}
+    const c=CUSTOMERS.find(x=>x.id===ciro);
+    const bh=hesap==='__nakit__'?null:parseInt(hesap);
+    const payload={durum:yeni,aciklama,ciro_firma_kod:isCiro&&c?c.code:'',ciro_firma_ad:isCiro&&c?c.name:'',banka_hesap_id:isTahsil?bh:null};
+    const r=await apiPut('/api/cekler/'+cek.id+'/durum',payload);
+    if(r&&r.ok)onSaved&&onSaved(r.message||'Durum güncellendi');else alert((r&&r.message)||'İşlem başarısız');};
+  return <div className="scrim" onClick={onClose}><form className="modal" style={{width:480}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
+    <div className="m-hd"><div style={{width:34,height:34,borderRadius:8,background:'var(--info-soft)',color:'var(--info)',display:'grid',placeItems:'center'}}><ISwap size={15}/></div><div style={{flex:1}}><div className="m-ttl">Durum Değiştir</div><div className="m-sub">{cek.evrak_no} · Mevcut: {CEK_DURUM_UP[cur]||cur}</div></div><button type="button" className="btn btn-icon btn-ghost" onClick={onClose}><IX size={14}/></button></div>
+    <div className="m-bd">
+      <div className="field"><label>Yeni Durum</label><select value={yeni} onChange={e=>setYeni(e.target.value)}>{trans.map(t=><option key={t} value={t}>{CEK_DURUM_UP[t]||t}</option>)}</select></div>
+      {isCiro&&<div className="field"><label>Ciro Edilecek Firma</label><select value={ciro} onChange={e=>setCiro(e.target.value)}><option value="">— Seçin —</option>{CUSTOMERS.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>}
+      {isTahsil&&<div className="field"><label>{yeni==='ODENDI'?'Ödeme':'Tahsilat'} Hesabı</label><select value={hesap} onChange={e=>setHesap(e.target.value)}><option value="__nakit__">Nakit Kasa</option>{hesaplar.map(b=><option key={b.id} value={b.id}>{b.ad}</option>)}</select></div>}
+      <div className="field"><label>Açıklama</label><input value={aciklama} onChange={e=>setAciklama(e.target.value)} placeholder="İsteğe bağlı"/></div>
+    </div>
+    <div className="m-ft"><button type="button" className="btn" onClick={onClose}>İptal</button><button type="submit" className="btn btn-primary"><ICk size={13}/>Uygula</button></div>
+  </form></div>;
 }
 
 // ============= ÇEK MODAL =============

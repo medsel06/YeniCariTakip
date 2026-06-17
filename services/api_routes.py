@@ -579,13 +579,27 @@ async def api_cek_update(request: Request, cek_id: int):
 @api_auth
 async def api_cek_durum(request: Request, cek_id: int):
     data = await request.json()
-    cek_service.change_durum(
+    bh = data.get('banka_hesap_id')
+    ok, msg = cek_service.change_durum(
         cek_id, data.get('durum'),
         aciklama=data.get('aciklama', ''),
         ciro_firma_kod=data.get('ciro_firma_kod', ''),
         ciro_firma_ad=data.get('ciro_firma_ad', ''),
+        banka_hesap_id=int(bh) if bh else None,
     )
-    return _json({'ok': True})
+    return _json({'ok': bool(ok), 'message': msg}, status=200 if ok else 400)
+
+
+@app.post('/api/cekler/{cek_id}/undo')
+@api_auth
+async def api_cek_undo(request: Request, cek_id: int):
+    """Cekin SON durum degisikligini geri al (event-sourced)."""
+    hareketler = cek_service.get_cek_hareketleri(cek_id)
+    if not hareketler:
+        return _json({'ok': False, 'message': 'Hareket yok'}, status=400)
+    son = hareketler[-1]
+    ok, msg = cek_service.undo_cek_hareketi(son['id'])
+    return _json({'ok': bool(ok), 'message': msg}, status=200 if ok else 400)
 
 
 @app.put('/api/gelir-gider/{rec_id}')
