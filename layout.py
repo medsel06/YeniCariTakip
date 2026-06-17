@@ -171,6 +171,11 @@ body, html, .q-page-container, .q-page, .q-layout,
 .alse-drawer .q-drawer__content {
   overflow-y: auto !important;
   overflow-x: hidden !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  /* Dusuk cozunurluklu ekranlarda son menu ogesinin (Uretim vb.) kirpilmamasi
+     icin alt bosluk + tam scroll garantisi */
+  padding-bottom: 32px !important;
 }
 /* Drawer brand alanı */
 .alse-drawer-brand {
