@@ -1579,7 +1579,10 @@ table.tbl.mock-table tbody tr.selected td {
   --table-stripe: #f5f9fb;
 }
 :root[data-theme="light"] body { background: #eef4f6; }
-:root[data-theme="light"] .sb { background: #ffffff; border-right-color: #dce7ea; }
+/* Light sidebar: duz beyaz yerine yumusak tonlu (hafif renk) */
+:root[data-theme="light"] .sb { background: linear-gradient(180deg, #e8f2f4 0%, #f3f9fa 60%, #f7fbfc 100%); border-right-color: #d2e2e5; }
+/* Uzun firma unvani solda tasmasin: tek satir + ... (her iki tema) */
+.sb-brand-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
 /* Light: ikincil butonlar yari-saydam beyazdi -> alttaki gradyan sizip gri/soluk gorunuyordu.
    Kati beyaz + biraz daha belirgin kenarlik: hos, goze batmayan. date-chip de beyaz. */
 :root[data-theme="light"] .btn { background: #ffffff; border-color: rgba(63,92,96,.22); }
@@ -3567,10 +3570,14 @@ let BACKUPS = [];
 // ============= AYARLAR PAGE =============
 function Ayarlar(){
   const [s,setS]=React.useState(SETTINGS);
+  const [userModal,setUserModal]=React.useState(false);
+  const [saving,setSaving]=React.useState(false);
   const upd=(k,v)=>setS(p=>({...p,[k]:v}));
-  const onSave=()=>{ window.__toast?.('Ayarlar kaydedildi'); /* TODO Faz 2: POST /api/settings */ };
-  const onBackup=()=>{ window.__toast?.('Yedek alma başlatıldı'); /* TODO Faz 2: POST /api/backups */ };
-  const onAddUser=()=>{ window.__toast?.('Yeni kullanıcı modal — Faz 2/3'); };
+  const onSave=async()=>{ setSaving(true); const r=await apiPut('/api/settings',s); setSaving(false);
+    if(r&&r.ok){window.__toast?.('Ayarlar kaydedildi');window.__reload?.();}else alert((r&&r.message)||'Kayıt başarısız'); };
+  const onBackup=async()=>{ window.__toast?.('Yedek alınıyor…'); const r=await apiPost('/api/backups',{});
+    if(r&&r.ok){window.__toast?.('Yedek alındı'+(r.filename?': '+r.filename:''));window.__reload?.();}else alert((r&&r.message)||'Yedek alınamadı'); };
+  const onAddUser=()=>setUserModal(true);
 
   return <div>
     {/* 1. Firma Bilgileri */}
@@ -3662,9 +3669,35 @@ function Ayarlar(){
     </div>
 
     <div className="hstack" style={{justifyContent:'flex-end',gap:8}}>
-      <button className="btn btn-primary" onClick={onSave}><ICk size={13}/>Ayarları Kaydet</button>
+      <button className="btn btn-primary" onClick={onSave} disabled={saving}><ICk size={13}/>Ayarları Kaydet</button>
     </div>
+    {userModal&&<UserModal onClose={()=>setUserModal(false)} onSaved={(m)=>{setUserModal(false);window.__toast?.(m);window.__reload?.();}}/>}
   </div>;
+}
+
+// ============= KULLANICI EKLE MODAL =============
+function UserModal({onClose,onSaved}){
+  const [username,setUsername]=React.useState('');
+  const [fullName,setFullName]=React.useState('');
+  const [role,setRole]=React.useState('user');
+  const [password,setPassword]=React.useState('');
+  const submit=async(e)=>{e.preventDefault();
+    if(!username.trim()){alert('Kullanıcı adı gerekli');return;}
+    if(!password||password.length<4){alert('Şifre en az 4 karakter olmalı');return;}
+    const r=await apiPost('/api/users',{username:username.trim(),full_name:fullName.trim(),role,password});
+    if(r&&r.ok)onSaved?.('Kullanıcı eklendi');else alert((r&&r.message)||'Kullanıcı eklenemedi');};
+  return <div className="scrim" onClick={onClose}><form className="modal" style={{width:460}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
+    <div className="m-hd"><div style={{width:34,height:34,borderRadius:8,background:'var(--info-soft)',color:'var(--info)',display:'grid',placeItems:'center'}}><ICari size={15}/></div><div style={{flex:1}}><div className="m-ttl">Yeni Kullanıcı</div><div className="m-sub">Sistem erişimi · rol & şifre</div></div><button type="button" className="btn btn-icon btn-ghost" onClick={onClose}><IX size={14}/></button></div>
+    <div className="m-bd">
+      <div className="field-row">
+        <div className="field"><label>Kullanıcı Adı</label><input value={username} onChange={e=>setUsername(e.target.value)} className="mono" autoFocus/></div>
+        <div className="field"><label>Rol</label><select value={role} onChange={e=>setRole(e.target.value)}><option value="user">Kullanıcı</option><option value="admin">Yönetici</option></select></div>
+      </div>
+      <div className="field"><label>Ad Soyad</label><input value={fullName} onChange={e=>setFullName(e.target.value)}/></div>
+      <div className="field"><label>Başlangıç Şifresi</label><input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="En az 4 karakter"/></div>
+    </div>
+    <div className="m-ft"><button type="button" className="btn" onClick={onClose}>İptal</button><button type="submit" className="btn btn-primary"><ICk size={13}/>Ekle</button></div>
+  </form></div>;
 }
 
 // ============= EK DATA (yeni sayfalar için) =============
@@ -4246,10 +4279,14 @@ function PersonelModal({onClose,onSaved}){
 // ============= MESAI MODAL =============
 function MesaiModal({personelId,onClose,onSaved}){
   const p = PERSONEL.find(x=>x.id===personelId);
-  const [hafta,setHafta]=React.useState('');
+  const [donem,setDonem]=React.useState('');
   const [saat,setSaat]=React.useState('');
   const [tutar,setTutar]=React.useState('');
-  const submit=(e)=>{e.preventDefault();onSaved?.('Mesai kaydedildi');};
+  const submit=async(e)=>{e.preventDefault();
+    if(!donem){alert('Dönem (ay) seçin');return;}
+    const yil=parseInt(donem.slice(0,4)), ay=parseInt(donem.slice(5,7));
+    const r=await apiPost('/api/personel/mesai',{personel_id:personelId,yil,ay,hafta:0,tur:'MESAI',saat:parseFloat(saat||0),tutar:parseFloat(tutar||0),aciklama:'Fazla mesai'});
+    if(r&&r.ok)onSaved?.('Mesai kaydedildi');else alert((r&&r.message)||'Kayıt başarısız');};
   return <div className="scrim" onClick={onClose}>
     <form className="modal" style={{width:480}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
       <div className="m-hd">
@@ -4258,7 +4295,7 @@ function MesaiModal({personelId,onClose,onSaved}){
         <button type="button" className="btn btn-icon btn-ghost" onClick={onClose}><IX size={14}/></button>
       </div>
       <div className="m-bd">
-        <div className="field"><label>Hafta</label><input value={hafta} onChange={e=>setHafta(e.target.value)} placeholder="2026-W17" className="mono" autoFocus/></div>
+        <div className="field"><label>Dönem (Ay)</label><input type="month" value={donem} onChange={e=>setDonem(e.target.value)} autoFocus/></div>
         <div className="field-row">
           <div className="field"><label>Fazla Mesai (saat)</label><input value={saat} onChange={e=>setSaat(e.target.value)} placeholder="0" style={{textAlign:'right',fontVariantNumeric:'tabular-nums'}}/></div>
           <div className="field"><label>Tutar (₺)</label><input value={tutar} onChange={e=>setTutar(e.target.value)} placeholder="0,00" style={{textAlign:'right',fontVariantNumeric:'tabular-nums'}}/></div>
@@ -4883,7 +4920,7 @@ function App(){
       const meRes = await fetch('/api/me', { credentials: 'same-origin' });
       if (meRes.status === 401) { window.location.href = '/login'; return; }
       if (meRes.ok) setMe(await meRes.json());
-      const [c, h, s, k, gg, p, ck, mut, to, kr, lg, fmaster, kasa_bak, dashKpi, settings, ckPort, ckVade, gg_ozet, bnk, odt] = await Promise.all([
+      const [c, h, s, k, gg, p, ck, mut, to, kr, lg, fmaster, kasa_bak, dashKpi, settings, ckPort, ckVade, gg_ozet, bnk, odt, usr, bkp] = await Promise.all([
         apiGet('/api/cariler'),
         apiGet('/api/hareketler'),
         apiGet('/api/stok'),
@@ -4904,6 +4941,8 @@ function App(){
         apiGet('/api/gelir-gider/ozet'),
         apiGet('/api/banka'),
         apiGet('/api/odeme-takibi'),
+        apiGet('/api/users').catch(()=>[]),
+        apiGet('/api/backups').catch(()=>[]),
       ]);
       // Cariler: bakiye listesi + master birleştir
       const masterMap = {};
@@ -4920,6 +4959,13 @@ function App(){
       KASA = (k || []).map(adapt.kasa);
       GG = (gg || []).map(adapt.gg);
       PERSONEL = (p || []).map(adapt.personel);
+      USERS = (usr || []).map(u => ({ id: u.id, username: u.username, full_name: u.full_name || u.ad_soyad || '', role: u.role || u.rol || 'user', is_active: u.is_active != null ? u.is_active : 1 }));
+      BACKUPS = (bkp || []).map(b => ({ filename: b.filename || b.name || '', size_mb: parseFloat(b.size_mb != null ? b.size_mb : (b.size ? b.size / 1048576 : 0)), created: b.created || b.tarih || '' }));
+      try {
+        MESAILER = (await Promise.all((p || []).map(pp =>
+          apiGet('/api/personel/' + pp.id + '/mesai').then(rows => (rows || []).map(r => ({ ...r, personel_id: r.personel_id || pp.id, fazla_mesai_saat: r.fazla_mesai_saat != null ? r.fazla_mesai_saat : (r.saat || 0) }))).catch(() => [])
+        ))).flat();
+      } catch (e) { MESAILER = []; }
       CEKLER = (ck || []).map(adapt.cek);
       MUTABAKATLAR = (mut || []).map(adapt.mutabakat);
       TAHSILAT_ONERI = (to || []).map(adapt.oneri);

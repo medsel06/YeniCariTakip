@@ -298,12 +298,19 @@ def delete_hareket(hareket_id):
         recalc_donem(conn, row['personel_id'], row['yil'], row['ay'], int(row.get('hafta', 0) or 0))
 
 
-def get_hareketler(personel_id, yil, ay, hafta=0):
+def get_hareketler(personel_id, yil=0, ay=0, hafta=0):
     with get_db() as conn:
-        rows = conn.execute(
-            'SELECT * FROM personel_hareket WHERE personel_id=? AND yil=? AND ay=? AND hafta=? ORDER BY tarih DESC, id DESC',
-            (personel_id, yil, ay, hafta)
-        ).fetchall()
+        if not yil:
+            # yil verilmezse personelin TUM hareketleri (ozet/yillik gorunum icin)
+            rows = conn.execute(
+                'SELECT * FROM personel_hareket WHERE personel_id=? ORDER BY tarih DESC, id DESC',
+                (personel_id,)
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                'SELECT * FROM personel_hareket WHERE personel_id=? AND yil=? AND ay=? AND hafta=? ORDER BY tarih DESC, id DESC',
+                (personel_id, yil, ay, hafta)
+            ).fetchall()
         return [dict(r) for r in rows]
 
 

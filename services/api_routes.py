@@ -712,7 +712,8 @@ async def api_personel_mesai_delete(request: Request, hid: int):
 
 @app.get('/api/personel/{pid}/mesai')
 @api_auth
-async def api_personel_mesai_list(request: Request, pid: int, yil: int, ay: int, hafta: int = 0):
+async def api_personel_mesai_list(request: Request, pid: int, yil: int = 0, ay: int = 0, hafta: int = 0):
+    # yil=0 -> personelin tum hareketleri (ozet icin); yil verilirse donem filtreli
     return _json(personel_service.get_hareketler(pid, yil, ay, hafta))
 
 
