@@ -1792,6 +1792,14 @@ const adapt = {
     odeme_sekli: r.odeme_sekli || '',
     aciklama: r.aciklama || '',
   }),
+  banka: (r) => ({
+    id: r.id, ad: r.ad || '', tip: r.tip || 'BANKA',
+    iban: r.iban || '', hesap_no: r.hesap_no || '',
+    bakiye: parseFloat(r.bakiye || 0),
+    kart_limiti: parseFloat(r.kart_limiti || 0),
+    acilis_bakiye: parseFloat(r.acilis_bakiye || 0),
+    aktif: r.aktif === undefined ? 1 : r.aktif,
+  }),
   cek: (r) => ({
     id: r.id, evrak_no: r.cek_no || r.evrak_no || '',
     evrak_tipi: r.evrak_tipi || 'CEK',
@@ -1912,7 +1920,7 @@ const DOC_CHIP = { fatura:'info', tahsilat:'good', cek:'warn', odeme:'bad', iade
 // ============= COMPONENTS =============
 function Sidebar({page,onNav,me}){
   const _firma=(me&&me.tenant&&me.tenant.name)||'Cari Takip';
-  const op=[{id:'dashboard',l:'Bilgi Ekranı',i:<IDash/>},{id:'cariler',l:'Cari Hesaplar',i:<ICari/>},{id:'firmalar',l:'Firmalar',i:<IApt/>},{id:'stok',l:'Stok',i:<IStok/>},{id:'hareketler',l:'İşlemler',i:<ISwap/>},{id:'kasa',l:'Kasa',i:<IKasa/>},{id:'gelirgider',l:'Gelir / Gider',i:<ITrend/>},{id:'cekler',l:'Çek / Senet',i:<ICek/>},{id:'cektakvim',l:'Çek Takvimi',i:<IDoc/>},{id:'karlilik',l:'Karlılık',i:<IRep/>},{id:'mutabakat',l:'Mutabakat',i:<IDoc/>},{id:'tahsilatoneri',l:'Tahsilat Önerisi',i:<ITrend/>},{id:'personel',l:'Personel',i:<ICari/>},{id:'uretim',l:'Üretim',i:<IStok/>},{id:'ayarlar',l:'Ayarlar',i:<ISet/>},{id:'loglar',l:'Loglar',i:<IDoc/>}];
+  const op=[{id:'dashboard',l:'Bilgi Ekranı',i:<IDash/>},{id:'cariler',l:'Cari Hesaplar',i:<ICari/>},{id:'firmalar',l:'Firmalar',i:<IApt/>},{id:'stok',l:'Stok',i:<IStok/>},{id:'hareketler',l:'İşlemler',i:<ISwap/>},{id:'kasa',l:'Kasa',i:<IKasa/>},{id:'banka',l:'Banka',i:<IApt/>},{id:'gelirgider',l:'Gelir / Gider',i:<ITrend/>},{id:'odemetakibi',l:'Ödeme Takibi',i:<IRcpt/>},{id:'cekler',l:'Çek / Senet',i:<ICek/>},{id:'cektakvim',l:'Çek Takvimi',i:<IDoc/>},{id:'karlilik',l:'Karlılık',i:<IRep/>},{id:'mutabakat',l:'Mutabakat',i:<IDoc/>},{id:'tahsilatoneri',l:'Tahsilat Önerisi',i:<ITrend/>},{id:'personel',l:'Personel',i:<ICari/>},{id:'uretim',l:'Üretim',i:<IStok/>},{id:'ayarlar',l:'Ayarlar',i:<ISet/>},{id:'loglar',l:'Loglar',i:<IDoc/>}];
   const eff = (page==='cari'||page==='ekstre')?'cariler':page;
   const r=(items)=>items.map(it=><button key={it.id} className={`sb-item ${eff===it.id?'active':''}`} onClick={()=>onNav(it.id)}>{it.i}<span>{it.l}</span>{it.chev&&<IRight size={12} style={{marginLeft:'auto'}}/>}</button>);
   return <aside className="sb">
@@ -3575,6 +3583,8 @@ function Ayarlar(){
 
 // ============= EK DATA (yeni sayfalar için) =============
 let KASA = [];
+let BANKA = [];           // {id, ad, tip:'BANKA'|'KREDI_KARTI', iban, bakiye, kart_limiti, acilis_bakiye, aktif}
+let ODEME_TAKIBI = {manuel:[],cari:[],cek:[],ozet:{}};
 let CEKLER = [];          // {evrak_tipi, evrak_no, firma_kod, firma_ad, kesim_tarihi, vade_tarihi, tutar, tip:'ALINAN'|'VERILEN', durum, notlar}
 let PERSONEL = [];        // {id, ad_soyad, maas, durum, giris_tarihi, cikis_tarihi, telefon}
 let MESAILER = [];        // {personel_id, hafta, fazla_mesai_saat, tutar}
@@ -3733,6 +3743,281 @@ function KasaModal({onClose,onSaved}){
       <div className="m-ft"><button type="button" className="btn" onClick={onClose}>İptal</button><button type="submit" className={tip==='GELIR'?'btn btn-good':'btn btn-bad'}><ICk size={13}/>Kaydet</button></div>
     </form>
   </div>;
+}
+
+// ============= BANKA =============
+function Banka({onNew,onEdit,onTransfer}){
+  const [tab,setTab]=React.useState('BANKA');
+  const [sel,setSel]=React.useState(null);
+  const [hrk,setHrk]=React.useState(null);
+  const isKart=tab==='KREDI_KARTI';
+  const list=BANKA.filter(b=>b.tip===tab);
+  React.useEffect(()=>{setSel(null);setHrk(null);},[tab]);
+  React.useEffect(()=>{
+    let alive=true; setHrk(null);
+    if(sel!=null){ apiGet('/api/banka/'+sel+'/hareketler').then(r=>{if(alive)setHrk(r||[]);}); }
+    return ()=>{alive=false;};
+  },[sel]);
+  const toplamBakiye=list.reduce((s,b)=>s+(b.bakiye||0),0);
+  const kartBorc=list.reduce((s,b)=>s+(b.bakiye<0?-b.bakiye:0),0);
+  const kartLimit=list.reduce((s,b)=>s+(b.kart_limiti||0),0);
+  const secB=list.find(b=>b.id===sel);
+  let hrows=[];
+  if(secB&&Array.isArray(hrk)){
+    let bk=secB.acilis_bakiye||0; const map={};
+    [...hrk].sort((a,b)=>((a.tarih||'')+'').localeCompare((b.tarih||'')+'')).forEach((r)=>{const t=parseFloat(r.tutar||0);bk+=(r.tur==='GELIR'?t:-t);map[r.id]=bk;});
+    hrows=[...hrk].sort((a,b)=>((b.tarih||'')+'').localeCompare((a.tarih||'')+'')).map(r=>({...r,_yur:map[r.id]}));
+  }
+  return <div>
+    <div className="seg" style={{marginBottom:14}}>
+      <button className={!isKart?'on':''} onClick={()=>setTab('BANKA')}>Banka Hesapları</button>
+      <button className={isKart?'on':''} onClick={()=>setTab('KREDI_KARTI')}>Kredi Kartları</button>
+    </div>
+    <div className="kpi-grid" style={{marginBottom:14}}>
+      {!isKart&&<div className="kpi"><div className="kpi-icon-wrap"><IApt size={14}/></div><div className="kpi-label">Toplam Banka Bakiyesi</div><div className="kpi-val num" style={{color:toplamBakiye>=0?'var(--accent)':'var(--bad)'}}>{fmtShort(toplamBakiye)}<span className="suf">₺</span></div><div className="kpi-delta">{list.length} hesap</div></div>}
+      {isKart&&<div className="kpi"><div className="kpi-icon-wrap" style={{color:'var(--bad)'}}><IDn size={14}/></div><div className="kpi-label">Toplam Kart Borcu</div><div className="kpi-val num" style={{color:'var(--bad)'}}>{fmtShort(kartBorc)}<span className="suf">₺</span></div><div className="kpi-delta">{list.length} kart</div></div>}
+      {isKart&&<div className="kpi"><div className="kpi-icon-wrap"><IRcpt size={14}/></div><div className="kpi-label">Toplam Limit</div><div className="kpi-val num">{fmtShort(kartLimit)}<span className="suf">₺</span></div></div>}
+      {isKart&&<div className="kpi"><div className="kpi-icon-wrap" style={{color:'var(--good)'}}><IUp size={14}/></div><div className="kpi-label">Kullanılabilir</div><div className="kpi-val num" style={{color:'var(--good)'}}>{fmtShort(kartLimit-kartBorc)}<span className="suf">₺</span></div></div>}
+    </div>
+    <div className="fbar">
+      <div className="grow"/>
+      <button className="btn btn-sm" onClick={onTransfer}><ISwap size={13}/>Transfer</button>
+      <button className="btn btn-sm btn-primary" onClick={()=>onNew(tab)}><IPlus size={13}/>{isKart?'Yeni Kart':'Yeni Hesap'}</button>
+    </div>
+    <div style={{display:'grid',gridTemplateColumns:'320px 1fr',gap:14}}>
+      <div className="card" style={{alignSelf:'start'}}>
+        <div className="card-hd"><div className="card-ttl">{isKart?'Kredi Kartları':'Hesaplar'}</div><div className="grow"/><span className="muted" style={{fontSize:11.5}}>{list.length}</span></div>
+        {list.length===0&&<div style={{padding:32,textAlign:'center',color:'var(--text-3)',fontSize:13}}>Tanımlı {isKart?'kart':'hesap'} yok. <strong style={{color:'var(--accent)',cursor:'pointer'}} onClick={()=>onNew(tab)}>Yeni</strong> ile ekle.</div>}
+        {list.map(b=><div key={b.id} onClick={()=>setSel(b.id)} style={{display:'flex',alignItems:'center',gap:10,width:'100%',padding:'12px 14px',cursor:'pointer',borderBottom:'1px solid var(--border)',background:sel===b.id?'var(--panel-hover)':'transparent',borderLeft:sel===b.id?'2px solid var(--accent)':'2px solid transparent'}}>
+          <div className="kpi-icon-wrap" style={{width:30,height:30}}>{isKart?<IWal size={15}/>:<IApt size={15}/>}</div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:13,fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{b.ad}</div>
+            {isKart&&b.kart_limiti>0&&<div className="mono" style={{fontSize:10.5,color:'var(--text-3)'}}>Limit {fmtShort(b.kart_limiti)} · Kull. {fmtShort(b.kart_limiti+b.bakiye)}</div>}
+          </div>
+          <div className="tnum" style={{fontSize:13,fontWeight:700,color:b.bakiye<0?'var(--bad)':'var(--accent)'}}>{fmt(b.bakiye)}</div>
+          <span className="hstack" style={{gap:2}} onClick={e=>e.stopPropagation()}>
+            <button className="btn btn-icon btn-ghost btn-sm" title="Düzenle" onClick={()=>onEdit(b)}><ISet size={13}/></button>
+            <button className="btn btn-icon btn-ghost btn-sm" style={{color:'var(--bad)'}} title="Sil" onClick={()=>handleDelete('/api/banka',b.id,'Bu hesabı/kartı silmek istiyor musunuz?')}><IX size={13}/></button>
+          </span>
+        </div>)}
+      </div>
+      <div className="card">
+        <div className="card-hd"><div className="card-ttl">{secB?secB.ad+' — Hareketler':'Hareket Dökümü'}</div><div className="grow"/>{secB&&<span className="muted" style={{fontSize:11.5}}>{(hrk||[]).length} kayıt</span>}{secB&&<Bal v={secB.bakiye} sz="lg"/>}</div>
+        <div className="tbl-wrap"><table className="tbl">
+          <thead><tr><th style={{width:90}}>Tarih</th><th style={{width:84}}>G/Ç</th><th className="r" style={{width:130}}>Tutar</th><th className="r" style={{width:140}}>Bakiye</th><th>Açıklama</th></tr></thead>
+          <tbody>
+            {!secB&&<tr><td colSpan={5} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>Hareketleri görmek için soldan bir {isKart?'kart':'hesap'} seçin.</td></tr>}
+            {secB&&hrk===null&&<tr><td colSpan={5} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>Yükleniyor…</td></tr>}
+            {secB&&Array.isArray(hrk)&&hrk.length===0&&<tr><td colSpan={5} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>Bu hesapta hareket yok.</td></tr>}
+            {hrows.map((r,i)=><tr key={r.id||i}>
+              <td className="tdate">{fmtD(r.tarih)}</td>
+              <td><Chip k={r.tur==='GELIR'?'good':'bad'}>{r.tur==='GELIR'?'Giriş':'Çıkış'}</Chip></td>
+              <td className="tnum" style={{fontWeight:600,color:r.tur==='GELIR'?'var(--good)':'var(--bad)'}}>{r.tur==='GELIR'?'+':'−'}{fmt(parseFloat(r.tutar||0))}</td>
+              <td className="tnum" style={{fontWeight:600,color:r._yur<0?'var(--bad)':'var(--text)'}}>{fmt(r._yur||0)}</td>
+              <td style={{color:'var(--text-2)'}}>{r.aciklama||''}</td>
+            </tr>)}
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+  </div>;
+}
+
+// ============= BANKA MODAL =============
+function BankaModal({edit,btip,onClose,onSaved}){
+  const isEdit=!!edit;
+  const _tip=edit?edit.tip:(btip||'BANKA');
+  const isKart=_tip==='KREDI_KARTI';
+  const [ad,setAd]=React.useState(edit?edit.ad:'');
+  const [iban,setIban]=React.useState(edit?edit.iban:'');
+  const [acilis,setAcilis]=React.useState(edit?String(edit.acilis_bakiye||0):'0');
+  const [limit,setLimit]=React.useState(edit?String(edit.kart_limiti||0):'0');
+  const submit=async(e)=>{e.preventDefault();if(!ad.trim()){alert('Ad zorunlu');return;}
+    const payload={ad,tip:_tip,iban,acilis_bakiye:parseFloat(acilis||0),kart_limiti:isKart?parseFloat(limit||0):0,aktif:1};
+    const res=isEdit?await apiPut('/api/banka/'+edit.id,payload):await apiPost('/api/banka',payload);
+    if(res?.ok)onSaved?.(isEdit?'Güncellendi':'Eklendi');else alert('Kayıt başarısız');};
+  return <div className="scrim" onClick={onClose}><form className="modal" style={{width:520}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
+    <div className="m-hd"><div style={{width:34,height:34,borderRadius:8,background:'var(--info-soft)',color:'var(--info)',display:'grid',placeItems:'center'}}>{isKart?<IWal size={15}/>:<IApt size={15}/>}</div><div style={{flex:1}}><div className="m-ttl">{isEdit?'Düzenle':(isKart?'Yeni Kredi Kartı':'Yeni Banka Hesabı')}</div><div className="m-sub">{isKart?'Kredi kartı':'Banka hesabı'}</div></div><button type="button" className="btn btn-icon btn-ghost" onClick={onClose}><IX size={14}/></button></div>
+    <div className="m-bd">
+      <div className="field"><label>Ad</label><input value={ad} onChange={e=>setAd(e.target.value)} autoFocus placeholder={isKart?'Örn. Garanti Bonus':'Örn. İş Bankası TL'}/></div>
+      <div className="field"><label>{isKart?'Kart No (son 4)':'IBAN'}</label><input value={iban} onChange={e=>setIban(e.target.value)} className="mono"/></div>
+      <div className="field-row">
+        <div className="field"><label>Açılış Bakiyesi (₺)</label><input value={acilis} onChange={e=>setAcilis(e.target.value)} style={{textAlign:'right'}} className="mono"/></div>
+        {isKart&&<div className="field"><label>Kart Limiti (₺)</label><input value={limit} onChange={e=>setLimit(e.target.value)} style={{textAlign:'right'}} className="mono"/></div>}
+      </div>
+    </div>
+    <div className="m-ft"><button type="button" className="btn" onClick={onClose}>İptal</button><button type="submit" className="btn btn-primary"><ICk size={13}/>Kaydet</button></div>
+  </form></div>;
+}
+
+// ============= TRANSFER MODAL =============
+function TransferModal({onClose,onSaved}){
+  const opts=[{id:'__nakit__',ad:'NAKİT KASA'},...BANKA.filter(b=>b.aktif).map(b=>({id:String(b.id),ad:b.ad}))];
+  const [kaynak,setKaynak]=React.useState('__nakit__');
+  const [hedef,setHedef]=React.useState('');
+  const [tutar,setTutar]=React.useState('');
+  const [tarih,setTarih]=React.useState(new Date().toISOString().slice(0,10));
+  const [aciklama,setAciklama]=React.useState('');
+  const submit=async(e)=>{e.preventDefault();if(!hedef){alert('Hedef seçin');return;}if(hedef===kaynak){alert('Kaynak ve hedef aynı olamaz');return;}if(!(parseFloat(tutar)>0)){alert('Tutar 0\'dan büyük olmalı');return;}
+    const payload={kaynak_hesap_id:kaynak==='__nakit__'?null:parseInt(kaynak),hedef_hesap_id:hedef==='__nakit__'?null:parseInt(hedef),tutar:parseFloat(tutar),tarih,aciklama};
+    const res=await apiPost('/api/banka/transfer',payload);
+    if(res?.ok)onSaved?.('Transfer kaydedildi');else alert('Transfer başarısız');};
+  return <div className="scrim" onClick={onClose}><form className="modal" style={{width:480}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
+    <div className="m-hd"><div style={{width:34,height:34,borderRadius:8,background:'var(--accent-soft)',color:'var(--accent-ink)',display:'grid',placeItems:'center'}}><ISwap size={15}/></div><div style={{flex:1}}><div className="m-ttl">Hesaplar Arası Transfer</div><div className="m-sub">Nakit ↔ Banka ↔ Kart</div></div><button type="button" className="btn btn-icon btn-ghost" onClick={onClose}><IX size={14}/></button></div>
+    <div className="m-bd">
+      <div className="field-row">
+        <div className="field"><label>Kaynak (çıkan)</label><select value={kaynak} onChange={e=>setKaynak(e.target.value)}>{opts.map(o=><option key={o.id} value={o.id}>{o.ad}</option>)}</select></div>
+        <div className="field"><label>Hedef (giren)</label><select value={hedef} onChange={e=>setHedef(e.target.value)}><option value="">— Seçin —</option>{opts.map(o=><option key={o.id} value={o.id}>{o.ad}</option>)}</select></div>
+      </div>
+      <div className="field-row">
+        <div className="field"><label>Tutar (₺)</label><input value={tutar} onChange={e=>setTutar(e.target.value)} placeholder="0,00" style={{textAlign:'right',fontWeight:600}} className="mono" autoFocus/></div>
+        <div className="field"><label>Tarih</label><input type="date" value={tarih} onChange={e=>setTarih(e.target.value)}/></div>
+      </div>
+      <div className="field"><label>Açıklama</label><input value={aciklama} onChange={e=>setAciklama(e.target.value)} placeholder="İsteğe bağlı"/></div>
+    </div>
+    <div className="m-ft"><button type="button" className="btn" onClick={onClose}>İptal</button><button type="submit" className="btn btn-primary"><ISwap size={13}/>Transfer Et</button></div>
+  </form></div>;
+}
+
+// ============= ODEME TAKIBI =============
+const _OT_KAYNAK_LBL={CARI:'Cari',KART:'Kredi Kartı',VERGI:'Vergi',SGK:'SGK',CEK:'Çek',DIGER:'Diğer'};
+const _OT_DURUM_LBL={ACIK:'Açık',ODENDI:'Ödendi',KISMI:'Kısmi'};
+const _OT_AY={1:'Ocak',2:'Şubat',3:'Mart',4:'Nisan',5:'Mayıs',6:'Haziran',7:'Temmuz',8:'Ağustos',9:'Eylül',10:'Ekim',11:'Kasım',12:'Aralık'};
+function OdemeTakibi({onNew}){
+  const now=new Date();
+  const [tip,setTip]=React.useState('all');
+  const [kaynak,setKaynak]=React.useState('all');
+  const [yil,setYil]=React.useState(now.getFullYear());
+  const [ay,setAy]=React.useState(now.getMonth()+1);
+  const [donemAll,setDonemAll]=React.useState(false);
+  const [odeRow,setOdeRow]=React.useState(null);
+  const bugun=now.toISOString().slice(0,10);
+  const OT=ODEME_TAKIBI||{manuel:[],cari:[],cek:[]};
+  const rows=[];
+  (OT.manuel||[]).forEach(r=>rows.push({_src:'MANUEL',id:r.id,tip:r.tip,kaynak:r.kaynak||'DIGER',kaynak_lbl:_OT_KAYNAK_LBL[r.kaynak]||r.kaynak||'Diğer',firma_ad:r.firma_ad||'',firma_kod:r.firma_kod||'',aciklama:r.aciklama||'',tutar:parseFloat(r.tutar||0),kalan:parseFloat(r.tutar||0)-parseFloat(r.odenen||0),vade:r.vade_tarih||'',durum:r.durum||'ACIK'}));
+  (OT.cari||[]).forEach(r=>rows.push({_src:'CARI',hareket_id:r.hareket_id,tip:r.tip,kaynak:'CARI',kaynak_lbl:r.kaynak_label||'Vadeli',firma_ad:r.firma_ad||'',firma_kod:r.firma_kod||'',aciklama:r.aciklama||'',tutar:parseFloat(r.tutar||0),kalan:parseFloat(r.kalan||0),vade:r.vade_tarih||'',durum:r.durum||'ACIK'}));
+  (OT.cek||[]).forEach(r=>rows.push({_src:'CEK',cek_id:r.cek_id,tip:r.tip,kaynak:'CEK',kaynak_lbl:r.kaynak_label||'Çek',firma_ad:r.firma_ad||'',aciklama:r.aciklama||'',tutar:parseFloat(r.tutar||0),kalan:parseFloat(r.kalan||0),vade:r.vade_tarih||'',durum:'ACIK'}));
+  let list=rows;
+  if(tip!=='all')list=list.filter(r=>r.tip===tip);
+  if(kaynak!=='all')list=list.filter(r=>r._src===kaynak);
+  if(!donemAll)list=list.filter(r=>r.vade&&r.vade.slice(0,7)===(yil+'-'+String(ay).padStart(2,'0')));
+  list=[...list].sort((a,b)=>(b.vade||'').localeCompare(a.vade||''));
+  const _urg=(vade,durum)=>{if(durum==='ODENDI'||!vade)return''; const gk=Math.round((new Date(vade)-now)/86400000); if(gk<0)return'GECIKTI'; if(gk<=7)return'YAKLASIYOR'; return'';};
+  const acikBorc=list.filter(r=>r.tip==='BORC'&&r.durum!=='ODENDI').reduce((s,r)=>s+r.kalan,0);
+  const acikAlacak=list.filter(r=>r.tip==='ALACAK'&&r.durum!=='ODENDI').reduce((s,r)=>s+r.kalan,0);
+  const gecmis=list.filter(r=>r.durum!=='ODENDI'&&r.vade&&r.vade<bugun).reduce((s,r)=>s+r.kalan,0);
+  const yillar=[];const cy=now.getFullYear();for(let i=cy-3;i<=cy+1;i++)yillar.push(i);
+  const _kchip={CARI:'info',KART:'info',VERGI:'bad',SGK:'warn',CEK:'warn',DIGER:'mute'};
+  return <div>
+    <div className="kpi-grid" style={{marginBottom:14}}>
+      <div className="kpi"><div className="kpi-icon-wrap" style={{color:'var(--bad)'}}><IDn size={14}/></div><div className="kpi-label">Açık Borç</div><div className="kpi-val num" style={{color:'var(--bad)'}}>{fmtShort(acikBorc)}<span className="suf">₺</span></div></div>
+      <div className="kpi"><div className="kpi-icon-wrap" style={{color:'var(--good)'}}><IUp size={14}/></div><div className="kpi-label">Açık Alacak</div><div className="kpi-val num" style={{color:'var(--good)'}}>{fmtShort(acikAlacak)}<span className="suf">₺</span></div></div>
+      <div className="kpi"><div className="kpi-icon-wrap" style={{color:'var(--warn)'}}><ICal size={14}/></div><div className="kpi-label">Geçmiş Vade</div><div className="kpi-val num" style={{color:'var(--warn)'}}>{fmtShort(gecmis)}<span className="suf">₺</span></div></div>
+      <div className="kpi"><div className="kpi-icon-wrap"><IRcpt size={14}/></div><div className="kpi-label">Kayıt</div><div className="kpi-val num">{list.length}</div></div>
+    </div>
+    <div className="fbar">
+      <div className="seg">
+        <button className={tip==='all'?'on':''} onClick={()=>setTip('all')}>Tümü</button>
+        <button className={tip==='BORC'?'on':''} onClick={()=>setTip('BORC')}>Borçlar</button>
+        <button className={tip==='ALACAK'?'on':''} onClick={()=>setTip('ALACAK')}>Alacaklar</button>
+      </div>
+      <div className="seg">
+        <button className={kaynak==='all'?'on':''} onClick={()=>setKaynak('all')}>Hepsi</button>
+        <button className={kaynak==='CARI'?'on':''} onClick={()=>setKaynak('CARI')}>Cari</button>
+        <button className={kaynak==='CEK'?'on':''} onClick={()=>setKaynak('CEK')}>Çek</button>
+        <button className={kaynak==='MANUEL'?'on':''} onClick={()=>setKaynak('MANUEL')}>Manuel</button>
+      </div>
+      <div className="flt"><ICal size={13}/><select value={donemAll?'all':ay} onChange={e=>{if(e.target.value==='all')setDonemAll(true);else{setDonemAll(false);setAy(parseInt(e.target.value));}}}><option value="all">Tüm Dönemler</option>{Object.keys(_OT_AY).map(m=><option key={m} value={m}>{_OT_AY[m]}</option>)}</select><IDown size={12}/></div>
+      {!donemAll&&<div className="flt"><select value={yil} onChange={e=>setYil(parseInt(e.target.value))}>{yillar.map(y=><option key={y} value={y}>{y}</option>)}</select><IDown size={12}/></div>}
+      <div className="grow"/>
+      <button className="btn btn-sm btn-primary" onClick={onNew}><IPlus size={13}/>Yeni Plan</button>
+    </div>
+    <div className="card">
+      <div className="card-hd"><div className="card-ttl">Ödeme / Tahsilat Takibi</div><div className="grow"/><span className="muted" style={{fontSize:11.5}}>{list.length} kayıt</span></div>
+      <div className="tbl-wrap"><table className="tbl">
+        <thead><tr><th style={{width:96}}>Vade</th><th style={{width:80}}>Tip</th><th style={{width:120}}>Kaynak</th><th>Kişi/Firma</th><th>Açıklama</th><th className="r" style={{width:120}}>Tutar</th><th className="r" style={{width:120}}>Kalan</th><th style={{width:84}}>Durum</th><th style={{width:80}}>İşlem</th></tr></thead>
+        <tbody>
+          {list.length===0&&<tr><td colSpan={9} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>Bu filtre için kayıt yok.</td></tr>}
+          {list.map((r,i)=>{const u=_urg(r.vade,r.durum);return <tr key={r._src+(r.id||r.hareket_id||r.cek_id||i)}>
+            <td className="tdate" style={u==='GECIKTI'?{color:'var(--bad)',fontWeight:700}:u==='YAKLASIYOR'?{color:'#ec4899',fontWeight:700}:{}}>{fmtD(r.vade)||'—'}</td>
+            <td><Chip k={r.tip==='BORC'?'bad':'good'}>{r.tip==='BORC'?'Borç':'Alacak'}</Chip></td>
+            <td><span className="hstack" style={{gap:5}}><Chip k={_kchip[r.kaynak]||'mute'}>{r.kaynak_lbl}</Chip>{r._src!=='MANUEL'?<span title="Otomatik (vadeli işlem/çek)" style={{color:'var(--info)'}}>⟳</span>:<span title="Manuel" style={{color:'var(--text-3)'}}>✎</span>}</span></td>
+            <td style={{fontWeight:500}}>{r.firma_ad||'—'}</td>
+            <td style={{color:'var(--text-2)'}}>{r.aciklama}</td>
+            <td className="tnum">{fmt(r.tutar)}</td>
+            <td className="tnum" style={{fontWeight:600}}>{fmt(r.kalan)}</td>
+            <td><Chip k={r.durum==='ODENDI'?'good':r.durum==='KISMI'?'warn':'info'}>{_OT_DURUM_LBL[r.durum]||r.durum}</Chip></td>
+            <td><div className="hstack" style={{gap:4}}>
+              {r._src==='CEK'?<button className="btn btn-icon btn-ghost btn-sm" title="Çek sayfası" onClick={()=>window.__nav?.('cekler')}><IRight size={13}/></button>:
+               r.durum!=='ODENDI'?<button className="btn btn-icon btn-ghost btn-sm" title="Öde/Tahsil" style={{color:'var(--good)'}} onClick={()=>setOdeRow(r)}><IWal size={13}/></button>:null}
+              {r._src==='MANUEL'&&<button className="btn btn-icon btn-ghost btn-sm" style={{color:'var(--bad)'}} title="Sil" onClick={()=>handleDelete('/api/odeme-takibi',r.id,'Bu kaydı silmek istiyor musunuz?')}><IX size={13}/></button>}
+            </div></td>
+          </tr>;})}
+        </tbody>
+      </table></div>
+    </div>
+    {odeRow&&<OdemeOdeModal row={odeRow} onClose={()=>setOdeRow(null)} onSaved={(m)=>{setOdeRow(null);window.__toast?.(m);window.__reload?.();}}/>}
+  </div>;
+}
+
+// ============= ODEME ODE MODAL =============
+function OdemeOdeModal({row,onClose,onSaved}){
+  const isTahsilat=row.tip==='ALACAK';
+  const [tarih,setTarih]=React.useState(new Date().toISOString().slice(0,10));
+  const [tutar,setTutar]=React.useState(String(row.kalan||0));
+  const [hesap,setHesap]=React.useState('__nakit__');
+  const hesaplar=BANKA.filter(b=>b.aktif);
+  const submit=async(e)=>{e.preventDefault();const t=parseFloat(tutar||0);if(t<=0){alert('Tutar 0\'dan büyük olmalı');return;}
+    const bh=hesap==='__nakit__'?null:parseInt(hesap);
+    let res;
+    if(row._src==='MANUEL'){
+      res=await apiPost('/api/odeme-takibi/'+row.id+'/ode',{tarih,tutar:t,banka_hesap_id:bh});
+    }else{ // CARI: normal tahsilat/odeme kasa kaydi (FIFO otomatik yansir)
+      res=await apiPost('/api/kasa',{tarih,firma_kod:row.firma_kod,firma_ad:row.firma_ad,tur:isTahsilat?'GELIR':'GIDER',tutar:t,odeme_sekli:bh?'Banka':'Nakit',banka_hesap_id:bh,aciklama:(isTahsilat?'Tahsilat':'Ödeme')+': '+(row.aciklama||'')});
+    }
+    if(res?.ok)onSaved?.(isTahsilat?'Tahsilat kaydedildi':'Ödeme kaydedildi');else alert('İşlem başarısız');};
+  return <div className="scrim" onClick={onClose}><form className="modal" style={{width:440}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
+    <div className="m-hd"><div style={{width:34,height:34,borderRadius:8,background:isTahsilat?'var(--good-soft)':'var(--bad-soft)',color:isTahsilat?'var(--good)':'var(--bad)',display:'grid',placeItems:'center'}}><IWal size={15}/></div><div style={{flex:1}}><div className="m-ttl">{isTahsilat?'Tahsilat Yap':'Ödeme Yap'}</div><div className="m-sub">{row.firma_ad} · {row.aciklama}</div></div><button type="button" className="btn btn-icon btn-ghost" onClick={onClose}><IX size={14}/></button></div>
+    <div className="m-bd">
+      <div className="field-row">
+        <div className="field"><label>Tarih</label><input type="date" value={tarih} onChange={e=>setTarih(e.target.value)}/></div>
+        <div className="field"><label>Tutar (₺)</label><input value={tutar} onChange={e=>setTutar(e.target.value)} style={{textAlign:'right',fontWeight:600}} className="mono" autoFocus/></div>
+      </div>
+      <div className="field"><label>Hesap</label><select value={hesap} onChange={e=>setHesap(e.target.value)}><option value="__nakit__">Nakit Kasa</option>{hesaplar.map(b=><option key={b.id} value={b.id}>{b.ad}</option>)}</select></div>
+    </div>
+    <div className="m-ft"><button type="button" className="btn" onClick={onClose}>İptal</button><button type="submit" className={isTahsilat?'btn btn-good':'btn btn-bad'}><ICk size={13}/>Onayla</button></div>
+  </form></div>;
+}
+
+// ============= YENI ODEME PLANI MODAL =============
+function NewOdemeModal({onClose,onSaved}){
+  const [tip,setTip]=React.useState('BORC');
+  const [kaynak,setKaynak]=React.useState('KART');
+  const [firmaId,setFirmaId]=React.useState('');
+  const [tutar,setTutar]=React.useState('');
+  const [vade,setVade]=React.useState(new Date().toISOString().slice(0,10));
+  const [aciklama,setAciklama]=React.useState('');
+  const submit=async(e)=>{e.preventDefault();const t=parseFloat(tutar||0);if(t<=0){alert('Tutar gerekli');return;}
+    const c=CUSTOMERS.find(x=>x.id===firmaId);
+    const payload={tip,kaynak,firma_kod:c?c.code:'',firma_ad:c?c.name:'',tutar:t,vade_tarih:vade,aciklama,durum:'ACIK'};
+    const res=await apiPost('/api/odeme-takibi',payload);
+    if(res?.ok)onSaved?.('Plan eklendi');else alert('Kayıt başarısız');};
+  return <div className="scrim" onClick={onClose}><form className="modal" style={{width:520}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
+    <div className="m-hd"><div style={{width:34,height:34,borderRadius:8,background:'var(--info-soft)',color:'var(--info)',display:'grid',placeItems:'center'}}><IRcpt size={15}/></div><div style={{flex:1}}><div className="m-ttl">Yeni Ödeme/Tahsilat Planı</div><div className="m-sub">Manuel takip kaydı</div></div><button type="button" className="btn btn-icon btn-ghost" onClick={onClose}><IX size={14}/></button></div>
+    <div className="m-bd">
+      <div className="field-row">
+        <div className="field"><label>Tip</label><select value={tip} onChange={e=>setTip(e.target.value)}><option value="BORC">Borç (ödenecek)</option><option value="ALACAK">Alacak (tahsil)</option></select></div>
+        <div className="field"><label>Kaynak</label><select value={kaynak} onChange={e=>setKaynak(e.target.value)}>{Object.keys(_OT_KAYNAK_LBL).map(k=><option key={k} value={k}>{_OT_KAYNAK_LBL[k]}</option>)}</select></div>
+      </div>
+      <div className="field"><label>Kişi/Firma (opsiyonel)</label><select value={firmaId} onChange={e=>setFirmaId(e.target.value)}><option value="">— Yok —</option>{CUSTOMERS.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+      <div className="field-row">
+        <div className="field"><label>Tutar (₺)</label><input value={tutar} onChange={e=>setTutar(e.target.value)} style={{textAlign:'right',fontWeight:600}} className="mono" autoFocus/></div>
+        <div className="field"><label>Vade Tarihi</label><input type="date" value={vade} onChange={e=>setVade(e.target.value)}/></div>
+      </div>
+      <div className="field"><label>Açıklama</label><input value={aciklama} onChange={e=>setAciklama(e.target.value)} placeholder="Örn. Garanti kart ekstre"/></div>
+    </div>
+    <div className="m-ft"><button type="button" className="btn" onClick={onClose}>İptal</button><button type="submit" className="btn btn-primary"><ICk size={13}/>Kaydet</button></div>
+  </form></div>;
 }
 
 // ============= PERSONEL PAGE =============
@@ -4431,7 +4716,7 @@ function App(){
       const meRes = await fetch('/api/me', { credentials: 'same-origin' });
       if (meRes.status === 401) { window.location.href = '/login'; return; }
       if (meRes.ok) setMe(await meRes.json());
-      const [c, h, s, k, gg, p, ck, mut, to, kr, lg, fmaster, kasa_bak, dashKpi, settings, ckPort, ckVade, gg_ozet] = await Promise.all([
+      const [c, h, s, k, gg, p, ck, mut, to, kr, lg, fmaster, kasa_bak, dashKpi, settings, ckPort, ckVade, gg_ozet, bnk, odt] = await Promise.all([
         apiGet('/api/cariler'),
         apiGet('/api/hareketler'),
         apiGet('/api/stok'),
@@ -4450,6 +4735,8 @@ function App(){
         apiGet('/api/cekler/portfoyde'),
         apiGet('/api/cekler/vade-uyarilari'),
         apiGet('/api/gelir-gider/ozet'),
+        apiGet('/api/banka'),
+        apiGet('/api/odeme-takibi'),
       ]);
       // Cariler: bakiye listesi + master birleştir
       const masterMap = {};
@@ -4474,6 +4761,8 @@ function App(){
       KASA_BAKIYE = kasa_bak || {};
       DASH_KPI = dashKpi || {};
       GG_OZET = gg_ozet || {};
+      BANKA = (bnk || []).map(adapt.banka);
+      ODEME_TAKIBI = odt || {manuel:[],cari:[],cek:[],ozet:{}};
       FIRMALAR_MASTER = (fmaster || []).map(f => ({
         kod: f.kod, ad: f.ad, vkn: f.vkn_tckn || '',
         telefon: f.tel || '', email: f.email || '',
@@ -4520,6 +4809,8 @@ function App(){
     firmalar:['Firmalar (Master)'],
     stok:['Stok'],
     kasa:['Kasa'],
+    banka:['Banka'],
+    odemetakibi:['Ödeme Takibi'],
     gelirgider:['Gelir / Gider'],
     personel:['Personel'],
     cekler:['Çek / Senet'],
@@ -4544,6 +4835,8 @@ function App(){
     if(page==='firmalar')return <FirmalarPage onNew={()=>setModal({kind:'firma'})}/>;
     if(page==='stok')return <StokPage onNew={()=>setModal({kind:'newstok'})} onNewHrk={()=>setModal({kind:'stokhrk'})} onOpenDetay={openStokDetay}/>;
     if(page==='kasa')return <Kasa onNew={()=>setModal({kind:'kasa'})}/>;
+    if(page==='banka')return <Banka onNew={()=>setModal({kind:'banka'})} onEdit={(h)=>setModal({kind:'banka',edit:h})} onTransfer={()=>setModal({kind:'transfer'})}/>;
+    if(page==='odemetakibi')return <OdemeTakibi onNew={()=>setModal({kind:'newodeme'})}/>;
     if(page==='gelirgider')return <GelirGider onNew={()=>setModal({kind:'newgg'})}/>;
     if(page==='personel')return <PersonelPage onNew={()=>setModal({kind:'personel'})} onMesai={(id)=>setModal({kind:'mesai',personelId:id})}/>;
     if(page==='cekler')return <CeklerPage onNew={(tab)=>setModal({kind:'cek',cekTip:tab==='alinan'?'ALINAN':'VERILEN'})}/>;
@@ -4593,6 +4886,9 @@ function App(){
     {modal&&modal.kind==='newgg'&&<NewGGModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
     {modal&&modal.kind==='hareket'&&<HareketModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
     {modal&&modal.kind==='kasa'&&<KasaModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
+    {modal&&modal.kind==='banka'&&<BankaModal edit={modal.edit} btip={modal.btip} onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
+    {modal&&modal.kind==='transfer'&&<TransferModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
+    {modal&&modal.kind==='newodeme'&&<NewOdemeModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
     {modal&&modal.kind==='personel'&&<PersonelModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
     {modal&&modal.kind==='mesai'&&<MesaiModal personelId={modal.personelId} onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
     {modal&&modal.kind==='cek'&&<CekModal tip={modal.cekTip} onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
