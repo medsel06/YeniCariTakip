@@ -4,7 +4,7 @@ from nicegui import ui
 from layout import create_layout, fmt_para, notify_ok, notify_err, confirm_dialog, segment_group, donem_popover_btn
 from services.odeme_takibi_service import (
     list_odeme_takibi, get_ozet, add_odeme_takibi, update_odeme_takibi,
-    delete_odeme_takibi, ode, get_vadeli_cari, get_cek_vadeleri,
+    delete_odeme_takibi, ode, ode_toplu, get_vadeli_cari, get_cek_vadeleri,
 )
 from services.cari_service import get_firma_list
 from services.banka_service import list_banka_hesaplari
@@ -32,6 +32,9 @@ def odeme_takibi_page():
             overscroll-behavior: contain;
         }
         .odeme-tbl .q-table { table-layout: fixed; }
+        /* Filtre cubugu butonlarini kompakt yap (segmentler + donem pill) */
+        .odeme-filtre .q-btn { min-height: 26px !important; padding: 2px 11px !important; font-size: 11px !important; }
+        .odeme-filtre .q-btn .q-icon { font-size: 15px !important; }
         @media (max-width: 1200px) {
             .odeme-tbl .q-table__middle { max-height: calc(100vh - 190px) !important; }
         }
@@ -43,6 +46,9 @@ def odeme_takibi_page():
     _now = date.today()
     # Varsayilan: icinde bulundugumuz ay (liste kalabalik olmasin). Tumu ile hepsi.
     filtre = {'tip': None, 'kaynak': None, 'yil': _now.year, 'ay': _now.month}
+    # Toplu odeme (kredi karti) secim modu: aciksa tablo sadece odenmemis KART borclarini
+    # gosterir + checkbox cikar.
+    mode = {'secim': False}
     tablo_box = None
     ozet_box = None
     bugun = _now.isoformat()
@@ -90,6 +96,12 @@ def odeme_takibi_page():
             d = dict(r); d['_src'] = 'CARI'; rows.append(d)
         for r in get_cek_vadeleri():
             d = dict(r); d['_src'] = 'CEK'; rows.append(d)
+        # Toplu odeme modunda: sadece odenmemis kredi karti borclari (donem/diger filtre bypass)
+        if mode['secim']:
+            rows = [r for r in rows if r['_src'] == 'MANUEL' and r.get('kaynak') == 'KART'
+                    and r['tip'] == 'BORC' and r['durum'] != 'ODENDI']
+            rows.sort(key=lambda r: (r.get('vade_tarih') or ''), reverse=True)
+            return rows
         if filtre['tip']:
             rows = [r for r in rows if r['tip'] == filtre['tip']]
         if filtre['kaynak']:
@@ -118,14 +130,14 @@ def odeme_takibi_page():
                 ('Geçmiş Vade', gecmis, '#fff7ed', '#c2410c', 'warning_amber'),
             ]:
                 with ui.element('div').style(
-                    f'background:{bg};border:1px solid {fg}33;border-radius:10px;'
-                    'padding:7px 16px;min-width:170px;'
+                    f'background:{bg};border:1px solid {fg}33;border-radius:8px;'
+                    'padding:3px 10px;min-width:118px;'
                 ):
-                    with ui.row().classes('items-center no-wrap gap-2'):
-                        ui.icon(icon).style(f'color:{fg};font-size:22px')
+                    with ui.row().classes('items-center no-wrap gap-1'):
+                        ui.icon(icon).style(f'color:{fg};font-size:16px')
                         with ui.column().classes('gap-0'):
-                            ui.label(baslik).style('font-size:9.5px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.5px')
-                            ui.label(f"{fmt_para(deger)} ₺").style(f'font-size:15px;font-weight:800;color:{fg};line-height:1.1')
+                            ui.label(baslik).style('font-size:8px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.4px')
+                            ui.label(f"{fmt_para(deger)} ₺").style(f'font-size:12.5px;font-weight:800;color:{fg};line-height:1.05')
 
     def _tablo(data):
         tablo_box.clear()
@@ -171,10 +183,26 @@ def odeme_takibi_page():
                     '_urg': urg, '_urgtext': urgtext,
                     'durum': DURUM_TR.get(r['durum'], r['durum']), '_durumraw': r['durum'],
                 })
+            if mode['secim']:
+                _bar = ui.row().classes('w-full items-center gap-3 q-pa-sm') \
+                    .style('background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;')
             tbl = ui.table(
                 columns=columns, rows=disp, row_key='_rid',
+                selection='multiple' if mode['secim'] else None,
                 pagination={'rowsPerPage': len(disp) or 1},
             ).classes('w-full odeme-tbl').props('flat bordered hide-bottom dense')
+            if mode['secim']:
+                with _bar:
+                    ui.icon('credit_card').style('color:#1d4ed8;font-size:22px')
+                    ui.label('Kredi Kartı Toplu Ödeme — ekstredeki harcamaları seçip tek ödemede kapatın').style('font-size:12px;color:#1e3a8a;font-weight:600')
+                    ui.space()
+                    ui.label().bind_text_from(
+                        tbl, 'selected',
+                        lambda s: f"{len(s)} seçildi · {fmt_para(sum(float(x.get('_kalanraw') or 0) for x in s))} ₺"
+                    ).style('font-size:12px;font-weight:700;color:#0f172a')
+                    ui.button('Seçilenleri Öde', icon='account_balance_wallet', color='positive',
+                              on_click=lambda: _ode_secili(tbl)).props('unelevated dense no-caps')
+                    ui.button('İptal', on_click=lambda: (mode.update(secim=False), _refresh())).props('flat dense no-caps color=grey-7')
             tbl.add_slot('body-cell-vade_tarih', r'''
                 <q-td :props="props"
                     :style="props.row._urg==='GECIKTI' ? 'border-left:4px solid #ef4444;' :
@@ -376,19 +404,111 @@ def odeme_takibi_page():
         confirm_dialog(f"'{row['aciklama']}' kaydını silmek istediğinize emin misiniz?",
                        lambda: (delete_odeme_takibi(row['id']), notify_ok('Silindi'), _refresh()))
 
+    def _ode_secili(tbl):
+        """Toplu odeme: secili kredi karti borclarini tek odemede kapat."""
+        sel = [s for s in (tbl.selected or [])
+               if s.get('_src') == 'MANUEL' and s.get('_kkod') == 'KART'
+               and s.get('_tipraw') == 'BORC' and s.get('_durumraw') != 'ODENDI']
+        if not sel:
+            notify_err('Ödenecek kredi kartı harcaması seçmediniz')
+            return
+        ids = [s.get('id') for s in sel]
+        toplam = sum(float(s.get('_kalanraw') or 0) for s in sel)
+        hesap_opts = {'__nakit__': 'Nakit Kasa'}
+        for h in list_banka_hesaplari(sadece_aktif=True):
+            hesap_opts[str(h['id'])] = h['ad']
+        with ui.dialog() as dlg, ui.card().classes('q-pa-md').style('min-width: 400px'):
+            ui.label('Kredi Kartı Toplu Ödeme').classes('text-h6')
+            ui.label(f"{len(ids)} harcama · Toplam {fmt_para(toplam)} ₺ tek ödemede kapatılacak").classes('text-caption text-grey-7')
+            inp_tarih = ui.input('Ödeme Tarihi', value=date.today().isoformat()).props('outlined dense').classes('w-full')
+            with inp_tarih.add_slot('append'):
+                ic = ui.icon('event').classes('cursor-pointer')
+                with ui.menu() as m:
+                    ui.date(on_change=lambda e: (inp_tarih.set_value(e.value), m.close()))
+                ic.on('click', m.open)
+            inp_hesap = ui.select(hesap_opts, value='__nakit__', label='Ödeme Hesabı (nakit/banka)').props('outlined dense').classes('w-full')
+            with ui.row().classes('w-full justify-end q-mt-md'):
+                ui.button('İptal', on_click=dlg.close).props('flat color=grey')
+
+                def _save():
+                    bhid = None if inp_hesap.value == '__nakit__' else int(inp_hesap.value)
+                    try:
+                        sonuc = ode_toplu(ids, tarih=inp_tarih.value, banka_hesap_id=bhid)
+                        notify_ok(f"{sonuc['adet']} harcama ödendi · {fmt_para(sonuc['toplam'])} ₺")
+                        dlg.close()
+                        mode.update(secim=False)
+                        _refresh()
+                    except Exception as e:
+                        notify_err(f'Hata: {e}')
+                ui.button('Öde', color='positive', on_click=_save).props('unelevated')
+        dlg.open()
+
+    def _ipucu_dialog():
+        with ui.dialog() as dlg, ui.card().classes('alse-dialog').style('width:92vw; max-width:640px'):
+            with ui.element('div').classes('alse-dialog-header'):
+                ui.icon('lightbulb')
+                ui.label('Ödeme Takibi — Nasıl Kullanılır?').classes('dialog-title')
+            with ui.element('div').classes('alse-dialog-body').style('max-height:70vh;overflow-y:auto'):
+                def baslik(t):
+                    ui.label(t).style('font-size:14px;font-weight:800;color:#1c4461;margin-top:8px')
+                def md(t):
+                    ui.markdown(t).style('font-size:12.5px;color:#334155')
+
+                baslik('Bu ekran ne işe yarar?')
+                md('Vadesi gelecek **ödeme ve tahsilatlarınızı tek yerden** takip edersiniz. '
+                   'Üç kaynak otomatik birleşir:')
+                md('- **Cari (otomatik):** İşlemler\'de alış/satışa **vade** girdiyseniz buraya düşer. '
+                   'Yeşil ⟳ *otomatik* simgesiyle gösterilir. Cariyi nereden kapatırsanız kapatın '
+                   '(havale, nakit, cari ekstre) durum otomatik güncellenir (FIFO: en eski vade önce kapanır).\n'
+                   '- **Çek / Senet (otomatik):** Açık çek/senet vadeleri otomatik listelenir. Ödeme/tahsilat '
+                   '**Çek/Senet sayfasından** yapılır (buradaki ↗ buton oraya götürür).\n'
+                   '- **Manuel:** Vergi, SGK, kira, kredi kartı gibi kayıtları **+ Yeni Plan** ile elle eklersiniz.')
+
+                baslik('Renkler ve aciliyet')
+                md('- **Sol kenar pembe çubuk + pembe tarih:** vadesine **7 gün ve altı** kaldı.\n'
+                   '- **Sol kenar kırmızı çubuk + kırmızı tarih:** vadesi **geçti**.\n'
+                   '- Fareyle tarihin üstüne gelince "kaç gün kaldı / kaç gün geçti" görünür.\n'
+                   '- **Durum:** Açık (mavi) · Kısmi (turuncu) · Ödendi (yeşil).')
+
+                baslik('Bir kaydı ödemek / tahsil etmek')
+                md('İşlem sütununda **cüzdan** simgesine basın. Açılan pencerede tarih ve '
+                   '**Nakit Kasa / Banka Hesabı** seçersiniz — banka seçerseniz para o hesaptan düşer. '
+                   'Onaylayınca kasa/banka hareketi oluşur ve kayıt **Ödendi** olur.')
+
+                baslik('Kredi kartı toplu ödeme')
+                md('Karta ay boyunca birçok harcama girersiniz; ekstre gelince hepsini **tek ödemede** kaparsınız:\n'
+                   '1. Üstte **Toplu Ödeme** butonuna basın → tablo otomatik **sadece ödenmemiş kredi kartı** '
+                   'harcamalarına süzülür ve seçim kutuları çıkar.\n'
+                   '2. Ekstredekileri işaretleyin (1 veya 10 — fark etmez).\n'
+                   '3. **Seçilenleri Öde** → tarih + nakit/banka seçin. Tek banka çıkışı oluşur, '
+                   'seçilenlerin hepsi **Ödendi** olur. **İptal** ile moddan çıkarsınız.')
+
+                baslik('Filtreler')
+                md('- **Göster:** Tümü / Borçlar / Alacaklar.\n'
+                   '- **Kaynak:** Tümü / Cari / Çek-Senet / Manuel.\n'
+                   '- **Dönem:** 📅 buton → Aylık / Yıllık / Tümü. Varsayılan **içinde bulunduğunuz ay** '
+                   '(liste sade kalsın diye); geçmiş/gelecek için değiştirin.')
+            with ui.element('div').classes('alse-dialog-footer'):
+                ui.button('Anladım', on_click=dlg.close).props('unelevated color=primary no-caps')
+        dlg.open()
+
     # --- PAGE ---
     with ui.column().classes('w-full q-pa-sm gap-2'):
         with ui.row().classes('w-full items-center justify-between'):
             ui.label('Ödeme / Tahsilat Takibi').classes('text-h6 text-weight-bold')
-            ui.button('Yeni Plan', icon='add', on_click=lambda: _form(), color='primary').props('unelevated dense')
+            with ui.row().classes('items-center gap-2 no-wrap'):
+                ui.button('İpucu', icon='help_outline', on_click=_ipucu_dialog).props('flat dense no-caps size=sm color=primary')
+                ui.button('Toplu Ödeme', icon='checklist',
+                          on_click=lambda: (mode.update(secim=True), _refresh())).props('outline dense no-caps size=sm color=deep-purple')
+                ui.button('Yeni Plan', icon='add', on_click=lambda: _form(), color='primary').props('unelevated dense')
 
-        # --- Filtre cubugu: bagli segmentler + tek pill donem ---
-        with ui.row().classes('w-full items-center gap-4 q-row-mobile-wrap'):
+        # --- Filtre cubugu: bagli segmentler + tek pill donem + ozet (sagda) ---
+        with ui.row().classes('w-full items-center gap-3 q-row-mobile-wrap odeme-filtre'):
             def _on_tip(key):
                 filtre.update(tip=None if key in (None, 'ALL') else key)
                 _refresh()
             with ui.column().classes('gap-0'):
-                ui.label('Göster').style('font-size:9px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:0.5px')
+                ui.label('Göster').style('font-size:8.5px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:0.5px')
                 segment_group(
                     [('ALL', 'Tümü', '#475569'), ('BORC', 'Borçlar', '#dc2626'), ('ALACAK', 'Alacaklar', '#16a34a')],
                     _on_tip, active='ALL')
@@ -397,7 +517,7 @@ def odeme_takibi_page():
                 filtre.update(kaynak=None if key in (None, 'ALL') else key)
                 _refresh()
             with ui.column().classes('gap-0'):
-                ui.label('Kaynak').style('font-size:9px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:0.5px')
+                ui.label('Kaynak').style('font-size:8.5px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:0.5px')
                 segment_group(
                     [('ALL', 'Tümü', '#475569'), ('CARI', 'Cari', '#2563eb'),
                      ('CEK', 'Çek/Senet', '#ea580c'), ('MANUEL', 'Manuel', '#64748b')],
@@ -407,10 +527,12 @@ def odeme_takibi_page():
                 filtre.update(yil=yil, ay=ay)
                 _refresh()
             with ui.column().classes('gap-0'):
-                ui.label('Dönem').style('font-size:9px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:0.5px')
+                ui.label('Dönem').style('font-size:8.5px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:0.5px')
                 donem_popover_btn(_on_donem, default_current_month=True)
 
-        # --- Ozet mini kartlar ---
-        ozet_box = ui.row().classes('w-full items-center gap-2')
+            ui.space()
+            # Ozet mini kartlar (sagda, kompakt)
+            ozet_box = ui.row().classes('items-center gap-2')
+
         tablo_box = ui.column().classes('w-full')
     _refresh()

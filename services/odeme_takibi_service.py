@@ -243,3 +243,42 @@ def ode(rec_id, tarih=None, tutar=None, banka_hesap_id=None):
             "UPDATE odeme_takibi SET odenen=?, durum=?, kasa_id=? WHERE id=?",
             (yeni_odenen, yeni_durum, kasa_id, rec_id))
         return kasa_id
+
+
+def ode_toplu(rec_ids, tarih=None, banka_hesap_id=None, aciklama=None):
+    """Birden cok kredi karti (KART) borc kaydini TEK kasa cikisiyla oder.
+    Kredi karti ekstresi gelince bircok harcamayi tek odemede kapatmak icin.
+    Sadece kaynak='KART', tip='BORC', durum!='ODENDI' kayitlar islenir.
+    Tek bir kasa GIDER kaydi olusur; secili kayitlarin hepsi ODENDI olur."""
+    now_ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+    tarih = tarih or datetime.now().strftime('%Y-%m-%d')
+    ids = [int(x) for x in (rec_ids or [])]
+    if not ids:
+        raise ValueError("Kayit secilmedi")
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM odeme_takibi WHERE id = ANY(%s) AND kaynak='KART' "
+            "AND tip='BORC' AND durum != 'ODENDI'",
+            (ids,)
+        ).fetchall()
+        recs = [r for r in rows]
+        if not recs:
+            raise ValueError("Odenecek kredi karti borcu bulunamadi")
+        toplam = sum(float(r['tutar'] or 0) - float(r['odenen'] or 0) for r in recs)
+        if toplam <= 0:
+            raise ValueError("Odenecek tutar yok")
+        ack = aciklama or f"Kredi karti toplu odeme ({len(recs)} kayit)"
+        cur = conn.execute('''
+            INSERT INTO kasa (tarih, firma_kod, firma_ad, tur, tutar, odeme_sekli, aciklama,
+                              banka_hesap_id, created_at)
+            VALUES (?,?,?,?,?,?,?,?,?) RETURNING id
+        ''', (
+            tarih, '', '', 'GIDER', toplam,
+            'BANKA' if banka_hesap_id else 'NAKIT', ack[:200], banka_hesap_id, now_ts,
+        ))
+        kasa_id = cur.fetchone()['id']
+        for r in recs:
+            conn.execute(
+                "UPDATE odeme_takibi SET odenen=tutar, durum='ODENDI', kasa_id=? WHERE id=?",
+                (kasa_id, r['id']))
+        return {'kasa_id': kasa_id, 'adet': len(recs), 'toplam': toplam}
