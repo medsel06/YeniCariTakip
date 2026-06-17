@@ -144,11 +144,33 @@ if os.path.isdir(assets_dir):
     app.add_static_files('/assets', assets_dir)
     ui.add_head_html('<link rel="icon" type="image/x-icon" href="/assets/logo/favicon.ico?v=2">', shared=True)
 
-# Yeni v3 (Trend) tasarimi - statik HTML olarak servis edilir
+# Yeni v3 (Trend) tasarimi - GIRIS ARKASINDA servis edilir (statik mount degil).
 # Erisim: http://<host>:8080/v3/  veya http://<host>:8080/v3/Cari%20Takip%20v3%20(Trend).html
 yeni_tasarim_dir = os.path.join(BASE_DIR, 'yeni-tasarim')
 if os.path.isdir(yeni_tasarim_dir):
-    app.add_static_files('/v3', yeni_tasarim_dir)
+    from fastapi.responses import FileResponse, RedirectResponse, Response
+    _V3_ROOT = os.path.realpath(yeni_tasarim_dir)
+    _V3_DEFAULT = 'Cari Takip v3 (Trend).html'
+
+    @app.get('/v3')
+    @app.get('/v3/{path:path}')
+    async def _serve_v3(path: str = ''):
+        # Auth gate: giris yoksa login'e (kaynak/plan dosyalari disari sizmasin)
+        try:
+            if not app.storage.user.get('auth_user') or not app.storage.user.get('tenant_schema'):
+                return RedirectResponse('/login')
+        except Exception:
+            return RedirectResponse('/login')
+        rel = path or _V3_DEFAULT
+        full = os.path.realpath(os.path.join(_V3_ROOT, rel))
+        # Path-traversal korumasi: _V3_ROOT disina cikilamaz
+        if full != _V3_ROOT and not full.startswith(_V3_ROOT + os.sep):
+            return Response(status_code=403)
+        if os.path.isdir(full):
+            full = os.path.join(full, _V3_DEFAULT)
+        if not os.path.isfile(full):
+            return Response(status_code=404)
+        return FileResponse(full)
 
 
 # /yeni: v3 (Trend) tasarımına yönlendir
