@@ -1160,9 +1160,16 @@ table.tbl tbody tr:hover {
   overflow: hidden;
   border-radius: 7px;
   border: 1px solid rgba(124,178,185,.16);
+  border-left: 3px solid var(--tile-color, var(--accent));
   background: linear-gradient(180deg, rgba(11, 30, 38, .88), rgba(5, 18, 24, .86));
   box-shadow: inset 0 1px 0 rgba(255,255,255,.035);
   padding: 16px 14px 10px;
+}
+/* Light tema: kartlara hafif renk tonu (cok beyaz olmasin) — kart rengiyle harmanli */
+:root[data-theme="light"] .mock-kpi {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tile-color, #2bb0c0) 8%, #ffffff), #ffffff) !important;
+  border-color: rgba(58,92,99,.16);
+  border-left: 3px solid var(--tile-color, var(--accent));
 }
 .mock-kpi .kpi-label {
   font-size: 10px;
@@ -1575,23 +1582,48 @@ table.tbl.mock-table tbody tr.selected td {
 :root[data-theme="light"] .sb { background: #ffffff; border-right-color: #dce7ea; }
 /* Light tema metin okunabilirligi: dark-first sabit acik renkler light'ta gorunmuyordu.
    Sadece light'ta gecerli; dark hic etkilenmez. */
+/* Onemli/baslik metinleri -> koyu */
+:root[data-theme="light"] .sb-item.active,
+:root[data-theme="light"] .top-search input,
+:root[data-theme="light"] .tb-action,
+:root[data-theme="light"] .company-switch,
+:root[data-theme="light"] .user-menu,
+:root[data-theme="light"] .dashboard-title,
+:root[data-theme="light"] .recent-title,
+:root[data-theme="light"] .donut-center,
+:root[data-theme="light"] .mock-kpi .kpi-val { color: var(--text) !important; }
+/* Mat/etiket metinleri -> koyu-mat */
+:root[data-theme="light"] .sb-brand-sub,
+:root[data-theme="light"] .sb-search,
+:root[data-theme="light"] .sb-group,
 :root[data-theme="light"] .sb-item,
+:root[data-theme="light"] .sb-item svg,
+:root[data-theme="light"] .sb-role,
+:root[data-theme="light"] .sb-collapse,
 :root[data-theme="light"] .shortcut-hd,
 :root[data-theme="light"] .shortcut-btn,
+:root[data-theme="light"] .shortcut-btn kbd,
 :root[data-theme="light"] .sb-mini-action,
+:root[data-theme="light"] .top-search,
+:root[data-theme="light"] .top-search kbd,
 :root[data-theme="light"] .tb-link,
+:root[data-theme="light"] .dashboard-sub,
+:root[data-theme="light"] .date-chip,
+:root[data-theme="light"] .mock-kpi .kpi-label,
+:root[data-theme="light"] .mock-kpi .kpi-delta,
 :root[data-theme="light"] .tx-count,
+:root[data-theme="light"] .tx-tab,
 :root[data-theme="light"] .tool-btn,
+:root[data-theme="light"] table.tbl.mock-table thead th,
 :root[data-theme="light"] table.tbl.mock-table tbody td,
 :root[data-theme="light"] .doc-type,
 :root[data-theme="light"] .row-menu,
 :root[data-theme="light"] .pager,
+:root[data-theme="light"] .mini-table th,
 :root[data-theme="light"] .mini-table td,
 :root[data-theme="light"] .age-row,
 :root[data-theme="light"] .donut-center span,
 :root[data-theme="light"] .bank-line { color: var(--text-2) !important; }
-:root[data-theme="light"] .sb-item.active,
-:root[data-theme="light"] .top-search input { color: var(--text) !important; }
 html[data-theme="dark"], :root[data-theme="dark"] body {
   background:
     radial-gradient(circle at 18% -14%, rgba(51, 214, 223, .085), transparent 34vw),
@@ -2100,17 +2132,17 @@ function Dashboard({onOpenCustomer}){
         <table className="tbl mock-table">
           <thead><tr><th>Tarih</th><th>Belge No</th><th>Belge Türü</th><th>Cari Hesap</th><th>Açıklama</th><th>Vadesi</th><th className="r">Borç (₺)</th><th className="r">Alacak (₺)</th><th className="r">Bakiye (₺)</th><th>Durum</th><th></th></tr></thead>
           <tbody>
-            {filtered.map((t,i)=>{const c=CUSTOMERS.find(x=>x.id===t.customerId)||{};const meta=typeMeta[t.type]||typeMeta.fatura;return <tr key={t.id} className={i===1?'selected':''} onClick={()=>onOpenCustomer(t.customerId)}>
+            {filtered.map((t,i)=>{const c=CUSTOMERS.find(x=>x.id===t.customerId)||{};const meta=typeMeta[t.type]||typeMeta.fatura;return <tr key={t.id} onClick={()=>onOpenCustomer(t.customerId)}>
               <td className="tdate">{fmtD(t.date)}</td>
               <td className="tref">{t.ref}</td>
               <td><span className="doc-type"><span className="doc-ico" style={{'--doc-color':meta.color}}>{meta.icon}</span>{meta.label}</span></td>
               <td style={{fontWeight:700}}>{c.name||t.customerId}</td>
-              <td style={{color:'rgba(222,234,235,.82)'}}>{t.description}</td>
-              <td className="tdate">{i===1?'22.06.2025':fmtD(t.date)}</td>
+              <td style={{color:'var(--text-2)'}}>{t.description}</td>
+              <td className="tdate">{fmtD(t.date)}</td>
               <td className="tnum">{t.borc?Number(t.borc).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}):'0,00'}</td>
               <td className="tnum">{t.alacak?Number(t.alacak).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}):'0,00'}</td>
               <td className="tnum">{Number(t.running||0).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
-              <td><span className="status-pill" style={{'--status-color':meta.statusColor}}>{i===7?'Vadesi Geldi':meta.status}</span></td>
+              <td><span className="status-pill" style={{'--status-color':meta.statusColor}}>{meta.status}</span></td>
               <td className="row-menu">⋮</td>
             </tr>;})}
           </tbody>
@@ -3925,7 +3957,9 @@ function OdemeTakibi({onNew}){
   const [ay,setAy]=React.useState(now.getMonth()+1);
   const [donemAll,setDonemAll]=React.useState(false);
   const [odeRow,setOdeRow]=React.useState(null);
+  const [topluOpen,setTopluOpen]=React.useState(false);
   const bugun=now.toISOString().slice(0,10);
+  const kartBorcSayi=(ODEME_TAKIBI&&ODEME_TAKIBI.manuel||[]).filter(r=>r.kaynak==='KART'&&r.tip==='BORC'&&r.durum!=='ODENDI').length;
   const OT=ODEME_TAKIBI||{manuel:[],cari:[],cek:[]};
   const rows=[];
   (OT.manuel||[]).forEach(r=>rows.push({_src:'MANUEL',id:r.id,tip:r.tip,kaynak:r.kaynak||'DIGER',kaynak_lbl:_OT_KAYNAK_LBL[r.kaynak]||r.kaynak||'Diğer',firma_ad:r.firma_ad||'',firma_kod:r.firma_kod||'',aciklama:r.aciklama||'',tutar:parseFloat(r.tutar||0),kalan:parseFloat(r.tutar||0)-parseFloat(r.odenen||0),vade:r.vade_tarih||'',durum:r.durum||'ACIK'}));
@@ -3964,6 +3998,7 @@ function OdemeTakibi({onNew}){
       <div className="flt"><ICal size={13}/><select value={donemAll?'all':ay} onChange={e=>{if(e.target.value==='all')setDonemAll(true);else{setDonemAll(false);setAy(parseInt(e.target.value));}}}><option value="all">Tüm Dönemler</option>{Object.keys(_OT_AY).map(m=><option key={m} value={m}>{_OT_AY[m]}</option>)}</select><IDown size={12}/></div>
       {!donemAll&&<div className="flt"><select value={yil} onChange={e=>setYil(parseInt(e.target.value))}>{yillar.map(y=><option key={y} value={y}>{y}</option>)}</select><IDown size={12}/></div>}
       <div className="grow"/>
+      {kartBorcSayi>0&&<button className="btn btn-sm" onClick={()=>setTopluOpen(true)} title="Kredi kartı harcamalarını tek ödemede kapat"><IWal size={13}/>Toplu Öde ({kartBorcSayi})</button>}
       <button className="btn btn-sm btn-primary" onClick={onNew}><IPlus size={13}/>Yeni Plan</button>
     </div>
     <div className="card">
@@ -3991,7 +4026,44 @@ function OdemeTakibi({onNew}){
       </table></div>
     </div>
     {odeRow&&<OdemeOdeModal row={odeRow} onClose={()=>setOdeRow(null)} onSaved={(m)=>{setOdeRow(null);window.__toast?.(m);window.__reload?.();}}/>}
+    {topluOpen&&<TopluOdeModal onClose={()=>setTopluOpen(false)} onSaved={(m)=>{setTopluOpen(false);window.__toast?.(m);window.__reload?.();}}/>}
   </div>;
+}
+
+// ============= KREDI KARTI TOPLU ODE MODAL =============
+function TopluOdeModal({onClose,onSaved}){
+  const kartlar=(ODEME_TAKIBI&&ODEME_TAKIBI.manuel||[]).filter(r=>r.kaynak==='KART'&&r.tip==='BORC'&&r.durum!=='ODENDI')
+    .map(r=>({id:r.id,aciklama:r.aciklama||'',firma_ad:r.firma_ad||'',vade:r.vade_tarih||'',kalan:parseFloat(r.tutar||0)-parseFloat(r.odenen||0)}));
+  const [secili,setSecili]=React.useState(()=>new Set(kartlar.map(k=>k.id)));
+  const [tarih,setTarih]=React.useState(new Date().toISOString().slice(0,10));
+  const [hesap,setHesap]=React.useState('__nakit__');
+  const hesaplar=BANKA.filter(b=>b.aktif);
+  const toggle=(id)=>setSecili(s=>{const n=new Set(s);n.has(id)?n.delete(id):n.add(id);return n;});
+  const secList=kartlar.filter(k=>secili.has(k.id));
+  const toplam=secList.reduce((s,k)=>s+k.kalan,0);
+  const submit=async(e)=>{e.preventDefault();if(secList.length===0){alert('En az bir harcama seçin');return;}
+    const bh=hesap==='__nakit__'?null:parseInt(hesap);
+    const r=await apiPost('/api/odeme-takibi/ode-toplu',{ids:secList.map(k=>k.id),tarih,banka_hesap_id:bh});
+    if(r&&r.ok)onSaved&&onSaved((r.adet||secList.length)+' harcama ödendi · '+fmt(r.toplam||toplam)+' ₺');else alert((r&&r.message)||'İşlem başarısız');};
+  return <div className="scrim" onClick={onClose}><form className="modal" style={{width:560}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
+    <div className="m-hd"><div style={{width:34,height:34,borderRadius:8,background:'var(--info-soft)',color:'var(--info)',display:'grid',placeItems:'center'}}><IWal size={15}/></div><div style={{flex:1}}><div className="m-ttl">Kredi Kartı Toplu Öde</div><div className="m-sub">Ekstredeki harcamaları seçip tek ödemede kapatın</div></div><button type="button" className="btn btn-icon btn-ghost" onClick={onClose}><IX size={14}/></button></div>
+    <div className="m-bd">
+      {kartlar.length===0&&<div style={{padding:20,textAlign:'center',color:'var(--text-3)'}}>Ödenmemiş kredi kartı harcaması yok.</div>}
+      {kartlar.length>0&&<div style={{maxHeight:260,overflowY:'auto',border:'1px solid var(--border)',borderRadius:8,marginBottom:12}}>
+        {kartlar.map(k=><label key={k.id} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 12px',borderBottom:'1px solid var(--border)',cursor:'pointer'}}>
+          <input type="checkbox" checked={secili.has(k.id)} onChange={()=>toggle(k.id)}/>
+          <div style={{flex:1,minWidth:0}}><div style={{fontSize:12.5,fontWeight:500,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{k.aciklama||k.firma_ad||'—'}</div><div className="mono" style={{fontSize:10.5,color:'var(--text-3)'}}>{k.vade?k.vade.split('-').reverse().join('.'):''}</div></div>
+          <div className="tnum" style={{fontWeight:600}}>{fmt(k.kalan)}</div>
+        </label>)}
+      </div>}
+      <div className="field-row">
+        <div className="field"><label>Ödeme Tarihi</label><input type="date" value={tarih} onChange={e=>setTarih(e.target.value)}/></div>
+        <div className="field"><label>Ödeme Hesabı</label><select value={hesap} onChange={e=>setHesap(e.target.value)}><option value="__nakit__">Nakit Kasa</option>{hesaplar.map(b=><option key={b.id} value={b.id}>{b.ad}</option>)}</select></div>
+      </div>
+      <div className="hstack" style={{justifyContent:'flex-end',gap:10,fontSize:13}}><span className="muted">{secList.length} seçili</span><strong>Toplam: {fmt(toplam)} ₺</strong></div>
+    </div>
+    <div className="m-ft"><button type="button" className="btn" onClick={onClose}>İptal</button><button type="submit" className="btn btn-primary" disabled={secList.length===0}><ICk size={13}/>Seçilenleri Öde</button></div>
+  </form></div>;
 }
 
 // ============= ODEME ODE MODAL =============
