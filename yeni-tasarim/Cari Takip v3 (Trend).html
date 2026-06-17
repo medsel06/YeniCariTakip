@@ -1581,8 +1581,8 @@ table.tbl.mock-table tbody tr.selected td {
 :root[data-theme="light"] body { background: #eef4f6; }
 /* Light sidebar: duz beyaz yerine yumusak tonlu (hafif renk) */
 :root[data-theme="light"] .sb { background: linear-gradient(180deg, #e8f2f4 0%, #f3f9fa 60%, #f7fbfc 100%); border-right-color: #d2e2e5; }
-/* Uzun firma unvani solda tasmasin: tek satir + ... (her iki tema) */
-.sb-brand-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+/* Firma unvani sidebar'da ilk 2 kelime (JS'te kisaltilir) — tek satir, ellipsis YOK */
+.sb-brand-name { white-space: nowrap; overflow: hidden; text-overflow: clip; }
 /* Light: ikincil butonlar yari-saydam beyazdi -> alttaki gradyan sizip gri/soluk gorunuyordu.
    Kati beyaz + biraz daha belirgin kenarlik: hos, goze batmayan. date-chip de beyaz. */
 :root[data-theme="light"] .btn { background: #ffffff; border-color: rgba(63,92,96,.22); }
@@ -1838,6 +1838,7 @@ const adapt = {
     description: r.aciklama || r.urun_ad || '',
     borc: parseFloat(r.borc || (r.tur === 'ALIS' ? r.kdvli_toplam : 0) || 0),
     alacak: parseFloat(r.alacak || (r.tur === 'SATIS' ? r.kdvli_toplam : 0) || 0),
+    tutar: parseFloat(r.kdvli_toplam || r.toplam || r.tutar || 0),
     running: parseFloat(r.bakiye || 0),
   }),
   hareket: (r) => ({
@@ -2008,7 +2009,7 @@ function Sidebar({page,onNav,me}){
   const eff = (page==='cari'||page==='ekstre')?'cariler':page;
   const r=(items)=>items.map(it=><button key={it.id} className={`sb-item ${eff===it.id?'active':''}`} onClick={()=>onNav(it.id)}>{it.i}<span>{it.l}</span>{it.chev&&<IRight size={12} style={{marginLeft:'auto'}}/>}</button>);
   return <aside className="sb">
-    <div className="sb-brand"><div className="sb-logo">{(_firma[0]||'C').toUpperCase()}</div><div><div className="sb-brand-name">{_firma}</div><div className="sb-brand-sub">Cari Takip</div></div><div className="sb-collapse">≪</div></div>
+    <div className="sb-brand"><div><div className="sb-brand-name">{(_firma||'').split(/\s+/).slice(0,2).join(' ')||_firma}</div><div className="sb-brand-sub">Cari Takip</div></div><div className="sb-collapse">≪</div></div>
     <nav className="sb-nav">{r(op)}</nav>
     <div className="sb-shortcuts">
       <div className="shortcut-panel">
@@ -2040,7 +2041,7 @@ function Topbar({crumbs,me}){
     <button className="tb-link" onClick={()=>window.location.href='/'} title="Klasik (eski) tasarıma dön">↩ Klasik</button>
     <button className="tb-link" onClick={_logout} title="Çıkış yap">⎋ Çıkış</button>
     <div className="top-sep"/>
-    <div className="company-switch">{_firma}<span>{_yil}</span></div>
+    <div className="company-switch">{_yil}</div>
     <div className="user-menu" title={_ad}>{_ini}</div>
   </div>;
 }
@@ -2074,18 +2075,29 @@ function Dashboard({onOpenCustomer}){
   const totalA = Number(DASH_KPI.toplam_alacak ?? CUSTOMERS.reduce((s,c)=>s+Math.max(0,c.balance),0));
   const totalB = Number(DASH_KPI.toplam_borc ?? Math.abs(CUSTOMERS.reduce((s,c)=>s+Math.min(0,c.balance),0)));
   const kasaBal = Number(KASA_BAKIYE.kasa ?? DASH_KPI.kasa_bakiyesi ?? KASA.reduce((s,k)=>s+(k.tip==='GELIR'?1:-1)*(k.tutar||0),0) ?? 0);
-  const bankaBal = Number(KASA_BAKIYE.banka ?? DASH_KPI.banka_bakiyesi ?? 0);
-  const vadeli = CEKLER.filter(c=>String(c.durum||'').toUpperCase()!=='ODENDI').reduce((s,c)=>s+(c.tutar||0),0);
+  // Banka bakiyesi: gercek banka hesaplarinin toplami (KASA_BAKIYE.banka backend'de yok -> 0 geliyordu)
+  const bankaBal = (BANKA && BANKA.length) ? BANKA.filter(b=>b.tip==='BANKA').reduce((s,b)=>s+(b.bakiye||0),0) : Number(KASA_BAKIYE.banka ?? DASH_KPI.banka_bakiyesi ?? 0);
+  // Vadeli cek/senet: SADECE henuz sonuclanmamis evraklar (portfoyde / tahsile verildi / kesildi).
+  // tahsil_edildi / ciro_edildi / iade_edildi / karsiliksiz / odendi -> sonuclanmis, sayilmaz.
+  const _cekVadeli = c => ['portfoyde','tahsile_verildi','kesildi'].includes(String(c.durum||'').toLowerCase());
+  const vadeliCekler = CEKLER.filter(_cekVadeli);
+  const vadeli = vadeliCekler.reduce((s,c)=>s+(c.tutar||0),0);
   const netGG = Number(GG_OZET.net ?? GG.reduce((s,g)=>s+(g.tip==='GELIR'?1:-1)*(g.tutar||0),0));
-  const allTx=[...TX].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  // Birlesik aktivite akisi: hareketler+kasa (TX) + gelir-gider (GG) + cekler.
+  // (Banka hareketleri global yuklenmiyor -> Banka sekmesi yok; banka detayi Banka sayfasinda.)
+  const ggTx=(GG||[]).map(g=>({id:'GG-'+g.id, customerId:g.firma_id||'', ref:'', date:g.date, type:(g.tip==='gelir'?'gelir':'gider'), description:(g.kat?g.kat+' · ':'')+(g.aciklama||''), tutar:g.tutar||0, borc:0, alacak:0, running:0}));
+  const cekTx=(CEKLER||[]).map(c=>({id:'CK-'+c.id, customerId:c.firma_id||'', ref:c.evrak_no||'', date:c.kesim_tarihi||c.vade_tarihi||'', type:'cek', description:(c.tip==='ALINAN'?'Alınan çek':'Verilen çek')+(c.durum?' · '+(CEK_DURUM[c.durum]||c.durum):''), tutar:c.tutar||0, borc:0, alacak:0, running:0}));
+  const bankaTx=(BANKA_HRK||[]).map(r=>({id:'BK-'+r.id, customerId:'', ref:'', date:r.tarih, type:'banka', description:(r._hesap?r._hesap+': ':'')+(r.aciklama||''), tutar:parseFloat(r.tutar||0), borc:0, alacak:0, running:0, _yon:(String(r.tur||'').toUpperCase()==='GELIR'?'in':'out')}));
+  const allTx=[...TX, ...ggTx, ...cekTx, ...bankaTx].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   const tabDefs=[
     {id:'all',label:'Tümü',match:()=>true},
+    {id:'fatura',label:'Faturalar',match:t=>t.type==='fatura'},
     {id:'tahsilat',label:'Tahsilatlar',match:t=>t.type==='tahsilat'},
     {id:'odeme',label:'Ödemeler',match:t=>t.type==='odeme'},
-    {id:'fatura',label:'Faturalar',match:t=>t.type==='fatura'},
+    {id:'kasa',label:'Kasa',match:t=>t.type==='tahsilat'||t.type==='odeme'},
     {id:'banka',label:'Banka',match:t=>t.type==='banka'},
     {id:'cek',label:'Çek / Senet',match:t=>t.type==='cek'},
-    {id:'gider',label:'Giderler',match:t=>t.type==='gider'},
+    {id:'gg',label:'Gelir / Gider',match:t=>t.type==='gider'||t.type==='gelir'},
   ];
   const filtered=allTx.filter(t=>(tabDefs.find(x=>x.id===txTab)||tabDefs[0]).match(t)).slice(0,8);
   const typeMeta={
@@ -2095,13 +2107,14 @@ function Dashboard({onOpenCustomer}){
     cek:{label:'Çek Tahsilatı',icon:<ICek size={12}/>,color:'#f2aa2e',status:'Tahsil Edildi',statusColor:'#58d15b'},
     banka:{label:'Banka',icon:<IApt size={12}/>,color:'#20d8e5',status:'Tamamlandı',statusColor:'#58d15b'},
     gider:{label:'Gider',icon:<IUp size={12}/>,color:'#ef6464',status:'Kaydedildi',statusColor:'#8b9ba0'},
+    gelir:{label:'Gelir',icon:<IDn size={12}/>,color:'#79d84f',status:'Kaydedildi',statusColor:'#8b9ba0'},
   };
   const kpi=[
     {label:'Toplam Cari Alacak',value:totalA,color:'#20e4ee',icon:<ICari size={20}/>,delta:(DASH_KPI.aktif_cari!=null?DASH_KPI.aktif_cari+' aktif cari':'')},
     {label:'Toplam Cari Borç',value:totalB,color:'#82dc35',icon:<ICari size={20}/>,delta:''},
     {label:'Kasa Bakiyesi',value:kasaBal,color:'#a379ff',icon:<IKasa size={20}/>,delta:''},
     {label:'Banka Bakiyesi',value:bankaBal,color:'#58aaf7',icon:<IApt size={20}/>,delta:''},
-    {label:'Vadeli Çek / Senet',value:vadeli,color:'#f2a331',icon:<ICek size={20}/>,delta:(CEKLER.filter(c=>String(c.durum||'').toUpperCase()!=='ODENDI').length+' adet')},
+    {label:'Vadeli Çek / Senet',value:vadeli,color:'#f2a331',icon:<ICek size={20}/>,delta:(vadeliCekler.length+' adet')},
     {label:'Gelir - Gider (Net)',value:netGG,color:'#79d84f',icon:<ITrend size={20}/>,delta:''},
   ];
   const aging=[
@@ -2121,7 +2134,7 @@ function Dashboard({onOpenCustomer}){
 
   return <div>
     <div className="dashboard-head">
-      <div><div className="dashboard-title">Dashboard</div><div className="dashboard-sub">Finansal özet ve günlük görünüm</div></div>
+      <div><div className="dashboard-title">Bilgi Ekranı</div><div className="dashboard-sub">Finansal özet ve günlük görünüm</div></div>
       <div className="grow"/>
       <div className="date-chip"><ICal size={18}/>{new Date().toLocaleDateString('tr-TR',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
     </div>
@@ -2151,7 +2164,7 @@ function Dashboard({onOpenCustomer}){
       </div>
       <div className="tbl-wrap">
         <table className="tbl mock-table">
-          <thead><tr><th>Tarih</th><th>Belge No</th><th>Belge Türü</th><th>Cari Hesap</th><th>Açıklama</th><th>Vadesi</th><th className="r">Borç (₺)</th><th className="r">Alacak (₺)</th><th className="r">Bakiye (₺)</th><th>Durum</th><th></th></tr></thead>
+          <thead><tr><th>Tarih</th><th>Belge No</th><th>Belge Türü</th><th>Cari Hesap</th><th>Açıklama</th><th className="r">Tutar (₺)</th><th>Durum</th><th></th></tr></thead>
           <tbody>
             {filtered.map((t,i)=>{const c=CUSTOMERS.find(x=>x.id===t.customerId)||{};const meta=typeMeta[t.type]||typeMeta.fatura;return <tr key={t.id} onClick={()=>onOpenCustomer(t.customerId)}>
               <td className="tdate">{fmtD(t.date)}</td>
@@ -2159,17 +2172,13 @@ function Dashboard({onOpenCustomer}){
               <td><span className="doc-type"><span className="doc-ico" style={{'--doc-color':meta.color}}>{meta.icon}</span>{meta.label}</span></td>
               <td style={{fontWeight:700}}>{c.name||t.customerId}</td>
               <td style={{color:'var(--text-2)'}}>{t.description}</td>
-              <td className="tdate">{fmtD(t.date)}</td>
-              <td className="tnum">{t.borc?Number(t.borc).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}):'0,00'}</td>
-              <td className="tnum">{t.alacak?Number(t.alacak).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}):'0,00'}</td>
-              <td className="tnum">{Number(t.running||0).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+              <td className="tnum" style={{fontWeight:600}}>{Number(t.tutar||t.borc||t.alacak||0).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
               <td><span className="status-pill" style={{'--status-color':meta.statusColor}}>{meta.status}</span></td>
               <td className="row-menu">⋮</td>
             </tr>;})}
           </tbody>
         </table>
-        <div className="table-scrollbar"><span/></div>
-        <div className="pager"><span>‹</span><span className="on">1</span><span>2</span><span>3</span><span>...</span><span>8</span><span>›</span><button className="tool-btn">25 / sayfa <IDown size={12}/></button></div>
+        <div style={{padding:'9px 14px',fontSize:11,color:'var(--text-3)',textAlign:'right',borderTop:'1px solid var(--border)'}}>Son {filtered.length} işlem · tamamı için <strong style={{color:'var(--accent)',cursor:'pointer'}} onClick={()=>window.__nav?.('hareketler')}>İşlemler</strong></div>
       </div>
     </div>
 
@@ -3703,6 +3712,7 @@ function UserModal({onClose,onSaved}){
 // ============= EK DATA (yeni sayfalar için) =============
 let KASA = [];
 let BANKA = [];           // {id, ad, tip:'BANKA'|'KREDI_KARTI', iban, bakiye, kart_limiti, acilis_bakiye, aktif}
+let BANKA_HRK = [];       // tum banka hesap hareketleri birlesik (dashboard Son Islemler 'Banka' sekmesi icin)
 let ODEME_TAKIBI = {manuel:[],cari:[],cek:[],ozet:{}};
 let CEKLER = [];          // {evrak_tipi, evrak_no, firma_kod, firma_ad, kesim_tarihi, vade_tarihi, tutar, tip:'ALINAN'|'VERILEN', durum, notlar}
 let PERSONEL = [];        // {id, ad_soyad, maas, durum, giris_tarihi, cikis_tarihi, telefon}
@@ -4975,6 +4985,11 @@ function App(){
       DASH_KPI = dashKpi || {};
       GG_OZET = gg_ozet || {};
       BANKA = (bnk || []).map(adapt.banka);
+      try {
+        BANKA_HRK = (await Promise.all((bnk || []).map(b =>
+          apiGet('/api/banka/' + b.id + '/hareketler').then(rows => (rows || []).map(r => ({ ...r, _hesap: b.ad }))).catch(() => [])
+        ))).flat();
+      } catch (e) { BANKA_HRK = []; }
       ODEME_TAKIBI = odt || {manuel:[],cari:[],cek:[],ozet:{}};
       FIRMALAR_MASTER = (fmaster || []).map(f => ({
         kod: f.kod, ad: f.ad, vkn: f.vkn_tckn || '',
