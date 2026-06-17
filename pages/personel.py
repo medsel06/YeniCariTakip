@@ -71,6 +71,7 @@ def personel_page():
         {'name': 'maas', 'label': 'Maaş', 'field': 'maas', 'align': 'right', 'sortable': True},
         {'name': 'durum', 'label': 'Durum', 'field': 'durum', 'align': 'center', 'sortable': True},
         {'name': 'giris_tarih', 'label': 'Giriş Tarihi', 'field': 'giris_tarih', 'align': 'center', 'sortable': True},
+        {'name': 'cikis_tarih', 'label': 'Çıkış Tarihi', 'field': 'cikis_tarih', 'align': 'center', 'sortable': True},
         {'name': 'telefon', 'label': 'Telefon', 'field': 'telefon', 'align': 'left'},
         {'name': 'actions', 'label': 'İşlemler', 'field': 'actions', 'align': 'center'},
     ]
@@ -575,6 +576,12 @@ def personel_page():
 
         personel_table_ref.add_slot('body-cell-maas', PARA_SLOT)
         personel_table_ref.add_slot('body-cell-giris_tarih', TARIH_SLOT)
+        # Cikis tarihi: aktif personelde bos olur, bos iken uyari gosterme (sadece bos birak)
+        personel_table_ref.add_slot('body-cell-cikis_tarih', r'''
+            <q-td :props="props" class="text-center">
+                <span v-if="props.value">{{ props.value.split('-').reverse().join('.') }}</span>
+            </q-td>
+        ''')
 
         personel_table_ref.add_slot('body-cell-durum', r'''
             <q-td :props="props">

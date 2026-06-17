@@ -1,8 +1,42 @@
 """Personel maas/mesai/avans islemleri"""
-from datetime import datetime
+import calendar
+from datetime import datetime, date
 from db import get_db
 from services.gelir_gider_service import _add_gelir_gider_conn
 from services.kasa_service import _add_kasa_conn
+
+
+def _parse_date(s):
+    """'YYYY-MM-DD' string -> date; bos/gecersiz ise None."""
+    if not s:
+        return None
+    try:
+        return datetime.strptime(str(s).strip()[:10], '%Y-%m-%d').date()
+    except ValueError:
+        return None
+
+
+def _oranli_maas(maas, yil, ay, giris_tarih, cikis_tarih):
+    """Aylik maasi giris/cikis tarihine gore oranlar.
+    Gunluk ucret = maas / (o ayin gercek gun sayisi: 28/29/30/31).
+    Calisilan gun = [ay basi, ay sonu] araliginin [giris, cikis] ile kesisimi
+    (iki uc de dahil). Tam ay calisilirsa tam maas; o ay hic aktif degilse 0.
+    """
+    if maas <= 0:
+        return maas
+    days_in_month = calendar.monthrange(yil, ay)[1]
+    period_start = date(yil, ay, 1)
+    period_end = date(yil, ay, days_in_month)
+    giris = _parse_date(giris_tarih)
+    cikis = _parse_date(cikis_tarih)
+    ws = max(period_start, giris) if giris else period_start
+    we = min(period_end, cikis) if cikis else period_end
+    if ws > we:
+        return 0.0
+    worked = (we - ws).days + 1
+    if worked >= days_in_month:
+        return maas
+    return round(maas * worked / days_in_month, 2)
 
 
 def get_personel_list():
@@ -109,8 +143,14 @@ def recalc_donem(conn, personel_id, yil, ay, hafta=0):
     if int(row['kilitli'] or 0):
         return
 
-    p = conn.execute('SELECT maas FROM personel WHERE id=?', (personel_id,)).fetchone()
+    p = conn.execute('SELECT maas, giris_tarih, cikis_tarih FROM personel WHERE id=?', (personel_id,)).fetchone()
     maas = float(p['maas'] or 0) if p else 0
+
+    # Giris/cikis tarihine gore maasi oranla (sadece aylik donem; haftalik hesabi bozma).
+    # Gunluk ucret = maas / (o ayin gercek gun sayisi). Calisilan gun = ay araliginin
+    # giris/cikis ile kesisimi. Tam ay calisilirsa tam maas.
+    if hafta == 0 and p:
+        maas = _oranli_maas(maas, yil, ay, p['giris_tarih'], p['cikis_tarih'])
 
     conn.execute('UPDATE personel_aylik SET maas=? WHERE personel_id=? AND yil=? AND ay=? AND hafta=?',
                  (maas, personel_id, yil, ay, hafta))
