@@ -791,12 +791,137 @@ async def api_backup_create(request: Request):
     return _json({'ok': True, 'path': str(path)})
 
 
+# ============= BANKA =============
+
+@app.get('/api/banka')
+@api_auth
+async def api_banka(request: Request):
+    """Banka hesaplari + kredi kartlari (guncel bakiyeleriyle)."""
+    from services import banka_service
+    return _json(banka_service.get_tum_banka_bakiyeler())
+
+
+@app.get('/api/banka/{hesap_id}/hareketler')
+@api_auth
+async def api_banka_hareketler(request: Request, hesap_id: int):
+    from services import banka_service
+    return _json(banka_service.get_banka_hareketler(hesap_id))
+
+
+@app.post('/api/banka')
+@api_auth
+async def api_banka_create(request: Request):
+    from services import banka_service
+    data = await request.json()
+    new_id = banka_service.add_banka_hesap(data)
+    return _json({'ok': True, 'id': new_id})
+
+
+@app.put('/api/banka/{hesap_id}')
+@api_auth
+async def api_banka_update(request: Request, hesap_id: int):
+    from services import banka_service
+    data = await request.json()
+    banka_service.update_banka_hesap(hesap_id, data)
+    return _json({'ok': True})
+
+
+@app.delete('/api/banka/{hesap_id}')
+@api_auth
+async def api_banka_delete(request: Request, hesap_id: int):
+    from services import banka_service
+    banka_service.delete_banka_hesap(hesap_id)
+    return _json({'ok': True})
+
+
+@app.post('/api/banka/transfer')
+@api_auth
+async def api_banka_transfer(request: Request):
+    from services import banka_service
+    d = await request.json()
+    kaynak = d.get('kaynak_hesap_id')
+    hedef = d.get('hedef_hesap_id')
+    banka_service.transfer(
+        int(kaynak) if kaynak else None,
+        int(hedef) if hedef else None,
+        float(d.get('tutar', 0) or 0),
+        d.get('tarih', ''),
+        d.get('aciklama', ''),
+    )
+    return _json({'ok': True})
+
+
+# ============= ODEME TAKIBI =============
+
+@app.get('/api/odeme-takibi')
+@api_auth
+async def api_odeme_takibi(request: Request):
+    """Birlesik: manuel kayitlar + cari vadeli (FIFO) + cek vadeleri + ozet."""
+    from services import odeme_takibi_service as ots
+    return _json({
+        'manuel': ots.list_odeme_takibi(),
+        'cari': ots.get_vadeli_cari(),
+        'cek': ots.get_cek_vadeleri(),
+        'ozet': ots.get_ozet(),
+    })
+
+
+@app.post('/api/odeme-takibi')
+@api_auth
+async def api_odeme_takibi_create(request: Request):
+    from services import odeme_takibi_service as ots
+    data = await request.json()
+    new_id = ots.add_odeme_takibi(data)
+    return _json({'ok': True, 'id': new_id})
+
+
+@app.put('/api/odeme-takibi/{rec_id}')
+@api_auth
+async def api_odeme_takibi_update(request: Request, rec_id: int):
+    from services import odeme_takibi_service as ots
+    data = await request.json()
+    ots.update_odeme_takibi(rec_id, data)
+    return _json({'ok': True})
+
+
+@app.delete('/api/odeme-takibi/{rec_id}')
+@api_auth
+async def api_odeme_takibi_delete(request: Request, rec_id: int):
+    from services import odeme_takibi_service as ots
+    ots.delete_odeme_takibi(rec_id)
+    return _json({'ok': True})
+
+
+@app.post('/api/odeme-takibi/ode-toplu')
+@api_auth
+async def api_odeme_takibi_ode_toplu(request: Request):
+    from services import odeme_takibi_service as ots
+    d = await request.json()
+    bh = d.get('banka_hesap_id')
+    sonuc = ots.ode_toplu(d.get('ids') or [], tarih=d.get('tarih'), banka_hesap_id=int(bh) if bh else None)
+    return _json({'ok': True, **sonuc})
+
+
+@app.post('/api/odeme-takibi/{rec_id}/ode')
+@api_auth
+async def api_odeme_takibi_ode(request: Request, rec_id: int):
+    from services import odeme_takibi_service as ots
+    d = await request.json()
+    bh = d.get('banka_hesap_id')
+    tutar = d.get('tutar')
+    kasa_id = ots.ode(rec_id, tarih=d.get('tarih'),
+                      tutar=float(tutar) if tutar else None,
+                      banka_hesap_id=int(bh) if bh else None)
+    return _json({'ok': True, 'kasa_id': kasa_id})
+
+
 # ============= LOGOUT =============
 
 @app.post('/api/logout')
 async def api_logout(request: Request):
     try:
-        app.storage.user.clear()
+        app.storage.user.pop('auth_user', None)
+        app.storage.user.pop('tenant_schema', None)
     except Exception:
         pass
     return _json({'ok': True})
