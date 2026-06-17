@@ -74,11 +74,10 @@ def cari_page():
 
             donem_popover_btn(_on_donem, default_mode='YIL')
             ui.space()
+            # Tek parca ozet panel (butonlarin saginda, ayni satirda)
+            ozet_box = ui.row().classes('items-center no-wrap')
             ui.button('Yeni Firma', icon='add', on_click=lambda: open_new_firma_dialog()) \
-                .props('color=primary')
-
-        # --- Ozet kartlari: Toplam Alacak / Borc / Net (gorunen satirlara gore) ---
-        ozet_box = ui.row().classes('w-full items-center gap-2 q-mb-xs')
+                .props('color=primary dense')
 
         def _render_ozet():
             ozet_box.clear()
@@ -87,23 +86,22 @@ def cari_page():
             t_borc = sum(-float(r.get('bakiye') or 0) for r in rows if float(r.get('bakiye') or 0) < 0)
             net = t_alacak - t_borc
             net_fg = '#15803d' if net >= 0 else '#b91c1c'
-            net_bg = '#f0fdf4' if net >= 0 else '#fef2f2'
-
-            def _stat(baslik, deger, bg, fg, icon):
-                with ui.element('div').style(
-                    f'background:{bg};border:1px solid {fg}33;border-radius:10px;padding:6px 16px;min-width:170px;'
-                ):
-                    with ui.row().classes('items-center no-wrap gap-2'):
-                        ui.icon(icon).style(f'color:{fg};font-size:22px')
-                        with ui.column().classes('gap-0'):
-                            ui.label(baslik).style('font-size:9px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.5px')
-                            ui.label(f"{fmt_para(deger)} TL").style(f'font-size:16px;font-weight:800;color:{fg};line-height:1.1')
-
+            segs = [
+                ('Alacak', t_alacak, '#15803d'),
+                ('Borç', t_borc, '#b91c1c'),
+                ('Net', net, net_fg),
+            ]
             with ozet_box:
-                _stat('Toplam Alacak', t_alacak, '#f0fdf4', '#15803d', 'trending_up')
-                _stat('Toplam Borç', t_borc, '#fef2f2', '#b91c1c', 'trending_down')
-                _stat('Net Bakiye', net, net_bg, net_fg, 'account_balance')
-                ui.label(f"{len(rows)} firma").classes('text-caption text-grey-6 q-ml-sm')
+                with ui.row().classes('items-center no-wrap').style(
+                    'border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#fff;height:34px'
+                ):
+                    for i, (lbl, val, fg) in enumerate(segs):
+                        sep = 'border-right:1px solid #eef2f6;' if i < len(segs) else ''
+                        with ui.row().classes('items-center no-wrap').style(
+                            f'padding:0 12px;gap:6px;height:100%;{sep}'
+                        ):
+                            ui.label(lbl).style('font-size:9px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:0.4px')
+                            ui.label(f"{fmt_para(val)} ₺").style(f'font-size:13px;font-weight:800;color:{fg}')
 
         # Tablo
         columns = [

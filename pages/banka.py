@@ -19,10 +19,38 @@ def banka_page():
     state = {'tip': 'BANKA', 'secili': None}
     kartlar_box = None
     hareket_box = None
+    ozet_box = None
 
     def _refresh():
+        _ozet()
         _kartlar()
         _hareket()
+
+    def _ozet():
+        """Ust toolbar'da tek parca ozet panel (sekmeye gore toplamlar)."""
+        if ozet_box is None:
+            return
+        ozet_box.clear()
+        hesaplar = [h for h in get_tum_banka_bakiyeler() if h['tip'] == state['tip']]
+        if not hesaplar:
+            return
+        if state['tip'] == 'KREDI_KARTI':
+            borc = sum(-float(h['bakiye']) for h in hesaplar if float(h['bakiye']) < 0)
+            limit = sum(float(h.get('kart_limiti', 0) or 0) for h in hesaplar)
+            segs = [('Kart Borcu', borc, '#b91c1c'), ('Limit', limit, '#4338ca'),
+                    ('Kullanılabilir', limit - borc, '#15803d')]
+        else:
+            toplam = sum(float(h['bakiye']) for h in hesaplar)
+            segs = [('Toplam Bakiye', toplam, '#15803d' if toplam >= 0 else '#b91c1c')]
+        with ozet_box:
+            with ui.row().classes('items-center no-wrap').style(
+                'border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#fff;height:34px'
+            ):
+                for i, (lbl, val, fg) in enumerate(segs):
+                    sep = 'border-right:1px solid #eef2f6;' if i < len(segs) - 1 else ''
+                    with ui.row().classes('items-center no-wrap').style(f'padding:0 12px;gap:6px;height:100%;{sep}'):
+                        ui.label(lbl).style('font-size:9px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:0.4px')
+                        ui.label(f"{fmt_para(val)} ₺").style(f'font-size:13px;font-weight:800;color:{fg}')
 
     def _kartlar():
         kartlar_box.clear()
@@ -32,32 +60,6 @@ def banka_page():
             if not hesaplar:
                 ui.label(f"Tanımlı {TIP_LABEL[state['tip']].lower()} yok. \"Yeni\" ile ekleyin.").classes('text-grey-6 q-pa-sm')
                 return
-
-            # --- Ozet seridi (en ustte toplamlar) ---
-            def _stat(baslik, deger, bg, fg, icon):
-                with ui.element('div').style(
-                    f'background:{bg};border:1px solid {fg}33;border-radius:10px;padding:6px 16px;min-width:160px;'
-                ):
-                    with ui.row().classes('items-center no-wrap gap-2'):
-                        ui.icon(icon).style(f'color:{fg};font-size:22px')
-                        with ui.column().classes('gap-0'):
-                            ui.label(baslik).style('font-size:9px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.5px')
-                            ui.label(f"{fmt_para(deger)} TL").style(f'font-size:16px;font-weight:800;color:{fg};line-height:1.1')
-
-            with ui.row().classes('w-full items-center gap-2 q-mb-sm'):
-                if is_kart_tip:
-                    toplam_borc = sum(-float(h['bakiye']) for h in hesaplar if float(h['bakiye']) < 0)
-                    toplam_limit = sum(float(h.get('kart_limiti', 0) or 0) for h in hesaplar)
-                    kullanilabilir = toplam_limit - toplam_borc
-                    _stat('Toplam Kart Borcu', toplam_borc, '#fef2f2', '#b91c1c', 'credit_card')
-                    _stat('Toplam Limit', toplam_limit, '#eef2ff', '#4338ca', 'speed')
-                    _stat('Kullanılabilir', kullanilabilir, '#f0fdf4', '#15803d', 'check_circle')
-                else:
-                    toplam = sum(float(h['bakiye']) for h in hesaplar)
-                    _fg = '#15803d' if toplam >= 0 else '#b91c1c'
-                    _bg = '#f0fdf4' if toplam >= 0 else '#fef2f2'
-                    _stat('Toplam Banka Bakiyesi', toplam, _bg, _fg, 'account_balance')
-
             # SATIR (liste) gorunumu — her hesap tek ince satir
             with ui.column().classes('w-full gap-0').style('border:1px solid #e0e0e0;border-radius:8px;overflow:hidden'):
                 for i, h in enumerate(hesaplar):
@@ -204,7 +206,8 @@ def banka_page():
                           on_click=lambda: _tab_degis('BANKA')).props('flat no-caps').bind_visibility_from(state, 'tip', lambda t: True)
                 ui.button('Kredi Kartları', icon='credit_card',
                           on_click=lambda: _tab_degis('KREDI_KARTI')).props('flat no-caps')
-            with ui.row().classes('gap-2'):
+            with ui.row().classes('items-center gap-2'):
+                ozet_box = ui.row().classes('items-center no-wrap')
                 ui.button('Transfer', icon='swap_horiz', on_click=_transfer).props('outline color=primary dense')
                 ui.button('Yeni', icon='add', on_click=lambda: _form(), color='primary').props('unelevated dense')
         kartlar_box = ui.column().classes('w-full')
