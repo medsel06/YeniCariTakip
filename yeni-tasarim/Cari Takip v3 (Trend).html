@@ -265,6 +265,8 @@ table.tbl tbody tr { transition: background 0.08s; }
 table.tbl tbody tr:hover { background: var(--panel-hover); cursor: pointer; }
 table.tbl tbody tr:last-child td { border-bottom: none; }
 .r { text-align: right; }
+/* thead th .r, daha ozgul 'table.tbl thead th{text-align:left}' tarafindan eziliyordu -> baslik/veri kaymasi */
+table.tbl thead th.r { text-align: right; }
 .tnum { font-variant-numeric: tabular-nums; text-align: right; letter-spacing: -0.02em; }
 .tdate { font-variant-numeric: tabular-nums; color: var(--text-2); font-size: 12px; letter-spacing: -0.02em; }
 .tref { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-3); }
@@ -1923,21 +1925,22 @@ const adapt = {
     not: r.not || '',
   }),
   oneri: (r) => ({
-    kod: r.kod, firma: r.firma_ad || r.firma,
-    oneri_tutar: parseFloat(r.oneri_tutar || r.bakiye || 0),
+    kod: r.kod || r.firma_kod, firma: r.firma_ad || r.firma,
+    oneri_tutar: parseFloat(r.onerilen_tahsilat || r.oneri_tutar || r.bakiye || 0),
     risk_yuzdesi: parseFloat(r.risk_yuzdesi || 0),
+    risk_limiti: parseFloat(r.risk_limiti || 0),
     en_eski_satis: r.en_eski_satis || '',
     gecikme_gun: parseFloat(r.gecikme_gun || 0),
     oncelik: parseFloat(r.oncelik_skoru || r.oncelik || 0),
   }),
   karlilik: (r) => ({
-    kod: r.kod, ad: r.ad,
+    kod: r.urun_kod || r.kod, ad: r.urun_ad || r.ad,
     alis_miktar: parseFloat(r.alis_miktar || 0),
     satis_miktar: parseFloat(r.satis_miktar || 0),
     alis_tutar: parseFloat(r.alis_tutar || 0),
     satis_tutar: parseFloat(r.satis_tutar || 0),
     kar: parseFloat(r.kar || 0),
-    marj_yuzde: parseFloat(r.marj_yuzdesi || r.marj_yuzde || 0),
+    marj_yuzde: parseFloat(r.marj != null ? r.marj : (r.marj_yuzdesi || r.marj_yuzde || 0)),
   }),
   log: (r) => ({
     id: r.id, tarih: r.created_at || r.tarih, kim: r.actor || r.kim || '',
@@ -2117,25 +2120,30 @@ function Dashboard({onOpenCustomer}){
     {label:'Vadeli Çek / Senet',value:vadeli,color:'#f2a331',icon:<ICek size={20}/>,delta:(vadeliCekler.length+' adet')},
     {label:'Gelir - Gider (Net)',value:netGG,color:'#79d84f',icon:<ITrend size={20}/>,delta:''},
   ];
+  // Yaşlandırma: tahsilat önerisi verisinden (her borçlu firmanın bakiyesi + en eski satıştan gecikme günü).
+  // Bu TÜM açık alacakları kapsar (sadece vade-tarihli olanları değil).
+  const _ag=[0,0,0,0,0];
+  (TAHSILAT_ONERI||[]).forEach(o=>{ const k=parseFloat(o.oneri_tutar||0)||0; if(k<=0)return; const d=parseFloat(o.gecikme_gun||0)||0; if(d<=30)_ag[0]+=k; else if(d<=60)_ag[1]+=k; else if(d<=90)_ag[2]+=k; else if(d<=120)_ag[3]+=k; else _ag[4]+=k; });
+  const agingTotal=_ag.reduce((a,b)=>a+b,0);
+  const _agPct=v=>agingTotal>0?(v/agingTotal*100):0;
   const aging=[
-    ['Vadesi Gelmemiş',416250,33.35,'#20e4ee'],
-    ['1 - 30 Gün',312850.5,25.05,'#20e4ee'],
-    ['31 - 60 Gün',228600.75,18.32,'#20e4ee'],
-    ['61 - 90 Gün',156750,12.55,'#20e4ee'],
-    ['90+ Gün',134119,10.73,'#ef5858'],
+    ['0 - 30 Gün',_ag[0],_agPct(_ag[0]),'#20e4ee'],
+    ['31 - 60 Gün',_ag[1],_agPct(_ag[1]),'#82dc35'],
+    ['61 - 90 Gün',_ag[2],_agPct(_ag[2]),'#f2c23e'],
+    ['91 - 120 Gün',_ag[3],_agPct(_ag[3]),'#ff7e33'],
+    ['120+ Gün',_ag[4],_agPct(_ag[4]),'#ef5858'],
   ];
-  const risky=CUSTOMERS.filter(c=>c.credit>0).sort((a,b)=>(b.balance/b.credit)-(a.balance/a.credit)).slice(0,5);
-  const banks=[
-    ['Merkez Kasa',kasaBal],
-    ['GARANTİ BBVA',1245780.45],
-    ['İŞ BANKASI',856500],
-    ['YAPI KREDİ',254500],
-  ];
+  // Riskli cari: risk skoru = limit kullanım %, vade günü = en geç gecikme (gerçek vadelerden)
+  const _cariVade={}; (TAHSILAT_ONERI||[]).forEach(o=>{ if(o.kod) _cariVade[o.kod]=parseFloat(o.gecikme_gun||0)||0; });
+  const risky=CUSTOMERS.filter(c=>c.credit>0).map(c=>({...c,_risk:Math.round((c.balance/c.credit)*100),_vade:_cariVade[c.code]!=null?_cariVade[c.code]:0})).sort((a,b)=>b._risk-a._risk).slice(0,5);
+  // Kasa & Banka: gerçek BANKA hesapları (KREDI_KARTI hariç) + nakit kasa
+  const banks=[['Merkez Kasa',kasaBal], ...((BANKA||[]).filter(b=>b.tip==='BANKA').map(b=>[b.ad, b.bakiye||0]))];
 
   return <div>
     <div className="dashboard-head">
       <div><div className="dashboard-title">Bilgi Ekranı</div><div className="dashboard-sub">Finansal özet ve günlük görünüm</div></div>
       <div className="grow"/>
+      {FX&&FX.USD&&<div className="date-chip" style={{gap:14,fontWeight:700}} title={FX.updated_at?('TCMB · '+FX.updated_at):'TCMB'}><span style={{color:'#79d84f'}}>$ {Number((FX.USD&&(FX.USD.sell||FX.USD.buy))||0).toFixed(4).replace('.',',')}</span><span style={{color:'#58aaf7'}}>€ {Number((FX.EUR&&(FX.EUR.sell||FX.EUR.buy))||0).toFixed(4).replace('.',',')}</span></div>}
       <div className="date-chip"><ICal size={18}/>{new Date().toLocaleDateString('tr-TR',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
     </div>
 
@@ -2188,17 +2196,17 @@ function Dashboard({onOpenCustomer}){
         <div className="analysis-body donut-wrap">
           <div>
             <div className="age-row" style={{minHeight:28,color:'rgba(213,230,232,.68)',fontSize:10,fontWeight:800}}><span>Gün Aralığı</span><span>Tutar (₺)</span><span></span><span>Oran (%)</span></div>
-            {aging.map(a=><div className="age-row" key={a[0]}><span>{a[0]}</span><span className="tnum">{a[1].toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}</span><div className="bar-track"><div className="bar-fill" style={{width:`${a[2]*2}%`,background:a[3]}}/></div><span className="tnum">{a[2].toFixed(2).replace('.',',')}</span></div>)}
-            <div className="age-row" style={{borderBottom:0,color:'#20e4ee',fontWeight:850}}><span>TOPLAM</span><span className="tnum">{totalA.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}</span><span></span><span>100</span></div>
+            {aging.map(a=><div className="age-row" key={a[0]}><span>{a[0]}</span><span className="tnum">{a[1].toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}</span><div className="bar-track"><div className="bar-fill" style={{width:`${Math.min(100,a[2])}%`,background:a[3]}}/></div><span className="tnum">{a[2].toFixed(2).replace('.',',')}</span></div>)}
+            <div className="age-row" style={{borderBottom:0,color:'#20e4ee',fontWeight:850}}><span>TOPLAM</span><span className="tnum">{agingTotal.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}</span><span></span><span>{agingTotal>0?'100':'0'}</span></div>
           </div>
-          <div className="donut"><div className="donut-center">{totalA.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}<span>Toplam Alacak</span></div></div>
+          <div className="donut"><div className="donut-center">{agingTotal.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}<span>Vadeli Alacak</span></div></div>
         </div>
       </div>
       <div className="card analysis-card">
         <div className="card-hd"><div><div className="card-ttl">Riskli Cari Hesaplar</div></div></div>
         <div className="analysis-body">
           <table className="mini-table"><thead><tr><th>Cari Hesap</th><th className="r">Vade Günü</th><th>Risk Skoru</th><th className="r">Bakiye (₺)</th></tr></thead><tbody>
-            {risky.map((c,i)=>{const colors=['#ef5858','#ff7e33','#f2c23e','#f2c23e','#79d84f'];return <tr key={c.id}><td>{c.name}</td><td className="tnum">{[128,97,75,62,45][i]}</td><td><span className="risk-dot" style={{'--risk-color':colors[i]}}/>{[85,72,65,55,40][i]}</td><td className="tnum">{c.balance.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}</td></tr>;})}
+            {risky.map((c,i)=>{const rk=c._risk; const col=rk>=90?'#ef5858':rk>=70?'#ff7e33':rk>=50?'#f2c23e':'#79d84f';return <tr key={c.id}><td>{c.name}</td><td className="tnum">{c._vade>0?c._vade:'—'}</td><td><span className="risk-dot" style={{'--risk-color':col}}/>{rk}</td><td className="tnum">{c.balance.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}</td></tr>;})}
           </tbody></table>
           <div style={{textAlign:'center',color:'#20e4ee',fontSize:12,marginTop:8}}>Tüm Riskli Carileri Gör <IRight size={12} style={{display:'inline',verticalAlign:'middle'}}/></div>
         </div>
@@ -3713,6 +3721,7 @@ function UserModal({onClose,onSaved}){
 let KASA = [];
 let BANKA = [];           // {id, ad, tip:'BANKA'|'KREDI_KARTI', iban, bakiye, kart_limiti, acilis_bakiye, aktif}
 let BANKA_HRK = [];       // tum banka hesap hareketleri birlesik (dashboard Son Islemler 'Banka' sekmesi icin)
+let FX = {};              // TCMB USD/EUR kurlari (/api/fx)
 let ODEME_TAKIBI = {manuel:[],cari:[],cek:[],ozet:{}};
 let CEKLER = [];          // {evrak_tipi, evrak_no, firma_kod, firma_ad, kesim_tarihi, vade_tarihi, tutar, tip:'ALINAN'|'VERILEN', durum, notlar}
 let PERSONEL = [];        // {id, ad_soyad, maas, durum, giris_tarihi, cikis_tarihi, telefon}
@@ -4930,7 +4939,7 @@ function App(){
       const meRes = await fetch('/api/me', { credentials: 'same-origin' });
       if (meRes.status === 401) { window.location.href = '/login'; return; }
       if (meRes.ok) setMe(await meRes.json());
-      const [c, h, s, k, gg, p, ck, mut, to, kr, lg, fmaster, kasa_bak, dashKpi, settings, ckPort, ckVade, gg_ozet, bnk, odt, usr, bkp] = await Promise.all([
+      const [c, h, s, k, gg, p, ck, mut, to, kr, lg, fmaster, kasa_bak, dashKpi, settings, ckPort, ckVade, gg_ozet, bnk, odt, usr, bkp, fx] = await Promise.all([
         apiGet('/api/cariler'),
         apiGet('/api/hareketler'),
         apiGet('/api/stok'),
@@ -4953,6 +4962,7 @@ function App(){
         apiGet('/api/odeme-takibi'),
         apiGet('/api/users').catch(()=>[]),
         apiGet('/api/backups').catch(()=>[]),
+        apiGet('/api/fx').catch(()=>({})),
       ]);
       // Cariler: bakiye listesi + master birleştir
       const masterMap = {};
@@ -4971,6 +4981,7 @@ function App(){
       PERSONEL = (p || []).map(adapt.personel);
       USERS = (usr || []).map(u => ({ id: u.id, username: u.username, full_name: u.full_name || u.ad_soyad || '', role: u.role || u.rol || 'user', is_active: u.is_active != null ? u.is_active : 1 }));
       BACKUPS = (bkp || []).map(b => ({ filename: b.filename || b.name || '', size_mb: parseFloat(b.size_mb != null ? b.size_mb : (b.size ? b.size / 1048576 : 0)), created: b.created || b.tarih || '' }));
+      FX = fx || {};
       try {
         MESAILER = (await Promise.all((p || []).map(pp =>
           apiGet('/api/personel/' + pp.id + '/mesai').then(rows => (rows || []).map(r => ({ ...r, personel_id: r.personel_id || pp.id, fazla_mesai_saat: r.fazla_mesai_saat != null ? r.fazla_mesai_saat : (r.saat || 0) }))).catch(() => [])

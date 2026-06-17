@@ -328,6 +328,17 @@ async def api_karlilik(request: Request):
     return _json(oneri_service.get_urun_karlilik_ozeti())
 
 
+@app.get('/api/fx')
+@api_auth
+async def api_fx(request: Request):
+    """TCMB USD/EUR kurlari (fx_service 15 dk cache'li)."""
+    try:
+        from services import fx_service
+        return _json(fx_service.get_usd_eur_rates() or {})
+    except Exception:
+        return _json({})
+
+
 # ============= DASHBOARD KPI =============
 
 @app.get('/api/dashboard/kpi')
