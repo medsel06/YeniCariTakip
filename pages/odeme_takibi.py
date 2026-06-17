@@ -32,6 +32,10 @@ def odeme_takibi_page():
             overscroll-behavior: contain;
         }
         .odeme-tbl .q-table { table-layout: fixed; }
+        /* Secim modu: checkbox kolonu icin sabit yukseklik/fixed-layout kaldir (kirpilmasin) */
+        .odeme-sel .q-table { table-layout: auto !important; }
+        .odeme-sel.odeme-tbl tbody tr { height: auto !important; }
+        .odeme-sel .q-table tbody td, .odeme-sel .q-table thead th { padding: 4px 10px !important; }
         /* Filtre cubugu butonlarini kompakt yap (segmentler + donem pill) */
         .odeme-filtre .q-btn { min-height: 26px !important; padding: 2px 11px !important; font-size: 11px !important; }
         .odeme-filtre .q-btn .q-icon { font-size: 15px !important; }
@@ -139,11 +143,25 @@ def odeme_takibi_page():
                             ui.label(baslik).style('font-size:8px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.4px')
                             ui.label(f"{fmt_para(deger)} ₺").style(f'font-size:12.5px;font-weight:800;color:{fg};line-height:1.05')
 
+    def _secim_iptal_bar(mesaj=None):
+        """Secim modunda her zaman gorunen ust cubuk (Iptal cikisi garanti)."""
+        with ui.row().classes('w-full items-center gap-3 q-pa-sm') \
+                .style('background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;'):
+            ui.icon('credit_card').style('color:#1d4ed8;font-size:22px')
+            ui.label(mesaj or 'Kredi Kartı Toplu Ödeme — ekstredeki harcamaları seçip tek ödemede kapatın') \
+                .style('font-size:12px;color:#1e3a8a;font-weight:600')
+            ui.space()
+            ui.button('İptal', on_click=lambda: (mode.update(secim=False), _refresh())) \
+                .props('flat dense no-caps color=grey-7')
+
     def _tablo(data):
         tablo_box.clear()
         with tablo_box:
             if not data:
-                ui.label('Kayıt yok. Vadeli alış/satış girince veya manuel plan ekleyince burada görünür.').classes('text-grey-7 q-pa-md')
+                if mode['secim']:
+                    _secim_iptal_bar('Ödenmemiş kredi kartı harcaması yok. (İptal ile çıkın)')
+                else:
+                    ui.label('Kayıt yok. Vadeli alış/satış girince veya manuel plan ekleyince burada görünür.').classes('text-grey-7 q-pa-md')
                 return
             columns = [
                 {'name': 'vade_tarih', 'label': 'Vade', 'field': 'vade_tarih', 'align': 'left', 'sortable': True},
@@ -190,7 +208,7 @@ def odeme_takibi_page():
                 columns=columns, rows=disp, row_key='_rid',
                 selection='multiple' if mode['secim'] else None,
                 pagination={'rowsPerPage': len(disp) or 1},
-            ).classes('w-full odeme-tbl').props('flat bordered hide-bottom dense')
+            ).classes('w-full odeme-tbl' + (' odeme-sel' if mode['secim'] else '')).props('flat bordered hide-bottom dense')
             if mode['secim']:
                 with _bar:
                     ui.icon('credit_card').style('color:#1d4ed8;font-size:22px')
