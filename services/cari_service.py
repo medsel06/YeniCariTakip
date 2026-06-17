@@ -372,6 +372,7 @@ def get_cari_ekstre(firma_kod, yil=None, ay=None, with_meta=False):
             'kaynak': kaynak,
             'miktar': s.get('miktar'),
             'birim': s.get('birim') or '',
+            'birim_fiyat': s.get('birim_fiyat'),
         })
 
     if with_meta:
@@ -431,7 +432,8 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
             CASE WHEN h.tur='SATIS' THEN h.kdvli_toplam ELSE 0 END AS alacak,
             h.urun_ad AS aciklama, NULL AS belge_no,
             h.miktar AS miktar,
-            COALESCE(NULLIF(u.birim, ''), 'KG') AS birim
+            COALESCE(NULLIF(u.birim, ''), 'KG') AS birim,
+            h.birim_fiyat AS birim_fiyat
         FROM hareketler h
         LEFT JOIN urunler u ON u.kod = h.urun_kod
         WHERE 1=1 {firma_clause.replace('firma_kod', 'h.firma_kod')}{date_flt.replace('tarih', 'h.tarih')}
@@ -445,7 +447,7 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
             CASE WHEN tur='GIDER' THEN toplam ELSE 0 END AS borc,
             CASE WHEN tur='GELIR' THEN toplam ELSE 0 END AS alacak,
             COALESCE(aciklama, kategori) AS aciklama, NULL AS belge_no,
-            NULL AS miktar, NULL AS birim
+            NULL AS miktar, NULL AS birim, NULL AS birim_fiyat
         FROM gelir_gider
         WHERE firma_kod IS NOT NULL AND firma_kod != '' {firma_clause}{date_flt}
         """,
@@ -458,7 +460,7 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
             CASE WHEN tur='GELIR' THEN tutar ELSE 0 END AS borc,
             CASE WHEN tur='GIDER' THEN tutar ELSE 0 END AS alacak,
             aciklama, NULL AS belge_no,
-            NULL AS miktar, NULL AS birim
+            NULL AS miktar, NULL AS birim, NULL AS birim_fiyat
         FROM kasa
         WHERE firma_kod IS NOT NULL AND firma_kod != '' AND cek_id IS NULL {firma_clause}{date_flt}
         """,
@@ -485,7 +487,7 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
               ELSE 0
             END AS alacak,
             cek_no AS aciklama, cek_no AS belge_no,
-            NULL AS miktar, NULL AS birim
+            NULL AS miktar, NULL AS birim, NULL AS birim_fiyat
         FROM cekler
         WHERE firma_kod IS NOT NULL AND firma_kod != '' {firma_clause}
           AND COALESCE(NULLIF(kesim_tarih, ''), vade_tarih) IS NOT NULL
@@ -503,7 +505,7 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
             0 AS borc,
             tutar AS alacak,
             cek_no AS aciklama, cek_no AS belge_no,
-            NULL AS miktar, NULL AS birim
+            NULL AS miktar, NULL AS birim, NULL AS birim_fiyat
         FROM cekler
         WHERE durum='CIRO_EDILDI'
           AND ciro_firma_kod IS NOT NULL AND ciro_firma_kod != ''
@@ -593,6 +595,7 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
                 kumul += float(r['alacak'] or 0) - float(r['borc'] or 0)
                 miktar_raw = r['miktar'] if 'miktar' in r.keys() else None
                 birim_raw = r['birim'] if 'birim' in r.keys() else None
+                bfiyat_raw = r['birim_fiyat'] if 'birim_fiyat' in r.keys() else None
                 satirlar.append({
                     'tarih': r['tarih'],
                     'tip': r['tip'],
@@ -604,6 +607,7 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
                     'bakiye': kumul,
                     'miktar': float(miktar_raw) if miktar_raw is not None else None,
                     'birim': birim_raw or '',
+                    'birim_fiyat': float(bfiyat_raw) if bfiyat_raw is not None else None,
                 })
             return {
                 'donem_label': _donem_label(yil, ay),

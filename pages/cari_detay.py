@@ -301,6 +301,7 @@ def cari_detay_page(firma_kod: str):
                     {'name': 'tip', 'label': 'Tür', 'field': 'tip', 'align': 'center', 'sortable': True},
                     {'name': 'aciklama', 'label': 'Açıklama', 'field': 'aciklama', 'align': 'left'},
                     {'name': 'miktar', 'label': 'Miktar', 'field': 'miktar', 'align': 'right', 'sortable': True},
+                    {'name': 'birim_fiyat', 'label': 'Birim Fiyat', 'field': 'birim_fiyat', 'align': 'right', 'sortable': True},
                     {'name': 'borc', 'label': 'Borç', 'field': 'borc', 'align': 'center'},
                     {'name': 'alacak', 'label': 'Alacak', 'field': 'alacak', 'align': 'center'},
                     {'name': 'bakiye', 'label': 'Bakiye', 'field': 'bakiye', 'align': 'center'},
@@ -389,6 +390,13 @@ def cari_detay_page(firma_kod: str):
                         <span v-if="props.row.miktar != null && props.row.miktar !== 0" class="text-grey-9">
                             {{ Number(props.row.miktar).toLocaleString('tr-TR', {minimumFractionDigits:0, maximumFractionDigits:2}) }}
                             <span class="text-grey-6 text-caption q-ml-xs">{{ props.row.birim || 'KG' }}</span>
+                        </span>
+                    </q-td>
+                ''')
+                ekstre_table.add_slot('body-cell-birim_fiyat', r'''
+                    <q-td :props="props" class="text-right">
+                        <span v-if="props.row.birim_fiyat != null && props.row.birim_fiyat !== 0" class="text-grey-9">
+                            {{ Number(props.row.birim_fiyat).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) }} TL
                         </span>
                     </q-td>
                 ''')
