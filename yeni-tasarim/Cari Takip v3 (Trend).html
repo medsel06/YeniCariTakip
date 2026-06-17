@@ -1580,6 +1580,24 @@ table.tbl.mock-table tbody tr.selected td {
 }
 :root[data-theme="light"] body { background: #eef4f6; }
 :root[data-theme="light"] .sb { background: #ffffff; border-right-color: #dce7ea; }
+/* Light: ikincil butonlar yari-saydam beyazdi -> alttaki gradyan sizip gri/soluk gorunuyordu.
+   Kati beyaz + biraz daha belirgin kenarlik: hos, goze batmayan. date-chip de beyaz. */
+:root[data-theme="light"] .btn { background: #ffffff; border-color: rgba(63,92,96,.22); }
+:root[data-theme="light"] .btn:hover { background: #eef5f7; border-color: rgba(63,92,96,.30); }
+:root[data-theme="light"] .btn-ghost { background: transparent; border-color: transparent; }
+:root[data-theme="light"] .date-chip { background: #ffffff; border-color: rgba(63,92,96,.18); }
+:root[data-theme="light"] .top-search { background: #ffffff; border-color: rgba(63,92,96,.18); }
+:root[data-theme="light"] .top-search kbd { background: #eef4f6; border-color: rgba(63,92,96,.16); }
+/* Light: dark-first koyu zeminli ogeler (topbar/footer/arac butonlari) -> acik. (.scrim modal arkaplani koyu kalir.) */
+:root[data-theme="light"] .tb { background: rgba(255,255,255,.92); }
+:root[data-theme="light"] .tb-action { background: #ffffff; border-color: rgba(63,92,96,.18); }
+:root[data-theme="light"] .user-menu { background: #ffffff; border-color: rgba(63,92,96,.16); }
+:root[data-theme="light"] .tool-btn { background: #ffffff; border-color: rgba(63,92,96,.20); }
+:root[data-theme="light"] .app-footer { background: #ffffff; border-top: 1px solid rgba(63,92,96,.14); color: var(--text-2); }
+:root[data-theme="light"] table.tbl.mock-table thead th { background: #e7eff1; }
+:root[data-theme="light"] .table-scrollbar { background: #e3eef1; }
+:root[data-theme="light"] .donut::before { background: #ffffff; }
+:root[data-theme="light"] .sb-search kbd { background: #eef4f6; }
 /* Light tema metin okunabilirligi: dark-first sabit acik renkler light'ta gorunmuyordu.
    Sadece light'ta gecerli; dark hic etkilenmez. */
 /* Onemli/baslik metinleri -> koyu */
@@ -2102,7 +2120,7 @@ function Dashboard({onOpenCustomer}){
     <div className="dashboard-head">
       <div><div className="dashboard-title">Dashboard</div><div className="dashboard-sub">Finansal özet ve günlük görünüm</div></div>
       <div className="grow"/>
-      <div className="date-chip"><ICal size={18}/>23 Mayıs 2025, Cuma <IDown size={12}/></div>
+      <div className="date-chip"><ICal size={18}/>{new Date().toLocaleDateString('tr-TR',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
     </div>
 
     <div className="dash-kpi-grid">
