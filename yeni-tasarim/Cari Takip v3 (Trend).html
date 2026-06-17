@@ -1909,12 +1909,13 @@ const DOC_LBL = { fatura:'Fatura', tahsilat:'Tahsilat', cek:'Çek/Senet', odeme:
 const DOC_CHIP = { fatura:'info', tahsilat:'good', cek:'warn', odeme:'bad', iade:'mute' };
 
 // ============= COMPONENTS =============
-function Sidebar({page,onNav}){
-  const op=[{id:'dashboard',l:'Dashboard',i:<IDash/>},{id:'cariler',l:'Cari Hesaplar',i:<ICari/>},{id:'stok',l:'Stok Yönetimi',i:<IStok/>},{id:'hareketler',l:'Satışlar',i:<ISwap/>,chev:true},{id:'firmalar',l:'Alışlar',i:<IStok/>,chev:true},{id:'kasa',l:'Kasa',i:<IKasa/>},{id:'gelirgider',l:'Banka',i:<IApt/>},{id:'cekler',l:'Çek / Senet',i:<ICek/>},{id:'karlilik',l:'Gelir - Gider',i:<ITrend/>},{id:'mutabakat',l:'Muhasebe',i:<IDoc/>,chev:true},{id:'raporlar',l:'Raporlar',i:<IRep/>,chev:true},{id:'ayarlar',l:'Tanımlar',i:<ISet/>,chev:true},{id:'loglar',l:'Ayarlar',i:<ISet/>}];
+function Sidebar({page,onNav,me}){
+  const _firma=(me&&me.tenant&&me.tenant.name)||'Cari Takip';
+  const op=[{id:'dashboard',l:'Bilgi Ekranı',i:<IDash/>},{id:'cariler',l:'Cari Hesaplar',i:<ICari/>},{id:'firmalar',l:'Firmalar',i:<IApt/>},{id:'stok',l:'Stok',i:<IStok/>},{id:'hareketler',l:'İşlemler',i:<ISwap/>},{id:'kasa',l:'Kasa',i:<IKasa/>},{id:'gelirgider',l:'Gelir / Gider',i:<ITrend/>},{id:'cekler',l:'Çek / Senet',i:<ICek/>},{id:'cektakvim',l:'Çek Takvimi',i:<IDoc/>},{id:'karlilik',l:'Karlılık',i:<IRep/>},{id:'mutabakat',l:'Mutabakat',i:<IDoc/>},{id:'tahsilatoneri',l:'Tahsilat Önerisi',i:<ITrend/>},{id:'personel',l:'Personel',i:<ICari/>},{id:'uretim',l:'Üretim',i:<IStok/>},{id:'ayarlar',l:'Ayarlar',i:<ISet/>},{id:'loglar',l:'Loglar',i:<IDoc/>}];
   const eff = (page==='cari'||page==='ekstre')?'cariler':page;
   const r=(items)=>items.map(it=><button key={it.id} className={`sb-item ${eff===it.id?'active':''}`} onClick={()=>onNav(it.id)}>{it.i}<span>{it.l}</span>{it.chev&&<IRight size={12} style={{marginLeft:'auto'}}/>}</button>);
   return <aside className="sb">
-    <div className="sb-brand"><div className="sb-logo">D</div><div><div className="sb-brand-name">Defterim</div><div className="sb-brand-sub">Cari Takip</div></div><div className="sb-collapse">≪</div></div>
+    <div className="sb-brand"><div className="sb-logo">{(_firma[0]||'C').toUpperCase()}</div><div><div className="sb-brand-name">{_firma}</div><div className="sb-brand-sub">Cari Takip</div></div><div className="sb-collapse">≪</div></div>
     <nav className="sb-nav">{r(op)}</nav>
     <div className="sb-shortcuts">
       <div className="shortcut-panel">
@@ -1932,19 +1933,22 @@ function Sidebar({page,onNav}){
   </aside>;
 }
 
-function Topbar({crumbs}){
+function Topbar({crumbs,me}){
+  const _ad=(me&&me.user&&(me.user.full_name||me.user.username))||'';
+  const _ini=_ad.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase()||'?';
+  const _firma=(me&&me.tenant&&me.tenant.name)||'Firma';
+  const _yil=new Date().getFullYear();
+  const _logout=async()=>{try{await window.apiPost('/api/logout',{});}catch(e){}window.location.href='/login';};
   return <div className="tb">
     <div className="top-search"><ISearch size={18}/><input readOnly placeholder="Cari, belge, fiş, stok ara..." /><kbd>⌘ K</kbd></div>
     <div className="tb-spacer"/>
-    <button className="tb-action"><span className="plus-mark">+</span> Hızlı İşlem <IDown size={12}/></button>
-    <button className="tb-link"><IBell size={15}/>Hatırlatmalar<span className="notif">7</span></button>
-    <button className="tb-link"><ICari size={15}/>Mesajlar<span className="notif blue">3</span></button>
     <button className="tb-link"><IIns size={15}/>Yardım</button>
     <button className="tb-link" onClick={()=>window.__toggleTheme&&window.__toggleTheme()} title="Açık / Koyu tema">◐ Tema</button>
+    <button className="tb-link" onClick={()=>window.location.href='/'} title="Klasik (eski) tasarıma dön">↩ Klasik</button>
+    <button className="tb-link" onClick={_logout} title="Çıkış yap">⎋ Çıkış</button>
     <div className="top-sep"/>
-    <div className="company-switch">DEMO A.Ş.<span>2025⌄</span></div>
-    <div className="user-menu">YK</div>
-    <IDown size={13} style={{color:'rgba(222,234,235,.66)'}}/>
+    <div className="company-switch">{_firma}<span>{_yil}</span></div>
+    <div className="user-menu" title={_ad}>{_ini}</div>
   </div>;
 }
 
@@ -1974,10 +1978,10 @@ function MoneyPlain({value}){return <span className="num">₺{Number(value||0).t
 
 function Dashboard({onOpenCustomer}){
   const [txTab,setTxTab]=React.useState('all');
-  const totalA = CUSTOMERS.reduce((s,c)=>s+Math.max(0,c.balance),0);
-  const totalB = Math.abs(CUSTOMERS.reduce((s,c)=>s+Math.min(0,c.balance),0));
+  const totalA = Number(DASH_KPI.toplam_alacak ?? CUSTOMERS.reduce((s,c)=>s+Math.max(0,c.balance),0));
+  const totalB = Number(DASH_KPI.toplam_borc ?? Math.abs(CUSTOMERS.reduce((s,c)=>s+Math.min(0,c.balance),0)));
   const kasaBal = Number(KASA_BAKIYE.kasa ?? DASH_KPI.kasa_bakiyesi ?? KASA.reduce((s,k)=>s+(k.tip==='GELIR'?1:-1)*(k.tutar||0),0) ?? 0);
-  const bankaBal = Number(KASA_BAKIYE.banka ?? DASH_KPI.banka_bakiyesi ?? 2356780.45);
+  const bankaBal = Number(KASA_BAKIYE.banka ?? DASH_KPI.banka_bakiyesi ?? 0);
   const vadeli = CEKLER.filter(c=>String(c.durum||'').toUpperCase()!=='ODENDI').reduce((s,c)=>s+(c.tutar||0),0);
   const netGG = Number(GG_OZET.net ?? GG.reduce((s,g)=>s+(g.tip==='GELIR'?1:-1)*(g.tutar||0),0));
   const allTx=[...TX].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
@@ -2000,12 +2004,12 @@ function Dashboard({onOpenCustomer}){
     gider:{label:'Gider',icon:<IUp size={12}/>,color:'#ef6464',status:'Kaydedildi',statusColor:'#8b9ba0'},
   };
   const kpi=[
-    {label:'Toplam Cari Alacak',value:totalA,color:'#20e4ee',icon:<ICari size={20}/>,delta:'↗ %6,24 bu aya göre'},
-    {label:'Toplam Cari Borç',value:totalB,color:'#82dc35',icon:<ICari size={20}/>,delta:'↗ %5,11 bu aya göre'},
-    {label:'Kasa Bakiyesi',value:kasaBal,color:'#a379ff',icon:<IKasa size={20}/>,delta:'↗ %2,34 bu aya göre'},
-    {label:'Banka Bakiyesi',value:bankaBal,color:'#58aaf7',icon:<IApt size={20}/>,delta:'↗ %6,72 bu aya göre'},
-    {label:'Vadeli Çek / Senet',value:vadeli,color:'#f2a331',icon:<ICek size={20}/>,delta:'↘ %3,18 bu aya göre'},
-    {label:'Gelir - Gider (Net)',value:netGG,color:'#79d84f',icon:<ITrend size={20}/>,delta:'↗ %12,45 bu aya göre'},
+    {label:'Toplam Cari Alacak',value:totalA,color:'#20e4ee',icon:<ICari size={20}/>,delta:(DASH_KPI.aktif_cari!=null?DASH_KPI.aktif_cari+' aktif cari':'')},
+    {label:'Toplam Cari Borç',value:totalB,color:'#82dc35',icon:<ICari size={20}/>,delta:''},
+    {label:'Kasa Bakiyesi',value:kasaBal,color:'#a379ff',icon:<IKasa size={20}/>,delta:''},
+    {label:'Banka Bakiyesi',value:bankaBal,color:'#58aaf7',icon:<IApt size={20}/>,delta:''},
+    {label:'Vadeli Çek / Senet',value:vadeli,color:'#f2a331',icon:<ICek size={20}/>,delta:(CEKLER.filter(c=>String(c.durum||'').toUpperCase()!=='ODENDI').length+' adet')},
+    {label:'Gelir - Gider (Net)',value:netGG,color:'#79d84f',icon:<ITrend size={20}/>,delta:''},
   ];
   const aging=[
     ['Vadesi Gelmemiş',416250,33.35,'#20e4ee'],
@@ -3140,7 +3144,7 @@ function NewCariModal({onClose,onSaved}){
     e.preventDefault();
     if(!f.name){ alert('Firma adı zorunlu'); return; }
     const payload = { kod: f.code || '', ad: f.name, tel: f.phone, email: f.email,
-      adres: '', vkn_tckn: f.taxNo, nace: '', is_alani: '',
+      adres: [f.city,f.district].filter(Boolean).join(' / '), vkn_tckn: f.taxNo, nace: '', is_alani: '',
       risk_limiti: parseFloat(f.credit||0) };
     const res = await apiPost('/api/cariler', payload);
     if(res?.ok) onSaved?.('Cari hesap kaydedildi');
@@ -3303,11 +3307,11 @@ function NewGGModal({onClose,onSaved}){
     if(!tutar){ alert('Tutar zorunlu'); return; }
     const c = CUSTOMERS.find(x=>x.id===firmaId);
     const payload = {
-      tarih: date, tur: tip,
-      kategori: kat, tutar: parseFloat(tutar),
+      tarih: date, tur: (String(tip).toLowerCase().indexOf('gel')===0?'GELIR':'GIDER'),
+      kategori: kat, tutar: parseFloat(tutar), toplam: parseFloat(tutar),
       firma_kod: c?.code||'', firma_ad: c?.name||'',
       odeme_sekli: durum==='ODENDI'?odeme:'',
-      durum, aciklama,
+      odeme_durumu: durum, aciklama,
     };
     const res = await apiPost('/api/gelir-gider', payload);
     if(res?.ok) onSaved?.(tip==='gelir'?'Gelir kaydedildi':'Gider kaydedildi');
@@ -4547,9 +4551,9 @@ function App(){
   };
 
   return <div id="root" data-screen-label={page}>
-    <Sidebar page={page} onNav={nav}/>
+    <Sidebar page={page} onNav={nav} me={me}/>
     <div className="main">
-      <Topbar crumbs={crumbs}/>
+      <Topbar crumbs={crumbs} me={me}/>
       <div className="content"><div className="wrap">
         {loading && dataVersion===0 ? <div className="card" style={{padding:48,textAlign:'center'}}>
           <div style={{fontSize:14,color:'var(--text-2)'}}>Veri yükleniyor…</div>
@@ -4559,7 +4563,7 @@ function App(){
     <div className="app-footer">
       <span className="footer-status"><ISet size={14} style={{color:'#19d7b7'}}/>Lisans: Enterprise</span>
       <span className="footer-sep"/>
-      <span>Kullanıcı: Yusuf K.</span>
+      <span>Kullanıcı: {me?.user?.full_name||me?.user?.username||'-'}</span>
       <span className="grow"/>
       <span className="footer-status"><span className="footer-dot"/>Son Yedekleme: 23.05.2025 02:15</span>
       <span className="footer-sep"/>

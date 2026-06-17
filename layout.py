@@ -1,4 +1,4 @@
-﻿"""
+"""
 Cari Takip - Ortak Layout
 Header, navigation drawer, format yardimcilari
 """
@@ -284,11 +284,11 @@ body, html, .q-page-container, .q-page, .q-layout,
   font-size: 13px;
 }
 .q-table thead tr th {
-  background: linear-gradient(180deg, #2b4f6d 0%, #243f57 100%);
-  color: #f5fbff;
+  background: #2f3a40 !important;
+  color: #eef5f6;
   font-weight: 700;
-  letter-spacing: 0.2px;
-  border-bottom: 1px solid #183046;
+  letter-spacing: 0.02em;
+  border-bottom: 1px solid #1f2a30;
   padding-top: 6px !important;
   padding-bottom: 6px !important;
   line-height: 1.15;
@@ -307,9 +307,9 @@ body, html, .q-page-container, .q-page, .q-layout,
   padding-bottom: 5px !important;
 }
 .q-table tbody tr:hover {
-  background: #dfe0e3 !important;
-  transform: translateY(-1px);
-  box-shadow: inset 0 0 0 1px #9cc2e3;
+  background: #dfe6e8 !important;
+  transform: none;
+  box-shadow: inset 3px 0 0 #2f7f8d;
 }
 
 /* Global adaptive table container:
@@ -372,6 +372,397 @@ body, html, .q-page-container, .q-page, .q-layout,
 }
 '''
 
+MODERN_BRAND_CSS = '''
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+body, html, .q-page-container, .q-page, .q-layout,
+.q-tab-panels, .q-tab-panel,
+.q-expansion-item__content,
+.q-item, .q-list,
+.q-separator {
+  background: #f1f5f9 !important;
+}
+.q-card {
+  background: #ffffff !important;
+}
+
+body, html, .q-page-container, .q-page, .q-layout, .q-card, .q-card__section, .q-table, .q-tab-panels, .q-tab-panel, .q-expansion-item__content, .q-item, .q-list, .q-toolbar, .q-banner, .q-separator, .q-field, .q-btn {
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+}
+
+/* Tarihsiz kayit uyarisi */
+.tarihsiz-cell { background: #fee2e2 !important; }
+tr:hover .tarihsiz-cell { background: #fecaca !important; }
+
+/* ---- MODERN HEADER ---- */
+.alse-header {
+  background: #ffffff !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05) !important;
+}
+.alse-header .text-white { color: #0f172a !important; }
+.alse-header .text-subtitle1 { color: #0f172a !important; font-weight: 700 !important; }
+.alse-header .q-btn { color: #475569 !important; }
+.alse-header-brand {
+  border-right: 1px solid #e2e8f0 !important;
+}
+.alse-header-brand span:first-child { color: #0f172a !important; }
+.alse-header-brand span:last-child { color: #64748b !important; }
+
+/* ---- MOBILE RESPONSIVE ---- */
+@media (max-width: 768px) {
+  .alse-header { min-height: 52px !important; }
+  .alse-header-brand { display: none !important; }
+  .alse-header .text-subtitle1 { font-size: 13px !important; }
+  .q-drawer { width: 260px !important; }
+  .q-page-container { padding-left: 0 !important; }
+  .q-pa-sm { padding: 6px !important; }
+  .q-pa-md { padding: 8px !important; }
+  .dash-cards { grid-template-columns: 1fr 1fr !important; gap: 6px !important; }
+  .q-dialog .q-card { width: 96vw !important; max-width: 96vw !important; margin: 8px !important; max-height: 90vh !important; overflow-y: auto !important; }
+  .q-table { font-size: 11px !important; }
+  .q-table thead tr th { padding: 4px 6px !important; font-size: 10px !important; }
+  .q-table tbody td { padding: 3px 6px !important; }
+  .q-btn--dense { min-height: 28px !important; padding: 2px 8px !important; font-size: 11px !important; }
+  .q-field--dense .q-field__control { min-height: 32px !important; }
+  .q-chip { font-size: 11px !important; padding: 2px 6px !important; }
+  .q-row-mobile-wrap { flex-wrap: wrap !important; }
+}
+@media (max-width: 480px) {
+  .dash-cards { grid-template-columns: 1fr !important; }
+  .q-table { font-size: 10px !important; }
+  .q-table thead tr th { font-size: 9px !important; padding: 3px 4px !important; }
+  .q-table tbody td { padding: 2px 4px !important; }
+  .q-dialog .q-card { width: 100vw !important; max-width: 100vw !important; margin: 0 !important; border-radius: 0 !important; }
+}
+
+/* ---- MODERN DIALOG / MODAL STYLING ---- */
+.alse-dialog {
+  border-radius: 16px !important;
+  overflow: hidden;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1) !important;
+}
+.alse-dialog > .nicegui-column,
+.alse-dialog > .q-card__section,
+.alse-dialog > div:not(.alse-dialog-header):not(.q-card__actions) {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+.alse-dialog-header {
+  background: #ffffff !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.alse-dialog-header .q-icon { color: #2563eb !important; font-size: 26px; }
+.alse-dialog-header .dialog-title { color: #0f172a !important; font-size: 17px; font-weight: 700; letter-spacing: 0.3px; }
+.alse-dialog-body { background: #ffffff !important; padding: 20px; }
+.alse-dialog-footer { padding: 12px 20px; display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #e2e8f0; background: #f8fafc !important; }
+.q-dialog__inner { transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important; }
+.q-dialog .q-card {
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1) !important;
+  border-radius: 16px !important;
+  border: 1px solid #e2e8f0 !important;
+  background: #ffffff !important;
+}
+
+/* Input focus glow */
+.q-field--outlined .q-field__control {
+  border-radius: 8px !important;
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+}
+.q-field--outlined.q-field--focused .q-field__control {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15) !important;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.q-field--outlined .q-field__label {
+  color: #475569 !important;
+}
+
+/* Buton hover efekti */
+.q-btn {
+  border-radius: 8px !important;
+}
+.q-btn--unelevated { transition: all 0.2s ease; }
+.q-btn--unelevated:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important; }
+
+/* Confirm dialog ozel */
+.alse-confirm-danger { border-left: 4px solid #ef4444; }
+
+/* ---- MODERN SIDEBAR (DRAWER) ---- */
+.alse-drawer {
+  background: #ffffff !important;
+  border-right: 1px solid #e2e8f0 !important;
+}
+.alse-drawer .nicegui-expansion-content {
+  gap: 7px !important;
+  row-gap: 7px !important;
+}
+.alse-drawer .q-drawer__content,
+.alse-drawer .scroll {
+  background: #ffffff !important;
+}
+.alse-drawer .q-drawer__content {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  padding-bottom: 32px !important;
+}
+.alse-drawer-brand {
+  height: 70px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 4px;
+}
+.alse-group {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  margin: 0 !important;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.alse-drawer .q-expansion-item {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.alse-drawer .q-expansion-item + .q-expansion-item {
+  margin-top: 0 !important;
+  border-top: 1px solid #f1f5f9;
+}
+.alse-group .q-expansion-item__container {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.alse-group .q-expansion-item__container > .q-item {
+  min-height: 34px;
+  height: 34px;
+  margin: 0 !important;
+  padding-left: 14px;
+  padding-right: 10px;
+  background: #f8fafc;
+  border-bottom: 1px solid #f1f5f9;
+}
+.alse-group .q-expansion-item__container > .q-item .q-item__label {
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #475569 !important;
+}
+.alse-group .q-expansion-item__container > .q-item .q-icon {
+  font-size: 16px !important;
+  color: #64748b !important;
+}
+.alse-group .q-expansion-item__content {
+  padding-top: 1px !important;
+  padding-bottom: 1px !important;
+}
+.alse-group .q-item__section--avatar {
+  min-width: 16px;
+}
+.alse-group .q-item__label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.alse-nav-item {
+  border-radius: 6px !important;
+  transition: background 0.13s ease;
+  padding: 0px 8px !important;
+  margin: 0px 5px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  height: 28px !important;
+  gap: 5px;
+  overflow: hidden;
+}
+.alse-nav-item:hover {
+  background: #f1f5f9 !important;
+}
+.alse-nav-item.active-nav {
+  background: #eff6ff !important;
+  border-left: 3px solid #2563eb;
+  padding-left: 5px !important;
+}
+.alse-nav-item .nav-label {
+  font-size: 13px;
+  line-height: 1;
+}
+.alse-group .q-expansion-item__content > div {
+  padding: 0 !important;
+}
+.alse-nav-item .nav-label.active-label {
+  font-weight: 600;
+  color: #1d4ed8;
+}
+.alse-nav-item .nav-label.inactive-label {
+  color: #475569;
+}
+.alse-nav-item .nav-icon-active {
+  color: #2563eb;
+}
+.alse-nav-item .nav-icon-inactive {
+  color: #64748b;
+}
+
+/* ---- MODERN TABLES ---- */
+.q-table {
+  font-size: 13px;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+}
+.q-table thead tr th {
+  background: #0e1e2b !important;
+  color: #f4fafb !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em;
+  border-bottom: 1px solid #243844 !important;
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+  line-height: 1.15;
+  text-shadow: none !important;
+}
+.q-table tbody tr:nth-child(odd) {
+  background: #ffffff !important;
+}
+.q-table tbody tr:nth-child(even) {
+  background: #f1f5f9 !important;
+}
+.q-table tbody tr {
+  transition: background-color .16s ease;
+}
+.q-table tbody td {
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+.q-table tbody tr:hover {
+  background: #e8f2f4 !important;
+  transform: none !important;
+  box-shadow: inset 3px 0 0 #33d6df !important;
+}
+
+.nicegui-table {
+  width: 100%;
+}
+.q-table__middle {
+  min-height: 220px;
+  max-height: calc(clamp(320px, calc(100vh - 320px), 680px) + (var(--table-extra-rows, 0) * 42px));
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.q-table thead tr th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+.q-table__middle::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.q-table__middle::-webkit-scrollbar-thumb {
+  background: #cbd5e1 !important;
+  border-radius: 8px;
+  border: 2px solid #ffffff !important;
+}
+.q-table__middle::-webkit-scrollbar-track {
+  background: #f1f5f9 !important;
+  border-radius: 8px;
+}
+@media (max-width: 1200px) {
+  .q-table__middle {
+    min-height: 180px;
+    max-height: calc(clamp(250px, calc(100vh - 255px), 500px) + (var(--table-extra-rows, 0) * 38px));
+  }
+  .alse-group {
+    margin: 0 !important;
+    width: 100%;
+  }
+  .alse-group .q-expansion-item__container > .q-item {
+    min-height: 30px;
+    height: 30px;
+    padding-left: 10px;
+    padding-right: 8px;
+  }
+  .alse-nav-item {
+    min-height: 28px;
+    padding: 3px 6px !important;
+    margin: 1px 4px;
+  }
+}
+@media (max-width: 900px) {
+  .q-table__middle {
+    min-height: 180px;
+    max-height: calc(clamp(240px, calc(100vh - 260px), 520px) + (var(--table-extra-rows, 0) * 34px));
+  }
+}
+
+/* Custom styles for modern layout */
+.active-nav-modern {
+  background-color: #eff6ff !important;
+  border-left: 3px solid #2563eb !important;
+  border-radius: 0 8px 8px 0 !important;
+  margin-left: -8px !important;
+  padding-left: 12px !important;
+}
+.active-nav-modern .nav-item-icon {
+  color: #2563eb !important;
+}
+.active-nav-modern .nav-item-label {
+  color: #2563eb !important;
+}
+.inactive-nav-modern {
+  border-radius: 8px !important;
+  border-left: 3px solid transparent !important;
+  margin-left: -8px !important;
+  padding-left: 12px !important;
+  transition: all 0.15s ease !important;
+}
+.inactive-nav-modern .nav-item-icon {
+  color: #64748b !important;
+  transition: color 0.15s ease !important;
+}
+.inactive-nav-modern .nav-item-label {
+  color: #64748b !important;
+  transition: color 0.15s ease !important;
+}
+.inactive-nav-modern:hover {
+  background-color: #f1f5f9 !important;
+}
+.inactive-nav-modern:hover .nav-item-icon {
+  color: #0f172a !important;
+}
+.inactive-nav-modern:hover .nav-item-label {
+  color: #0f172a !important;
+}
+.alse-drawer .q-drawer__content {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding-bottom: 0px !important;
+}
+@media (max-width: 768px) {
+  .desktop-only-header { display: none !important; }
+}
+@media (min-width: 769px) {
+  .alse-header { display: none !important; }
+  .q-page-container { padding-top: 0 !important; }
+}
+'''
+
 
 def create_layout(active_path='/', page_title=''):
     if active_path != '/login':
@@ -379,15 +770,18 @@ def create_layout(active_path='/', page_title=''):
         tenant_schema = app.storage.user.get('tenant_schema')
         # Auth veya tenant yoksa login'e yonlendir
         if not auth_user or not tenant_schema:
-            app.storage.user.clear()
+            app.storage.user.pop('auth_user', None)
+            app.storage.user.pop('tenant_schema', None)
             ui.navigate.to('/login')
             return None
         # Multi-tenant: mevcut kullanicinin tenant schema'sini set et
         set_tenant_schema(tenant_schema)
 
-    ui.add_css(BRAND_CSS)
-    ui.colors(primary='#37474F', secondary='#1976D2', positive='#21BA45',
-              negative='#C10015', warning='#F2C037')
+    view_mode = 'modern'
+    app.storage.user['dashboard_view'] = 'modern'
+    ui.add_css(MODERN_BRAND_CSS)
+    ui.colors(primary='#2563eb', secondary='#4f46e5', positive='#10b981',
+              negative='#ef4444', warning='#f59e0b')
     # PWA + Mobile meta
     ui.add_head_html('''
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -471,10 +865,12 @@ def create_layout(active_path='/', page_title=''):
 
             auth_user = app.storage.user.get('auth_user', {})
             if auth_user:
+                ui.button('Yeni Tasarım', icon='auto_awesome',
+                          on_click=lambda: ui.navigate.to('/yeni')).props('flat color=white dense no-caps').classes('q-mr-sm').tooltip('Modern (v3) tasarıma geç')
                 ui.label(auth_user.get('full_name') or auth_user.get('username', '')).classes('text-white text-caption q-mr-sm')
                 ui.button(
                     icon='logout',
-                    on_click=lambda: (app.storage.user.clear(), ui.navigate.to('/login')),
+                    on_click=lambda: (app.storage.user.pop('auth_user', None), app.storage.user.pop('tenant_schema', None), ui.navigate.to('/login')),
                 ).props('flat color=white round dense')
 
     drawer = ui.left_drawer(value=True, bordered=True).classes('alse-drawer alse-root').props('width=258 breakpoint=768')
@@ -503,14 +899,104 @@ def create_layout(active_path='/', page_title=''):
                 dyn_items.insert(idx + 1, ('/haftalik-bilanco', 'table_chart', 'Haftalık Bilanço'))
             menu_groups.append((group_title, group_icon, dyn_items))
 
-        for i, (group_title, group_icon, items) in enumerate(menu_groups):
-            with ui.expansion(group_title, icon=group_icon, value=(i == active_group_index)).classes('alse-group').props('group=navgrp dense'):
-                for path, icon, text in items:
-                    is_active = active_path == path
-                    row_cls = 'w-full items-center no-wrap cursor-pointer alse-nav-item' + (' active-nav' if is_active else '')
-                    with ui.row().classes(row_cls).on('click', lambda p=path: ui.navigate.to(p)):
-                        ui.icon(icon, size='18px').classes('nav-icon-active' if is_active else 'nav-icon-inactive')
-                        ui.label(text).classes('nav-label ' + ('active-label' if is_active else 'inactive-label'))
+        if view_mode == 'classic':
+            for i, (group_title, group_icon, items) in enumerate(menu_groups):
+                with ui.expansion(group_title, icon=group_icon, value=(i == active_group_index)).classes('alse-group').props('group=navgrp dense'):
+                    for path, icon, text in items:
+                        is_active = active_path == path
+                        row_cls = 'w-full items-center no-wrap cursor-pointer alse-nav-item' + (' active-nav' if is_active else '')
+                        with ui.row().classes(row_cls).on('click', lambda p=path: ui.navigate.to(p)):
+                            ui.icon(icon, size='18px').classes('nav-icon-active' if is_active else 'nav-icon-inactive')
+                            ui.label(text).classes('nav-label ' + ('active-label' if is_active else 'inactive-label'))
+        else:
+            # Modern mode: Flat navigation categories
+            with ui.element('div').classes('alse-drawer-brand desktop-only-header q-px-md').style('display: flex; align-items: center; justify-content: center; height: 68px; border-bottom: 1px solid #e2e8f0; margin-bottom: 12px;'):
+                ui.html(
+                    f'<div style="font-size: 20px; font-weight: 800; color: #2563eb; letter-spacing: 1.5px; font-family: \'Plus Jakarta Sans\', sans-serif;">'
+                    f'{_firma_p1}<span style="font-weight: 800; color: #0f172a;"> {_firma_p2}</span>'
+                    f'</div>'
+                )
+
+            with ui.column().classes('w-full gap-1 q-px-sm'):
+                for group_title, group_icon, items in menu_groups:
+                    # Category heading
+                    ui.label(group_title.upper()).style('font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-top: 8px; margin-bottom: 2px; padding-left: 8px;')
+                    
+                    for path, icon, text in items:
+                        is_active = active_path == path
+                        row_cls = 'w-full items-center no-wrap cursor-pointer'
+                        if is_active:
+                            row_cls += ' active-nav-modern'
+                        else:
+                            row_cls += ' inactive-nav-modern'
+                        
+                        with ui.row().classes(row_cls).style('height: 32px; display: flex; align-items: center; gap: 10px; padding: 0 12px;').on('click', lambda p=path: ui.navigate.to(p)):
+                            ui.icon(icon, size='18px').classes('nav-item-icon')
+                            ui.label(text).classes('nav-item-label').style('font-size: 13px; font-weight: 600;')
+            
+            # User profile and actions at the bottom of the drawer
+            ui.space()
+            auth_user = app.storage.user.get('auth_user', {})
+            with ui.column().classes('w-full q-pa-md').style('border-top: 1px solid #e2e8f0; background: #ffffff; margin-top: auto;'):
+                with ui.row().classes('items-center justify-between no-wrap w-full'):
+                    with ui.row().classes('items-center gap-2 no-wrap'):
+                        initial = (auth_user.get('full_name') or auth_user.get('username') or 'U')[0].upper()
+                        with ui.element('div').style(
+                            'width: 32px; height: 32px; border-radius: 50%; background: #eff6ff; '
+                            'color: #2563eb; display: flex; align-items: center; justify-content: center; '
+                            'font-weight: 700; font-size: 13px; border: 1px solid #dbeafe;'
+                        ):
+                            ui.label(initial)
+                        with ui.column().classes('gap-0'):
+                            ui.label(auth_user.get('full_name') or auth_user.get('username')).style('font-size: 12px; font-weight: 600; color: #0f172a; line-height: 1.2;')
+                            ui.label('Yönetici' if auth_user.get('role') == 'ADMIN' else 'Kullanıcı').style('font-size: 10px; color: #64748b;')
+                    
+                    with ui.row().classes('items-center gap-1'):
+                        btn_bell = ui.button(icon='notifications' if toplam_uyari > 0 else 'notifications_none').props('flat round dense size=sm color=primary').style('color: #64748b !important;')
+                        if toplam_uyari > 0:
+                            with btn_bell:
+                                ui.badge(str(toplam_uyari), color='red').props('floating')
+                                with ui.menu().props('auto-close') as bell_menu:
+                                    with ui.column().classes('q-pa-sm').style('min-width: 300px; max-height: 300px; overflow-y: auto'):
+                                        ui.label('Vade Uyarıları').classes('text-subtitle2 text-weight-bold q-mb-xs')
+                                        for u in uyari_list:
+                                            with ui.row().classes('items-center no-wrap q-py-xs').style(f'border-left: 3px solid {u["color"]}; padding-left: 8px'):
+                                                ui.label(u['text']).classes('text-caption')
+                        
+                        ui.button(
+                            icon='logout',
+                            on_click=lambda: (app.storage.user.pop('auth_user', None), app.storage.user.pop('tenant_schema', None), ui.navigate.to('/login')),
+                        ).props('flat round dense size=sm color=primary').style('color: #64748b !important;')
+
+    # Render generic page title for modern theme
+    if view_mode == 'modern' and active_path not in ('/', '/login'):
+        SUBTITLES = {
+            'Bilgi Ekranı': 'Bugün işletmenizin durumu harika görünüyor!',
+            'İşlemler': 'Tüm alış, satış ve tahsilat hareketlerini yönetin',
+            'Ödeme Takibi': 'Planlanan ödemeler ve tahsilat vadeleri',
+            'Cari Hesaplar': 'Müşteri ve tedarikçi cari bakiyeleri ve limitleri',
+            'Firmalar': 'Tedarikçi ve müşteri firma tanımları',
+            'Stok': 'Ürün envanteri ve depo hareketleri',
+            'Kasa': 'Nakit para giriş/çıkış ve kasa bakiyeleri',
+            'Banka': 'Banka hesapları ve para transferleri',
+            'Gelir / Gider': 'Gelir ve gider kalemlerinin takibi',
+            'Personel': 'Çalışan maaşları ve personel listesi',
+            'Çek / Senet': 'Alınan ve verilen çek/senet portföyü',
+            'Üretim': 'Üretim emirleri, reçeteler ve maliyet analizi',
+            'Çek Takvimi': 'Aylık vadeli çeklerin takvim görünümü',
+            'Mutabakat': 'Cari hesap bakiye mutabakat işlemleri',
+            'Tahsilat Öneri': 'Vadesi gelen alacaklar için akıllı tahsilat önerileri',
+            'Karlılık': 'Dönemsel satış ve operasyonel karlılık oranları',
+            'Raporlar': 'Detaylı finansal durum ve faaliyet raporları',
+            'Ayarlar': 'Sistem, şirket ve veritabanı parametreleri',
+            'Loglar': 'Kullanıcı işlem geçmişi ve sistem logları',
+            'Haftalık Bilanço': 'Haftalık nakit akışı ve gelir/gider dengesi',
+        }
+        sub = SUBTITLES.get(page_title, f'{page_title} detayları ve yönetimi')
+        with ui.row().classes('w-full justify-between items-center q-pa-md desktop-only-header').style('border-bottom: 1px solid #e2e8f0; margin-bottom: 16px; background: #ffffff;'):
+            with ui.column().classes('gap-1'):
+                ui.label(page_title).style('font-size: 20px; font-weight: 800; color: #0f172a; font-family: "Plus Jakarta Sans", sans-serif;')
+                ui.label(sub).style('font-size: 12px; color: #64748b; font-family: "Plus Jakarta Sans", sans-serif;')
 
     return drawer
 
@@ -654,24 +1140,26 @@ def donem_secici(on_change, include_all=True, mode_toggle=False, default_current
 
         # Mod butonlari
         mode_buttons = {}
-        mode_styles = {
-            'AY':   ('Aylık',  '#dbeafe', '#1d4ed8', '#93c5fd'),
-            'YIL':  ('Yıllık', '#dcfce7', '#15803d', '#86efac'),
-            'TUMU': ('Tümü',   '#f3f4f6', '#374151', '#d1d5db'),
-        }
-        for key, (label, bg, fg, border) in mode_styles.items():
-            b = ui.button(label).props('unelevated dense size=sm no-caps').style(
-                f'background:{bg} !important;color:{fg} !important;border:1px solid {border};'
-                'border-radius:999px;padding:2px 14px;'
-            )
-            mode_buttons[key] = b
+        with ui.row().classes('no-wrap items-center gap-2'):
+            ui.icon('calendar_month', size='20px').classes('text-blue-600')
+            mode_styles = {
+                'AY':   ('Aylık',  '#dbeafe', '#1d4ed8', '#93c5fd'),
+                'YIL':  ('Yıllık', '#dcfce7', '#15803d', '#86efac'),
+                'TUMU': ('Tümü',   '#f3f4f6', '#374151', '#d1d5db'),
+            }
+            for key, (label, bg, fg, border) in mode_styles.items():
+                b = ui.button(label).props('unelevated dense size=sm no-caps').style(
+                    f'background:{bg} !important;color:{fg} !important;border:1px solid {border};'
+                    'border-radius:999px;padding:2px 14px;'
+                )
+                mode_buttons[key] = b
 
-        sel_ay = ui.select(options=ay_opts, value=default_ay_val, label='Ay').props(
-            'outlined dense'
-        ).style('min-width: 110px')
-        sel_yil = ui.select(options=yil_opts, value=default_yil_val, label='Yıl').props(
-            'outlined dense'
-        ).style('min-width: 90px')
+            sel_ay = ui.select(options=ay_opts, value=default_ay_val).props(
+                'rounded outlined dense options-dense'
+            ).style('min-width: 105px; font-size: 12px; font-weight: 500;').classes('bg-white shadow-sm')
+            sel_yil = ui.select(options=yil_opts, value=default_yil_val).props(
+                'rounded outlined dense options-dense'
+            ).style('min-width: 80px; font-size: 12px; font-weight: 500;').classes('bg-white shadow-sm')
 
         def _refresh_visibility():
             for key, btn in mode_buttons.items():
@@ -707,8 +1195,14 @@ def donem_secici(on_change, include_all=True, mode_toggle=False, default_current
 
     # --- Klasik mod (geriye donuk uyumlu) ---
     default_ay = 0 if include_all else now.month
-    sel_ay = ui.select(options=ay_opts, value=default_ay, label='Ay').props('outlined dense').style('min-width: 100px')
-    sel_yil = ui.select(options=yil_opts, value=now.year, label='Yıl').props('outlined dense').style('min-width: 80px')
+    with ui.row().classes('no-wrap items-center gap-2'):
+        ui.icon('calendar_month', size='20px').classes('text-blue-600')
+        sel_ay = ui.select(options=ay_opts, value=default_ay).props(
+            'rounded outlined dense options-dense'
+        ).style('min-width: 105px; font-size: 12px; font-weight: 500;').classes('bg-white shadow-sm')
+        sel_yil = ui.select(options=yil_opts, value=now.year).props(
+            'rounded outlined dense options-dense'
+        ).style('min-width: 80px; font-size: 12px; font-weight: 500;').classes('bg-white shadow-sm')
 
     def _changed(_=None):
         y = sel_yil.value
@@ -961,6 +1455,4 @@ def odeme_banka_secici(*, odeme_value='NAKIT', banka_hesap_id=None, secenekler=N
         odeme=inp_odeme, banka=inp_banka,
         resolve_banka_id=resolve_banka_id, has_hesap=bool(banka_opts),
     )
-
-
 
