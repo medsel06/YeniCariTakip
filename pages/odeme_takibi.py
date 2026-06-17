@@ -1,7 +1,7 @@
 """Ödeme / Tahsilat Takibi — vade planı sayfası."""
 from datetime import date
 from nicegui import ui
-from layout import create_layout, fmt_para, notify_ok, notify_err, confirm_dialog
+from layout import create_layout, fmt_para, notify_ok, notify_err, confirm_dialog, donem_secici
 from services.odeme_takibi_service import (
     list_odeme_takibi, get_ozet, add_odeme_takibi, update_odeme_takibi,
     delete_odeme_takibi, ode, get_vadeli_cari, get_cek_vadeleri,
@@ -40,10 +40,21 @@ def odeme_takibi_page():
         }
     ''')
 
-    filtre = {'tip': None, 'kaynak': None}
+    _now = date.today()
+    # Varsayilan: icinde bulundugumuz ay (liste kalabalik olmasin). Tumu ile hepsi.
+    filtre = {'tip': None, 'kaynak': None, 'yil': _now.year, 'ay': _now.month}
     tablo_box = None
     ozet_box = None
-    bugun = date.today().isoformat()
+    bugun = _now.isoformat()
+
+    def _in_donem(vt):
+        if not filtre['yil']:
+            return True
+        if not vt:
+            return False
+        if filtre['ay']:
+            return str(vt)[:7] == f"{filtre['yil']}-{filtre['ay']:02d}"
+        return str(vt)[:4] == str(filtre['yil'])
 
     def _load_all():
         """Manuel + cari vadeli (FIFO) + cek/senet vadelerini tek listede birlestirir."""
@@ -51,6 +62,7 @@ def odeme_takibi_page():
         for r in list_odeme_takibi():
             rows.append({
                 '_src': 'MANUEL', 'id': r['id'], 'tip': r['tip'],
+                'kaynak': r.get('kaynak', 'DIGER'),
                 'kaynak_label': KAYNAK.get(r.get('kaynak'), r.get('kaynak', '')),
                 'firma_kod': r.get('firma_kod', '') or '', 'firma_ad': r.get('firma_ad', '') or '',
                 'aciklama': r.get('aciklama', '') or '',
@@ -66,6 +78,7 @@ def odeme_takibi_page():
             rows = [r for r in rows if r['tip'] == filtre['tip']]
         if filtre['kaynak']:
             rows = [r for r in rows if r['_src'] == filtre['kaynak']]
+        rows = [r for r in rows if _in_donem(r.get('vade_tarih', ''))]
         # Vadeye gore azalan: en buyuk (en ileri) vade en ustte, en kucuk en altta.
         # Vadesi bos olanlar en alta.
         rows.sort(key=lambda r: (r.get('vade_tarih') or ''), reverse=True)
@@ -120,7 +133,7 @@ def odeme_takibi_page():
                     'id': r.get('id'), 'firma_kod': r.get('firma_kod', '') or '',
                     'firma_ad': r.get('firma_ad', '') or '-',
                     'tip': 'Borç' if r['tip'] == 'BORC' else 'Alacak', '_tipraw': r['tip'],
-                    'kaynak': r.get('kaynak_label', ''),
+                    'kaynak': r.get('kaynak_label', ''), '_kkod': r.get('kaynak', '') or '',
                     'aciklama': r.get('aciklama', '') or '',
                     'tutar': fmt_para(r['tutar']), '_kalanraw': r['kalan'],
                     'kalan': fmt_para(r['kalan']),
@@ -137,22 +150,51 @@ def odeme_takibi_page():
                         {{{{ props.row._vraw ? props.row._vraw.split('-').reverse().join('.') : '-' }}}}
                     </span>
                 </q-td>''')
+            tbl.add_slot('body-cell-kaynak', r'''
+                <q-td :props="props">
+                    <div class="column items-start" style="gap:2px;">
+                        <q-chip dense square text-color="white"
+                            :icon="props.row._kkod==='KART' ? 'credit_card' :
+                                   props.row._kkod==='CARI' ? 'people' :
+                                   props.row._kkod==='CEK' ? 'description' :
+                                   props.row._kkod==='VERGI' ? 'gavel' :
+                                   props.row._kkod==='SGK' ? 'health_and_safety' :
+                                   (props.row._kkod==='KREDI' || props.row._kkod==='BANKA_KREDI') ? 'account_balance' : 'label'"
+                            :color="props.row._kkod==='KART' ? 'deep-purple' :
+                                    props.row._kkod==='CARI' ? 'blue-7' :
+                                    props.row._kkod==='CEK' ? 'orange-8' :
+                                    props.row._kkod==='VERGI' ? 'red-7' :
+                                    props.row._kkod==='SGK' ? 'teal-7' :
+                                    (props.row._kkod==='KREDI' || props.row._kkod==='BANKA_KREDI') ? 'indigo-7' : 'blue-grey-5'"
+                            style="font-size:10.5px;height:20px;">
+                            {{ props.value }}
+                        </q-chip>
+                        <span style="font-size:9px;letter-spacing:0.2px;display:inline-flex;align-items:center;gap:2px;"
+                            :style="props.row._src==='MANUEL' ? 'color:#64748b;' : 'color:#0891b2;'">
+                            <q-icon :name="props.row._src==='MANUEL' ? 'edit' : 'autorenew'" size="11px" />
+                            {{ props.row._src==='MANUEL' ? 'manuel' : 'otomatik' }}
+                            <q-tooltip v-if="props.row._src!=='MANUEL'">Vadeli işlem / çek kaydından otomatik oluştu</q-tooltip>
+                        </span>
+                    </div>
+                </q-td>''')
             tbl.add_slot('body-cell-durum', r'''
                 <q-td :props="props">
-                    <q-chip dense square :color="props.value==='Ödendi'?'positive':props.value==='Kısmi'?'orange':'grey'" text-color="white"
-                        style="font-size:10px;height:18px;padding:0 6px">
+                    <span style="display:inline-block;min-width:64px;text-align:center;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:0.2px;"
+                        :style="props.value==='Ödendi' ? 'background:#dcfce7;color:#15803d;' :
+                                props.value==='Kısmi' ? 'background:#fef3c7;color:#b45309;' :
+                                'background:#e0f2fe;color:#0369a1;'">
                         {{ props.value }}
-                    </q-chip>
+                    </span>
                 </q-td>''')
             tbl.add_slot('body-cell-actions', r'''
                 <q-td :props="props">
-                    <q-btn v-if="props.row._src==='MANUEL' && props.row._durumraw!=='ODENDI'" flat round dense icon="paid" color="positive" size="sm"
+                    <q-btn v-if="props.row._src==='MANUEL' && props.row._durumraw!=='ODENDI'" flat round dense icon="account_balance_wallet" color="positive" size="sm"
                         @click="$parent.$emit('ode', props.row)"><q-tooltip>Öde/Tahsil</q-tooltip></q-btn>
                     <q-btn v-if="props.row._src==='MANUEL'" flat round dense icon="edit" color="primary" size="sm"
                         @click="$parent.$emit('edit', props.row)" />
                     <q-btn v-if="props.row._src==='MANUEL'" flat round dense icon="delete" color="negative" size="sm"
                         @click="$parent.$emit('sil', props.row)" />
-                    <q-btn v-if="props.row._src==='CARI' && props.row._durumraw!=='ODENDI'" flat round dense icon="paid" color="positive" size="sm"
+                    <q-btn v-if="props.row._src==='CARI' && props.row._durumraw!=='ODENDI'" flat round dense icon="account_balance_wallet" color="positive" size="sm"
                         @click="$parent.$emit('cari_ode', props.row)"><q-tooltip>Tahsilat / Ödeme yap</q-tooltip></q-btn>
                     <q-btn v-if="props.row._src==='CEK'" flat round dense icon="open_in_new" color="primary" size="sm"
                         @click="$parent.$emit('goto_cek', props.row)"><q-tooltip>Çek Sayfası</q-tooltip></q-btn>
@@ -301,6 +343,12 @@ def odeme_takibi_page():
             ui.separator().props('vertical')
             for lbl, val in [('Tüm Kaynaklar', None), ('Cari', 'CARI'), ('Çek/Senet', 'CEK'), ('Manuel', 'MANUEL')]:
                 ui.button(lbl, on_click=lambda v=val: (filtre.update(kaynak=v), _refresh())).props('outline dense size=sm')
+            ui.separator().props('vertical')
+
+            def _on_donem(yil, ay):
+                filtre.update(yil=yil, ay=ay)
+                _refresh()
+            donem_secici(_on_donem, include_all=True, mode_toggle=True, default_current_month=True)
             ozet_box = ui.row().classes('items-center gap-2 q-ml-sm')
         tablo_box = ui.column().classes('w-full')
     _refresh()

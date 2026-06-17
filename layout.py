@@ -12,6 +12,7 @@ MENU_GROUPS = [
     ('Operasyon', 'grid_view', [
         ('/', 'space_dashboard', 'Bilgi Ekranı'),
         ('/hareketler', 'sync_alt', 'İşlemler'),
+        ('/odeme-takibi', 'event_repeat', 'Ödeme Takibi'),
         ('/cari', 'groups', 'Cari Hesaplar'),
         ('/firma-master', 'domain', 'Firmalar'),
         ('/stok', 'inventory_2', 'Stok'),
@@ -20,7 +21,6 @@ MENU_GROUPS = [
         ('/gelir-gider', 'receipt', 'Gelir / Gider'),
         ('/personel', 'badge', 'Personel'),
         ('/cekler', 'description', 'Çek / Senet'),
-        ('/odeme-takibi', 'event_repeat', 'Ödeme Takibi'),
         ('/uretim', 'precision_manufacturing', 'Üretim'),
     ]),
     ('Finans Analiz', 'bar_chart', [
