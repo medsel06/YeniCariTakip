@@ -2193,13 +2193,25 @@ function Ekstre({initialCustomerId,search,onOpenCustomer,onOpenModal}){
   const [ls,setLs]=React.useState('');
   React.useEffect(()=>{if(initialCustomerId)setSel(initialCustomerId);},[initialCustomerId]);
   const c=CUSTOMERS.find(x=>x.id===sel);
+  // Gercek per-cari ekstre (tek-kaynak ledger: devir + hareket + gelir-gider + cek + yuruyen bakiye)
+  const [eks,setEks]=React.useState(null);
+  React.useEffect(()=>{
+    let alive=true; setEks(null);
+    if(c&&c.code){ apiGet('/api/cariler/'+encodeURIComponent(c.code)+'/ekstre').then(r=>{if(alive&&r)setEks(r);}); }
+    return ()=>{alive=false;};
+  },[c?c.code:null]);
+  const TIPLBL={ALIS:'Alış',SATIS:'Satış',TAHSILAT:'Tahsilat',ODEME:'Ödeme',GELIR:'Gelir',GIDER:'Gider',CEK:'Çek',CIRO:'Ciro',ALINAN:'Alınan Çek',VERILEN:'Verilen Çek',DEVIR:'Devir'};
+  const TIPCOL={ALIS:'info',SATIS:'good',TAHSILAT:'good',ODEME:'bad',GELIR:'good',GIDER:'bad',CEK:'warn',CIRO:'warn',ALINAN:'good',VERILEN:'bad',DEVIR:'mute'};
+  const _docType=(tip)=>({ALIS:'fatura',SATIS:'fatura',TAHSILAT:'tahsilat',ODEME:'odeme',CEK:'cek',CIRO:'cek',ALINAN:'cek',VERILEN:'cek'}[tip]||'fatura');
   const q=(search||ls||'').toLowerCase().trim();
-  let txs=TX.filter(t=>t.customerId===sel);
+  let txs=(eks&&Array.isArray(eks.satirlar))?eks.satirlar.map((s,i)=>({id:'e'+i,date:s.tarih,ref:s.belge_no||'',description:s.aciklama,tip:s.tip,type:_docType(s.tip),borc:Number(s.borc||0),alacak:Number(s.alacak||0),running:Number(s.bakiye||0)})):[];
   if(tf!=='all')txs=txs.filter(t=>t.type===tf);
-  if(rg!=='all'){const days=parseInt(rg,10);const cu=new Date();cu.setDate(cu.getDate()-days);txs=txs.filter(t=>new Date(t.date)>=cu);}
+  if(rg!=='all'){const days=parseInt(rg,10);const cu=new Date();cu.setDate(cu.getDate()-days);txs=txs.filter(t=>t.date&&new Date(t.date)>=cu);}
   if(q)txs=txs.filter(t=>((t.ref||'')+' '+(t.description||'')).toLowerCase().includes(q));
   txs=[...txs].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-  const tB=txs.reduce((s,t)=>s+(t.borc||0),0),tA=txs.reduce((s,t)=>s+(t.alacak||0),0);
+  const tB=eks?Number(eks.donem_borc||0):0, tA=eks?Number(eks.donem_alacak||0):0;
+  const devir=eks?Number(eks.devir||0):0;
+  const netBakiye=eks?Number(eks.kapanis_bakiye||0):(c?c.balance:0);
   const fcL=CUSTOMERS.filter(x=>q?(x.name||'').toLowerCase().includes(q):true);
   // Boş durum: cari yok veya seçili cari bulunamadı
   if(!c) return <div className="card" style={{padding:48,textAlign:'center'}}>
@@ -2232,7 +2244,7 @@ function Ekstre({initialCustomerId,search,onOpenCustomer,onOpenModal}){
               <span className="hstack" style={{gap:4}}><IPh size={11}/>{c.phone}</span>
             </div>
           </div>
-          <Bal v={c.balance} sz="lg"/>
+          <Bal v={netBakiye} sz="lg"/>
           <button className="btn btn-sm" onClick={()=>onOpenCustomer(c.id)}>Cari Kart <IRight size={12}/></button>
         </div>
       </div>
@@ -2253,7 +2265,7 @@ function Ekstre({initialCustomerId,search,onOpenCustomer,onOpenModal}){
       <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginBottom:14}}>
         <div className="card" style={{padding:'14px 18px'}}><div className="kpi-label">Dönem Borç</div><div className="num" style={{fontSize:22,fontWeight:600,marginTop:5,letterSpacing:'-0.02em'}}>{fmt(tB)}</div></div>
         <div className="card" style={{padding:'14px 18px'}}><div className="kpi-label">Dönem Alacak</div><div className="num pos" style={{fontSize:22,fontWeight:600,marginTop:5,letterSpacing:'-0.02em'}}>{fmt(tA)}</div></div>
-        <div className="card" style={{padding:'14px 18px'}}><div className="kpi-label">Net Bakiye</div><div className={`num ${c.balance<0?'neg':''}`} style={{fontSize:22,fontWeight:600,marginTop:5,letterSpacing:'-0.02em'}}>{fmt(c.balance)}</div></div>
+        <div className="card" style={{padding:'14px 18px'}}><div className="kpi-label">Net Bakiye{devir?<span className="muted" style={{fontSize:10,marginLeft:6}}>(Devir {fmt(devir)})</span>:null}</div><div className={`num ${netBakiye<0?'neg':''}`} style={{fontSize:22,fontWeight:600,marginTop:5,letterSpacing:'-0.02em'}}>{fmt(netBakiye)}</div></div>
       </div>
 
       <div className="card">
@@ -2262,12 +2274,12 @@ function Ekstre({initialCustomerId,search,onOpenCustomer,onOpenModal}){
           <table className="tbl">
             <thead><tr><th style={{width:90}}>Tarih</th><th style={{width:130}}>Belge No</th><th>Açıklama</th><th style={{width:120}}>Tip</th><th className="r" style={{width:130}}>Borç</th><th className="r" style={{width:130}}>Alacak</th><th className="r" style={{width:140}}>Bakiye</th></tr></thead>
             <tbody>
-              {txs.length===0&&<tr><td colSpan={7} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>Bu filtre için hareket bulunamadı.</td></tr>}
+              {txs.length===0&&<tr><td colSpan={7} style={{padding:42,textAlign:'center',color:'var(--text-3)'}}>{eks?'Bu filtre için hareket bulunamadı.':'Ekstre yükleniyor…'}</td></tr>}
               {txs.map(t=><tr key={t.id}>
                 <td className="tdate">{fmtD(t.date)}</td>
                 <td className="tref">{t.ref}</td>
                 <td>{t.description}</td>
-                <td><DocChip type={t.type}/></td>
+                <td><Chip k={TIPCOL[t.tip]||'mute'}>{TIPLBL[t.tip]||t.tip}</Chip></td>
                 <td className="tnum">{t.borc?fmt(t.borc):<span className="muted">—</span>}</td>
                 <td className="tnum pos">{t.alacak?fmt(t.alacak):<span className="muted">—</span>}</td>
                 <td className="tnum" style={{fontWeight:600,color:t.running<0?'var(--bad)':'var(--text)'}}>{fmt(t.running)}</td>
@@ -2277,7 +2289,7 @@ function Ekstre({initialCustomerId,search,onOpenCustomer,onOpenModal}){
               <td colSpan={4} style={{padding:'12px 14px',fontSize:11,color:'var(--text-3)',fontWeight:500}}>DÖNEM TOPLAMI</td>
               <td className="tnum" style={{padding:'12px 14px'}}>{fmt(tB)}</td>
               <td className="tnum pos" style={{padding:'12px 14px'}}>{fmt(tA)}</td>
-              <td className="tnum" style={{padding:'12px 14px',color:c.balance<0?'var(--bad)':'var(--text)'}}>{fmt(c.balance)}</td>
+              <td className="tnum" style={{padding:'12px 14px',color:netBakiye<0?'var(--bad)':'var(--text)'}}>{fmt(netBakiye)}</td>
             </tr></tfoot>}
           </table>
         </div>
