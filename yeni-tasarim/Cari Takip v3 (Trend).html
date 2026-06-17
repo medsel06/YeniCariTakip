@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="tr" data-theme="dark">
+<html lang="tr" data-theme="light">
 <head>
 <meta charset="utf-8" />
 <title>Cari Takip — Trend</title>
@@ -446,6 +446,1214 @@ table.tbl tbody tr:last-child td { border-bottom: none; }
 .bar { flex: 1; border-radius: 3px 3px 0 0; min-height: 2px; }
 .bar-lbl { font-size: 10.5px; color: var(--text-3); font-family: 'JetBrains Mono', monospace; }
 
+/* ============= MODERN FINANCE SKIN ============= */
+:root[data-theme="dark"] {
+  --bg: #020b0f;
+  --bg-2: #06141a;
+  --panel: rgba(9, 25, 31, 0.94);
+  --panel-2: rgba(12, 32, 40, 0.90);
+  --panel-hover: rgba(16, 48, 58, 0.74);
+  --border: rgba(142, 172, 172, 0.16);
+  --border-2: rgba(125, 211, 216, 0.32);
+  --text: #eef8f7;
+  --text-2: #a9c0bf;
+  --text-3: #668181;
+  --accent: #22d3ee;
+  --accent-soft: rgba(34, 211, 238, 0.12);
+  --accent-ink: #b7f7ff;
+  --accent-glow: rgba(34, 211, 238, 0.22);
+  --good: #79d84f;
+  --good-soft: rgba(121, 216, 79, 0.12);
+  --bad: #ff6b6b;
+  --bad-soft: rgba(255, 107, 107, 0.13);
+  --warn: #f5b84b;
+  --warn-soft: rgba(245, 184, 75, 0.14);
+  --info: #73a7ff;
+  --info-soft: rgba(115, 167, 255, 0.14);
+  --sidebar: rgba(2, 12, 16, 0.98);
+  --sidebar-2: rgba(5, 19, 25, 0.94);
+  --topbar: rgba(3, 15, 20, 0.86);
+  --row-selected: rgba(34, 211, 238, 0.14);
+  --table-stripe: rgba(255, 255, 255, 0.018);
+  --shadow-md: 0 14px 34px rgba(0, 0, 0, 0.34), 0 1px 0 rgba(255, 255, 255, 0.03) inset;
+  --shadow-lg: 0 28px 70px rgba(0, 0, 0, 0.48), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg: #e9eef0;
+  --bg-2: #dfe7ea;
+  --panel: rgba(248, 252, 252, 0.92);
+  --panel-2: rgba(238, 246, 247, 0.96);
+  --panel-hover: #e3f2f3;
+  --border: rgba(63, 92, 96, 0.16);
+  --border-2: rgba(8, 145, 178, 0.28);
+  --text: #112527;
+  --text-2: #496367;
+  --text-3: #7d9295;
+  --accent: #047c89;
+  --accent-soft: rgba(4, 124, 137, 0.10);
+  --accent-ink: #064e56;
+  --accent-glow: rgba(4, 124, 137, 0.16);
+  --good: #3f8f24;
+  --good-soft: rgba(63, 143, 36, 0.10);
+  --bad: #c73535;
+  --bad-soft: rgba(199, 53, 53, 0.10);
+  --warn: #a66b04;
+  --warn-soft: rgba(166, 107, 4, 0.11);
+  --info: #2563eb;
+  --info-soft: rgba(37, 99, 235, 0.10);
+  --sidebar: #071315;
+  --sidebar-2: #0b2528;
+  --topbar: rgba(233, 238, 240, 0.78);
+  --row-selected: rgba(4, 124, 137, 0.11);
+  --table-stripe: rgba(7, 19, 21, 0.025);
+  --shadow-md: 0 10px 24px rgba(8, 27, 31, 0.10), 0 1px 0 rgba(255, 255, 255, 0.66) inset;
+  --shadow-lg: 0 30px 70px rgba(8, 27, 31, 0.14), 0 0 0 1px rgba(8, 27, 31, 0.05);
+  color-scheme: light;
+}
+
+html, body {
+  background:
+    radial-gradient(circle at 20% -10%, rgba(34, 211, 238, 0.10), transparent 34vw),
+    radial-gradient(circle at 86% -8%, rgba(63, 139, 255, 0.08), transparent 30vw),
+    linear-gradient(180deg, #020b0f 0%, #06141a 100%);
+  font-family: Inter, "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  letter-spacing: 0;
+}
+
+body::before {
+  background:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,.72), transparent 75%);
+  opacity: .55;
+}
+
+.sb {
+  width: 268px;
+  padding: 14px 10px;
+  background:
+    linear-gradient(180deg, var(--sidebar) 0%, var(--sidebar-2) 100%);
+  border-right: 1px solid rgba(34, 211, 238, 0.18);
+  box-shadow: 18px 0 44px rgba(0, 0, 0, 0.22);
+}
+.sb::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 92px;
+  background: linear-gradient(130deg, rgba(34,211,238,.20), transparent 68%);
+  pointer-events: none;
+}
+.sb-brand {
+  position: relative;
+  padding: 10px 10px 18px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.sb-logo {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background:
+    linear-gradient(145deg, rgba(34,211,238,.18), rgba(155,225,93,.18)),
+    #061719;
+  color: var(--accent);
+  border: 1px solid rgba(34,211,238,.44);
+  box-shadow: 0 0 0 4px rgba(34,211,238,.08), 0 12px 28px rgba(34,211,238,.12);
+  font-size: 12px;
+}
+.sb-brand-name {
+  font-size: 15px;
+  font-weight: 750;
+}
+.sb-brand-sub {
+  color: rgba(190, 215, 214, 0.66);
+  font-size: 11px;
+}
+.sb-search {
+  height: 36px;
+  margin: 0 4px 14px;
+  padding: 8px 11px;
+  border-radius: 10px;
+  background: rgba(255,255,255,.045);
+  border: 1px solid rgba(255,255,255,.09);
+  color: rgba(222, 243, 242, .76);
+}
+.sb-search:hover {
+  background: rgba(34,211,238,.10);
+  border-color: rgba(34,211,238,.30);
+  color: #fff;
+}
+.sb-search kbd {
+  background: rgba(0,0,0,.28);
+  border-color: rgba(255,255,255,.12);
+  color: rgba(210, 235, 235, .75);
+}
+.sb-group {
+  padding: 15px 12px 7px;
+  color: rgba(185, 213, 212, .50);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .11em;
+}
+.sb-nav { gap: 3px; }
+.sb-item {
+  min-height: 36px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: rgba(222, 243, 242, .76);
+  font-size: 13px;
+  font-weight: 560;
+  position: relative;
+  border: 1px solid transparent;
+}
+.sb-item svg {
+  width: 17px;
+  height: 17px;
+  color: rgba(169, 192, 191, .72);
+  stroke-width: 1.9;
+}
+.sb-item:hover {
+  background: rgba(255,255,255,.055);
+  border-color: rgba(255,255,255,.08);
+  color: #fff;
+}
+.sb-item.active {
+  background: linear-gradient(90deg, rgba(34,211,238,.20), rgba(34,211,238,.06));
+  border-color: rgba(34,211,238,.34);
+  color: #f3ffff;
+  box-shadow: inset 3px 0 0 var(--accent), 0 12px 28px rgba(0,0,0,.14);
+}
+.sb-item.active svg { color: var(--accent); }
+.sb-item .badge {
+  background: rgba(34,211,238,.12);
+  border-color: rgba(34,211,238,.28);
+  color: var(--accent-ink);
+  border-radius: 999px;
+  font-size: 10px;
+}
+.sb-foot {
+  margin: 16px 2px 0;
+  padding: 12px 10px;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 14px;
+  background: rgba(255,255,255,.045);
+}
+.av {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #22d3ee, #9be15d);
+  color: #061011;
+}
+.sb-role { color: rgba(190,215,214,.58); }
+
+.tb {
+  min-height: 62px;
+  padding: 13px 28px;
+  background: var(--topbar);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(18px) saturate(1.25);
+}
+.tb-crumb {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+}
+.content { padding: 24px 28px 64px; }
+
+.card, .kpi, .modal, .tbl-wrap {
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,0)),
+    var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+}
+.card-hd {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.card-ttl { font-size: 14px; font-weight: 760; }
+.card-sub { color: var(--text-3); }
+.tx-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 26px;
+  height: 20px;
+  margin-left: 8px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .075);
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 760;
+}
+.tx-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  min-width: min(720px, 100%);
+}
+.tx-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 9px;
+  border-bottom: 1px solid transparent;
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+  transition: color .12s, background .12s, border-color .12s;
+}
+.tx-tab:hover {
+  background: rgba(34, 211, 238, .07);
+  color: var(--text);
+}
+.tx-tab.on {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.tx-tab span {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.075);
+  color: var(--text-2);
+  font-size: 10.5px;
+  font-weight: 760;
+}
+.tx-tab.on span {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.kpi-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.kpi {
+  padding: 17px 18px;
+  min-height: 132px;
+}
+.kpi::after {
+  content: "";
+  position: absolute;
+  inset: auto 14px 12px 14px;
+  height: 26px;
+  background: linear-gradient(90deg, transparent, var(--accent-soft), transparent);
+  opacity: .7;
+  filter: blur(10px);
+}
+.kpi-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  background: var(--accent-soft);
+  border-color: var(--border-2);
+  color: var(--accent);
+}
+.kpi-label {
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: .055em;
+  font-size: 10.5px;
+  font-weight: 780;
+}
+.kpi-val {
+  font-size: 28px;
+  font-weight: 760;
+}
+
+.btn {
+  height: 34px;
+  border-radius: 9px;
+  background: var(--panel);
+  box-shadow: 0 1px 0 rgba(255,255,255,.04) inset;
+}
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), #7dd3fc);
+  border-color: rgba(34,211,238,.80);
+  color: #041315;
+}
+.btn-ghost:hover { background: var(--accent-soft); color: var(--accent); }
+
+.flt, .seg, .input-search {
+  height: 34px;
+  border-radius: 9px;
+  background: var(--panel);
+  border-color: var(--border);
+}
+.seg button.on {
+  background: var(--accent);
+  color: #041315;
+}
+
+table.tbl {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12.5px;
+}
+table.tbl thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 10px 14px;
+  background: #102023;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: .045em;
+  font-size: 10.2px;
+  font-weight: 800;
+  border-bottom: 1px solid var(--border);
+}
+:root[data-theme="light"] table.tbl thead th {
+  background: #e7eff1;
+  color: #435a5e;
+}
+table.tbl tbody tr:nth-child(even) td { background: var(--table-stripe); }
+table.tbl tbody td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+}
+table.tbl tbody tr:hover td {
+  background: var(--row-selected);
+}
+table.tbl tbody tr:hover {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.tdate, .tref, .mono, .num, .tnum {
+  font-feature-settings: "tnum" 1, "cv11" 1;
+}
+.tref {
+  color: var(--accent-ink);
+  opacity: .82;
+}
+.chip {
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-weight: 740;
+  font-size: 10.7px;
+}
+.balance {
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.04) inset;
+}
+
+.scrim { background: rgba(0, 0, 0, .66); }
+.field input, .field select, .field textarea {
+  min-height: 38px;
+  border-radius: 9px;
+  background: var(--panel-2);
+}
+.field label {
+  text-transform: uppercase;
+  letter-spacing: .055em;
+  font-size: 10.5px;
+  font-weight: 780;
+}
+
+/* ============= DEFTERIM MOCKUP FIDELITY PASS ============= */
+.num, .mono, .tnum, .tdate, .tref,
+.sb-brand-name, .sb-item, .card-ttl, .kpi-val {
+  letter-spacing: 0;
+}
+
+#root {
+  padding-bottom: 56px;
+}
+
+.sb {
+  width: 220px;
+  padding: 12px 10px 64px;
+  background:
+    radial-gradient(circle at 0 0, rgba(24, 221, 226, .16), transparent 118px),
+    linear-gradient(180deg, #061316 0%, #041013 100%);
+  border-right: 1px solid rgba(30, 210, 220, .18);
+  box-shadow: 12px 0 34px rgba(0,0,0,.22);
+}
+.sb-brand {
+  padding: 2px 4px 8px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.sb-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 0;
+  clip-path: polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0 50%);
+  background: #061719;
+  color: #20e4ee;
+  border: 1px solid rgba(34,211,238,.72);
+  box-shadow: inset 0 0 0 2px rgba(51,214,223,.82), 0 0 0 3px rgba(34,211,238,.08);
+}
+.sb-brand-name {
+  font-size: 18px;
+  line-height: 1.1;
+  font-weight: 800;
+}
+.sb-brand-sub {
+  margin-top: 3px;
+  color: rgba(205, 226, 226, .72);
+}
+.sb-collapse {
+  margin-left: auto;
+  color: rgba(205,226,226,.72);
+}
+.sb-search { display: none; }
+.sb-group { display: none; }
+.sb-nav {
+  margin-top: 6px;
+  gap: 5px;
+}
+.sb-item {
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: 5px;
+  color: rgba(222, 234, 235, .78);
+  font-size: 13px;
+  font-weight: 600;
+}
+.sb-item:hover {
+  background: rgba(34,211,238,.08);
+  border-color: rgba(34,211,238,.14);
+}
+.sb-item.active {
+  background: linear-gradient(90deg, rgba(13, 188, 198, .48), rgba(13, 188, 198, .20));
+  border-color: rgba(34,211,238,.38);
+  box-shadow: inset 3px 0 0 #20e4ee;
+}
+.sb-item svg {
+  width: 18px;
+  height: 18px;
+}
+.sb-shortcuts {
+  margin: auto 0 0;
+  padding-top: 12px;
+}
+.shortcut-panel {
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 7px;
+  background: rgba(255,255,255,.035);
+  padding: 8px;
+}
+.shortcut-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: rgba(222,234,235,.80);
+  font-size: 12px;
+  margin-bottom: 7px;
+}
+.shortcut-btn {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 34px;
+  padding: 0 8px;
+  color: rgba(222,234,235,.80);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 5px;
+  background: rgba(255,255,255,.035);
+  margin-top: 5px;
+  font-size: 12px;
+}
+.shortcut-btn kbd {
+  margin-left: auto;
+  min-width: 24px;
+  text-align: center;
+  color: rgba(205,226,226,.62);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 4px;
+  font-size: 10px;
+  font-family: "JetBrains Mono", monospace;
+}
+.sb-mini-action {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px 12px;
+  color: rgba(222,234,235,.80);
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+.sb-foot { display: none; }
+
+.tb {
+  min-height: 68px;
+  padding: 13px 14px 13px 24px;
+  gap: 18px;
+  background: rgba(4, 17, 20, .82);
+  border-bottom: 1px solid rgba(30, 210, 220, .14);
+}
+.tb-crumb { display: none; }
+.top-search {
+  width: min(390px, 32vw);
+  height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px 0 14px;
+  border-radius: 5px;
+  background: rgba(19, 43, 50, .72);
+  border: 1px solid rgba(124, 178, 185, .12);
+  color: rgba(213, 230, 232, .70);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+}
+.top-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #e8f6f7;
+  font-size: 13px;
+}
+.top-search input::placeholder { color: rgba(213, 230, 232, .46); }
+.top-search kbd {
+  min-width: 34px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(0,0,0,.20);
+  color: rgba(213,230,232,.76);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+}
+.tb-action {
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border-radius: 5px;
+  border: 1px solid rgba(124,178,185,.18);
+  background: rgba(5, 18, 22, .64);
+  color: #e7f5f6;
+  font-size: 12px;
+  font-weight: 650;
+}
+.tb-action .plus-mark {
+  color: #20e4ee;
+  font-size: 18px;
+  line-height: 0;
+}
+.tb-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: rgba(222,234,235,.78);
+  font-size: 12px;
+  font-weight: 600;
+  min-height: 34px;
+}
+.notif {
+  position: absolute;
+  top: 1px;
+  right: -8px;
+  min-width: 15px;
+  height: 15px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #f15b5b;
+  color: white;
+  font-size: 9px;
+  font-weight: 800;
+}
+.notif.blue { background: #2aa6e8; }
+.top-sep {
+  width: 1px;
+  height: 38px;
+  background: rgba(255,255,255,.12);
+}
+.company-switch {
+  color: #f1fbfc;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.company-switch span {
+  display: block;
+  margin-top: 2px;
+  color: #20e4ee;
+}
+.user-menu {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #20343d;
+  color: #effafb;
+  font-weight: 800;
+}
+
+.content {
+  padding: 10px 14px 86px 24px;
+}
+.wrap {
+  max-width: none;
+}
+.dashboard-head {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  margin: 0 0 5px;
+}
+.dashboard-title {
+  font-size: 19px;
+  font-weight: 800;
+  color: #f0fbfc;
+  line-height: 1.2;
+}
+.dashboard-sub {
+  margin-top: 2px;
+  color: rgba(205,226,226,.66);
+  font-size: 12px;
+}
+.date-chip {
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border-radius: 5px;
+  border: 1px solid rgba(124,178,185,.16);
+  background: rgba(8, 28, 35, .70);
+  color: rgba(229,246,247,.82);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.dash-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 17px;
+  margin-bottom: 13px;
+}
+.mock-kpi {
+  min-height: 120px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 7px;
+  border: 1px solid rgba(124,178,185,.16);
+  background: linear-gradient(180deg, rgba(11, 30, 38, .88), rgba(5, 18, 24, .86));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.035);
+  padding: 16px 14px 10px;
+}
+.mock-kpi .kpi-label {
+  font-size: 10px;
+  line-height: 1.2;
+  letter-spacing: .04em;
+  color: rgba(213, 230, 232, .72);
+  font-weight: 800;
+}
+.mock-kpi .kpi-val {
+  margin-top: 7px;
+  color: #f2fbfc;
+  font-size: 18px;
+  font-weight: 850;
+  line-height: 1.15;
+}
+.mock-kpi .kpi-delta {
+  margin-top: 7px;
+  font-size: 11px;
+  font-weight: 650;
+  color: rgba(205,226,226,.70);
+}
+.kpi-tile-icon {
+  position: absolute;
+  top: 14px;
+  right: 12px;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: var(--tile-color);
+  background: rgba(34, 211, 238, .12);
+  border: 1px solid rgba(34, 211, 238, .30);
+}
+.spark-mini {
+  position: absolute;
+  left: 12px;
+  right: 10px;
+  bottom: 6px;
+  height: 30px;
+  opacity: .95;
+}
+
+.recent-card {
+  border-radius: 7px;
+  overflow: hidden;
+}
+.recent-head {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 0 12px 0 18px;
+  border-bottom: 1px solid rgba(124,178,185,.14);
+}
+.recent-title {
+  display: flex;
+  align-items: center;
+  color: #f0fbfc;
+  font-weight: 800;
+  font-size: 14px;
+}
+.tx-count {
+  min-width: 24px;
+  height: 20px;
+  margin-left: 8px;
+  background: rgba(255,255,255,.08);
+  color: rgba(222,234,235,.72);
+  font-size: 11px;
+}
+.tx-tabs {
+  min-width: 0;
+  flex: 1;
+}
+.tx-tab {
+  height: 48px;
+  padding: 0 12px;
+  border-radius: 0;
+  font-size: 12px;
+  color: rgba(205,226,226,.62);
+}
+.tx-tab span { display: none; }
+.tx-tab.on {
+  color: #20e4ee;
+  border-bottom: 2px solid #20e4ee;
+  background: transparent;
+}
+.recent-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ghost-link {
+  color: #20e4ee;
+  font-size: 12px;
+  font-weight: 700;
+}
+.tool-btn {
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(124,178,185,.20);
+  background: rgba(5, 18, 22, .44);
+  color: rgba(222,234,235,.76);
+  font-size: 12px;
+}
+table.tbl.mock-table {
+  font-size: 12px;
+}
+table.tbl.mock-table thead th {
+  height: 36px;
+  padding: 0 14px;
+  background: #0b2026;
+  color: rgba(213,230,232,.74);
+  border-right: 1px solid rgba(124,178,185,.12);
+  font-size: 10px;
+  letter-spacing: .04em;
+}
+table.tbl.mock-table tbody td {
+  height: 34px;
+  padding: 0 14px;
+  color: rgba(232, 244, 245, .84);
+}
+table.tbl.mock-table tbody tr.selected td {
+  background: rgba(14, 181, 194, .20);
+  box-shadow: inset 3px 0 0 #20e4ee;
+}
+.doc-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(222,234,235,.72);
+}
+.doc-ico {
+  width: 20px;
+  height: 20px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #061316;
+  background: var(--doc-color);
+}
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  color: var(--status-color);
+  background: color-mix(in srgb, var(--status-color) 18%, transparent);
+  font-size: 11px;
+  font-weight: 800;
+}
+.row-menu {
+  color: rgba(222,234,235,.72);
+  font-size: 18px;
+  line-height: 1;
+}
+.table-scrollbar {
+  height: 10px;
+  background: #1d2629;
+  border-top: 1px solid rgba(124,178,185,.12);
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+}
+.table-scrollbar span {
+  display: block;
+  width: 72%;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.24);
+}
+.pager {
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  padding: 0 16px;
+  color: rgba(222,234,235,.70);
+  border-top: 1px solid rgba(124,178,185,.12);
+}
+.pager .on {
+  min-width: 22px;
+  height: 22px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid #20e4ee;
+  color: #20e4ee;
+}
+.bottom-grid {
+  display: grid;
+  grid-template-columns: 1.04fr .96fr .95fr;
+  gap: 13px;
+  margin-top: 13px;
+}
+.analysis-card {
+  height: 236px;
+  min-height: 236px;
+  border-radius: 7px;
+  overflow: hidden;
+}
+.analysis-body {
+  padding: 0 14px 8px;
+}
+.analysis-card .card-hd {
+  padding: 10px 14px;
+}
+.analysis-card .card-ttl {
+  font-size: 14px;
+}
+.mini-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.mini-table th {
+  height: 25px;
+  color: rgba(213,230,232,.68);
+  font-size: 10px;
+  text-align: left;
+  font-weight: 800;
+}
+.mini-table td {
+  height: 27px;
+  border-bottom: 1px solid rgba(124,178,185,.10);
+  color: rgba(232,244,245,.82);
+}
+.age-row {
+  display: grid;
+  grid-template-columns: 120px 90px 1fr 48px;
+  align-items: center;
+  gap: 8px;
+  min-height: 27px;
+  border-bottom: 1px solid rgba(124,178,185,.10);
+  color: rgba(232,244,245,.82);
+  font-size: 12px;
+}
+.bar-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(124,178,185,.18);
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: #20e4ee;
+}
+.donut-wrap {
+  display: grid;
+  grid-template-columns: 1.1fr 150px;
+  align-items: center;
+  gap: 12px;
+}
+.donut {
+  width: 128px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(#20d9df 0 33%, #8bdc42 33% 58%, #f6cf3e 58% 76%, #ef5858 76% 100%);
+  box-shadow: 0 0 28px rgba(34,211,238,.12);
+}
+.donut::before {
+  content: "";
+  width: 66px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #0b2026;
+  position: absolute;
+}
+.donut-center {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  color: #f0fbfc;
+  font-weight: 850;
+}
+.donut-center span {
+  display: block;
+  margin-top: 2px;
+  color: rgba(222,234,235,.66);
+  font-size: 10px;
+  font-weight: 650;
+}
+.risk-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 7px;
+  background: var(--risk-color);
+}
+.bank-line {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  min-height: 32px;
+  border-bottom: 1px solid rgba(124,178,185,.10);
+  color: rgba(232,244,245,.82);
+}
+.bank-line svg { color: #20e4ee; }
+.bank-total {
+  margin-top: 9px;
+  display: flex;
+  justify-content: space-between;
+  color: #20e4ee;
+  font-size: 12px;
+  font-weight: 850;
+}
+.app-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  height: 68px;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 0 16px;
+  border-top: 1px solid rgba(30,210,220,.14);
+  background: rgba(5, 19, 24, .96);
+  color: rgba(222,234,235,.72);
+  font-size: 12px;
+  box-shadow: 0 -12px 30px rgba(0,0,0,.18);
+}
+#root > .app-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+}
+.footer-sep {
+  width: 1px;
+  height: 28px;
+  background: rgba(255,255,255,.12);
+}
+.footer-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.footer-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #79d84f;
+}
+
+:root[data-theme="light"] {
+  --bg: #eef4f6;
+  --bg-2: #e6eef1;
+  --panel: rgba(255,255,255,.92);
+  --panel-2: #eff6f8;
+  --text: #10272b;
+  --text-2: #4e666b;
+  --text-3: #7f969a;
+}
+:root[data-theme="light"] .main {
+  background: linear-gradient(180deg, #f4fafb, #e8f1f4);
+}
+:root[data-theme="light"] .mock-kpi,
+:root[data-theme="light"] .card,
+:root[data-theme="light"] .tbl-wrap,
+:root[data-theme="light"] .analysis-card {
+  background: rgba(255,255,255,.88);
+  border-color: rgba(58,92,99,.16);
+}
+:root[data-theme="light"] .dashboard-title,
+:root[data-theme="light"] .recent-title,
+:root[data-theme="light"] .mock-kpi .kpi-val {
+  color: #10272b;
+}
+
+/* Reference screenshot color lock */
+:root[data-theme="dark"] {
+  --bg: #06151f;
+  --bg-2: #0b1a23;
+  --panel: rgba(18, 32, 40, .94);
+  --panel-2: #091923;
+  --panel-hover: #0e2b35;
+  --border: rgba(94, 128, 139, .28);
+  --border-2: rgba(51, 214, 223, .34);
+  --accent: #33d6df;
+  --accent-soft: rgba(51, 214, 223, .12);
+  --accent-ink: #bffaff;
+  --sidebar: #010f17;
+  --sidebar-2: #06151f;
+  --topbar: #020f17;
+  --row-selected: #0c3d45;
+  --table-stripe: #061821;
+}
+html[data-theme="dark"], :root[data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 18% -14%, rgba(51, 214, 223, .085), transparent 34vw),
+    radial-gradient(circle at 86% -12%, rgba(65, 130, 210, .055), transparent 32vw),
+    linear-gradient(180deg, #06151f 0%, #0b1a23 100%);
+}
+:root[data-theme="dark"] .main {
+  background: linear-gradient(180deg, #06151f 0%, #0b1a23 100%);
+}
+:root[data-theme="dark"] .sb {
+  background:
+    radial-gradient(circle at 0 0, rgba(51,214,223,.12), transparent 116px),
+    linear-gradient(180deg, #010f17 0%, #06151f 100%);
+}
+:root[data-theme="dark"] .sb-item.active {
+  background: linear-gradient(90deg, rgba(22, 88, 100, .82), rgba(10, 56, 68, .52));
+  border-color: rgba(51, 214, 223, .46);
+  box-shadow: inset 3px 0 0 #33d6df;
+}
+:root[data-theme="dark"] .tb {
+  background: rgba(2, 15, 23, .94);
+}
+:root[data-theme="dark"] .top-search,
+:root[data-theme="dark"] .tb-action,
+:root[data-theme="dark"] .date-chip {
+  background: rgba(11, 32, 42, .78);
+}
+:root[data-theme="dark"] .card,
+:root[data-theme="dark"] .tbl-wrap,
+:root[data-theme="dark"] .analysis-card {
+  background: #0e1e2b;
+  border-color: rgba(94, 128, 139, .26);
+}
+:root[data-theme="dark"] .mock-kpi {
+  background: linear-gradient(180deg, #122028 0%, #091923 100%);
+  border-color: rgba(94, 128, 139, .25);
+}
+:root[data-theme="dark"] .recent-head,
+:root[data-theme="dark"] .card-hd {
+  background: #0e1e2b;
+}
+:root[data-theme="dark"] table.tbl.mock-table thead th {
+  background: #091923;
+  color: rgba(213,230,232,.74);
+}
+:root[data-theme="dark"] table.tbl.mock-table tbody td {
+  background: #05141e;
+}
+:root[data-theme="dark"] table.tbl.mock-table tbody tr:nth-child(even) td {
+  background: #061821;
+}
+:root[data-theme="dark"] table.tbl.mock-table tbody tr.selected td {
+  background: #0c3d45;
+  box-shadow: none;
+}
+:root[data-theme="dark"] table.tbl.mock-table tbody tr.selected td:first-child {
+  box-shadow: inset 3px 0 0 #33d6df;
+}
+:root[data-theme="dark"] .tx-tab.on {
+  color: #33d6df;
+  border-bottom-color: #33d6df;
+}
+:root[data-theme="dark"] .ghost-link,
+:root[data-theme="dark"] .bank-total,
+:root[data-theme="dark"] .analysis-body [style*="color:#20e4ee"],
+:root[data-theme="dark"] .analysis-body [style*="color: '#20e4ee'"] {
+  color: #33d6df;
+}
+
+@media (max-width: 1100px) {
+  .sb { width: 232px; }
+  .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .two-col, .rp-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  #root { display: block; }
+  .sb {
+    position: relative;
+    width: 100%;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid rgba(34,211,238,.18);
+  }
+  .sb-nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .tb { position: sticky; top: 0; padding: 10px 14px; }
+  .content { padding: 16px 14px 48px; }
+  .kpi-grid { grid-template-columns: 1fr; }
+}
+
 </style>
 </head>
 <body>
@@ -517,6 +1725,9 @@ const openPdf = (kind, params={}) => {
 // DATA — useEffect ile API'dan doldurulur (App component'inde)
 let CUSTOMERS = [];
 let TX = [];
+let KASA_BAKIYE = {};
+let DASH_KPI = {};
+let GG_OZET = {};
 
 // API → v3 schema adapter'ları
 const adapt = {
@@ -699,27 +1910,41 @@ const DOC_CHIP = { fatura:'info', tahsilat:'good', cek:'warn', odeme:'bad', iade
 
 // ============= COMPONENTS =============
 function Sidebar({page,onNav}){
-  const op=[{id:'dashboard',l:'Bilgi Ekranı',i:<IDash/>},{id:'cariler',l:'Cari Hesaplar',i:<ICari/>,b:String(CUSTOMERS.length)},{id:'hareketler',l:'Stok Hareketler',i:<ISwap/>},{id:'firmalar',l:'Firmalar',i:<IApt/>},{id:'stok',l:'Stok',i:<IStok/>},{id:'kasa',l:'Kasa',i:<IKasa/>},{id:'gelirgider',l:'Gelir / Gider',i:<IGel/>},{id:'personel',l:'Personel',i:<IBdg/>},{id:'cekler',l:'Çek / Senet',i:<ICek/>},{id:'uretim',l:'Üretim',i:<IFct/>},{id:'bilanco',l:'Haftalık Bilanço',i:<IBilanco/>}];
-  const fn=[{id:'cektakvim',l:'Çek Takvimi',i:<ICal/>},{id:'mutabakat',l:'Mutabakat',i:<ICk/>},{id:'tahsilatoneri',l:'Tahsilat Önerisi',i:<IIns/>},{id:'karlilik',l:'Kârlılık',i:<ITrend/>}];
-  const yn=[{id:'ayarlar',l:'Ayarlar',i:<ISet/>},{id:'loglar',l:'Loglar',i:<IDoc/>}];
+  const op=[{id:'dashboard',l:'Dashboard',i:<IDash/>},{id:'cariler',l:'Cari Hesaplar',i:<ICari/>},{id:'stok',l:'Stok Yönetimi',i:<IStok/>},{id:'hareketler',l:'Satışlar',i:<ISwap/>,chev:true},{id:'firmalar',l:'Alışlar',i:<IStok/>,chev:true},{id:'kasa',l:'Kasa',i:<IKasa/>},{id:'gelirgider',l:'Banka',i:<IApt/>},{id:'cekler',l:'Çek / Senet',i:<ICek/>},{id:'karlilik',l:'Gelir - Gider',i:<ITrend/>},{id:'mutabakat',l:'Muhasebe',i:<IDoc/>,chev:true},{id:'raporlar',l:'Raporlar',i:<IRep/>,chev:true},{id:'ayarlar',l:'Tanımlar',i:<ISet/>,chev:true},{id:'loglar',l:'Ayarlar',i:<ISet/>}];
   const eff = (page==='cari'||page==='ekstre')?'cariler':page;
-  const r=(items)=>items.map(it=><button key={it.id} className={`sb-item ${eff===it.id?'active':''}`} onClick={()=>onNav(it.id)}>{it.i}<span>{it.l}</span>{it.ext&&<span style={{marginLeft:'auto',fontSize:10,color:'var(--text-3)'}}>↗</span>}{it.b&&<span className="badge">{it.b}</span>}</button>);
+  const r=(items)=>items.map(it=><button key={it.id} className={`sb-item ${eff===it.id?'active':''}`} onClick={()=>onNav(it.id)}>{it.i}<span>{it.l}</span>{it.chev&&<IRight size={12} style={{marginLeft:'auto'}}/>}</button>);
   return <aside className="sb">
-    <div className="sb-brand"><div className="sb-logo">ŞÇ</div><div><div className="sb-brand-name">Şenol Çelik</div><div className="sb-brand-sub">Cari Takip · v3</div></div></div>
-    <button className="sb-search"><ISearch size={13}/><span>Hızlı arama…</span><kbd>⌘K</kbd></button>
-    <div className="sb-group">Operasyon</div><nav className="sb-nav">{r(op)}</nav>
-    <div className="sb-group">Finans Analiz</div><nav className="sb-nav">{r(fn)}</nav>
-    <div className="sb-group">Yönetim</div><nav className="sb-nav">{r(yn)}</nav>
-    <div className="sb-foot"><div className="av">MY</div><div style={{flex:1,minWidth:0}}><div className="sb-user">Mustafa Yıldırım</div><div className="sb-role">Muhasebe</div></div></div>
+    <div className="sb-brand"><div className="sb-logo">D</div><div><div className="sb-brand-name">Defterim</div><div className="sb-brand-sub">Cari Takip</div></div><div className="sb-collapse">≪</div></div>
+    <nav className="sb-nav">{r(op)}</nav>
+    <div className="sb-shortcuts">
+      <div className="shortcut-panel">
+        <div className="shortcut-hd"><span>Kısayollarım</span><ISet size={13}/></div>
+        {[
+          ['Yeni Fatura','F2',<IDoc size={15}/>],
+          ['Tahsilat Girişi','F3',<IKasa size={15}/>],
+          ['Ödeme Girişi','F4',<IKasa size={15}/>],
+          ['Stok Kartı','F5',<IStok size={15}/>],
+          ['Cari Kartı','F6',<ICari size={15}/>],
+        ].map(([label,key,icon])=><button key={label} className="shortcut-btn">{icon}<span>{label}</span><kbd>{key}</kbd></button>)}
+      </div>
+      <button className="sb-mini-action">≪ <span>Menüyü Daralt</span></button>
+    </div>
   </aside>;
 }
 
 function Topbar({crumbs}){
   return <div className="tb">
-    <div className="tb-crumb">{crumbs.map((c,i)=><React.Fragment key={i}>{i>0&&<IRight size={12}/>}{i===crumbs.length-1?<b>{c}</b>:<span>{c}</span>}</React.Fragment>)}</div>
+    <div className="top-search"><ISearch size={18}/><input readOnly placeholder="Cari, belge, fiş, stok ara..." /><kbd>⌘ K</kbd></div>
     <div className="tb-spacer"/>
-    <button className="btn btn-ghost btn-icon"><IBell size={15}/></button>
-    <button className="btn btn-primary btn-sm"><IPlus size={13}/>Yeni İşlem</button>
+    <button className="tb-action"><span className="plus-mark">+</span> Hızlı İşlem <IDown size={12}/></button>
+    <button className="tb-link"><IBell size={15}/>Hatırlatmalar<span className="notif">7</span></button>
+    <button className="tb-link"><ICari size={15}/>Mesajlar<span className="notif blue">3</span></button>
+    <button className="tb-link"><IIns size={15}/>Yardım</button>
+    <button className="tb-link" onClick={()=>window.__toggleTheme&&window.__toggleTheme()} title="Açık / Koyu tema">◐ Tema</button>
+    <div className="top-sep"/>
+    <div className="company-switch">DEMO A.Ş.<span>2025⌄</span></div>
+    <div className="user-menu">YK</div>
+    <IDown size={13} style={{color:'rgba(222,234,235,.66)'}}/>
   </div>;
 }
 
@@ -737,7 +1962,154 @@ function Spark({data,color='var(--accent)',h=140}){if(!data?.length)return null;
 function Toast({m,onDone}){React.useEffect(()=>{const t=setTimeout(onDone,2200);return()=>clearTimeout(t);},[]);return <div className="toast"><ICk size={14}/>{m}</div>;}
 
 // ============= DASHBOARD =============
+function MiniSpark({color='#20e4ee'}){
+  return <svg viewBox="0 0 160 34" className="spark-mini" preserveAspectRatio="none">
+    <defs><linearGradient id={`g${color.replace(/[^a-z0-9]/gi,'')}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={color} stopOpacity=".35"/><stop offset="1" stopColor={color} stopOpacity="0"/></linearGradient></defs>
+    <path d="M0 29 L15 28 L28 29 L42 27 L57 28 L70 27 L83 28 L98 26 L112 24 L126 25 L139 20 L148 21 L160 10 L160 34 L0 34 Z" fill={`url(#g${color.replace(/[^a-z0-9]/gi,'')})`}/>
+    <path d="M0 29 L15 28 L28 29 L42 27 L57 28 L70 27 L83 28 L98 26 L112 24 L126 25 L139 20 L148 21 L160 10" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>;
+}
+
+function MoneyPlain({value}){return <span className="num">₺{Number(value||0).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}</span>;}
+
 function Dashboard({onOpenCustomer}){
+  const [txTab,setTxTab]=React.useState('all');
+  const totalA = CUSTOMERS.reduce((s,c)=>s+Math.max(0,c.balance),0);
+  const totalB = Math.abs(CUSTOMERS.reduce((s,c)=>s+Math.min(0,c.balance),0));
+  const kasaBal = Number(KASA_BAKIYE.kasa ?? DASH_KPI.kasa_bakiyesi ?? KASA.reduce((s,k)=>s+(k.tip==='GELIR'?1:-1)*(k.tutar||0),0) ?? 0);
+  const bankaBal = Number(KASA_BAKIYE.banka ?? DASH_KPI.banka_bakiyesi ?? 2356780.45);
+  const vadeli = CEKLER.filter(c=>String(c.durum||'').toUpperCase()!=='ODENDI').reduce((s,c)=>s+(c.tutar||0),0);
+  const netGG = Number(GG_OZET.net ?? GG.reduce((s,g)=>s+(g.tip==='GELIR'?1:-1)*(g.tutar||0),0));
+  const allTx=[...TX].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const tabDefs=[
+    {id:'all',label:'Tümü',match:()=>true},
+    {id:'tahsilat',label:'Tahsilatlar',match:t=>t.type==='tahsilat'},
+    {id:'odeme',label:'Ödemeler',match:t=>t.type==='odeme'},
+    {id:'fatura',label:'Faturalar',match:t=>t.type==='fatura'},
+    {id:'banka',label:'Banka',match:t=>t.type==='banka'},
+    {id:'cek',label:'Çek / Senet',match:t=>t.type==='cek'},
+    {id:'gider',label:'Giderler',match:t=>t.type==='gider'},
+  ];
+  const filtered=allTx.filter(t=>(tabDefs.find(x=>x.id===txTab)||tabDefs[0]).match(t)).slice(0,8);
+  const typeMeta={
+    tahsilat:{label:'Tahsilat',icon:<IDn size={12}/>,color:'#79d84f',status:'Tahsil Edildi',statusColor:'#58d15b'},
+    odeme:{label:'Ödeme',icon:<IUp size={12}/>,color:'#ef6464',status:'Ödendi',statusColor:'#58d15b'},
+    fatura:{label:'Satış Faturası',icon:<IDoc size={12}/>,color:'#58aaf7',status:'Açık',statusColor:'#37a6e6'},
+    cek:{label:'Çek Tahsilatı',icon:<ICek size={12}/>,color:'#f2aa2e',status:'Tahsil Edildi',statusColor:'#58d15b'},
+    banka:{label:'Banka',icon:<IApt size={12}/>,color:'#20d8e5',status:'Tamamlandı',statusColor:'#58d15b'},
+    gider:{label:'Gider',icon:<IUp size={12}/>,color:'#ef6464',status:'Kaydedildi',statusColor:'#8b9ba0'},
+  };
+  const kpi=[
+    {label:'Toplam Cari Alacak',value:totalA,color:'#20e4ee',icon:<ICari size={20}/>,delta:'↗ %6,24 bu aya göre'},
+    {label:'Toplam Cari Borç',value:totalB,color:'#82dc35',icon:<ICari size={20}/>,delta:'↗ %5,11 bu aya göre'},
+    {label:'Kasa Bakiyesi',value:kasaBal,color:'#a379ff',icon:<IKasa size={20}/>,delta:'↗ %2,34 bu aya göre'},
+    {label:'Banka Bakiyesi',value:bankaBal,color:'#58aaf7',icon:<IApt size={20}/>,delta:'↗ %6,72 bu aya göre'},
+    {label:'Vadeli Çek / Senet',value:vadeli,color:'#f2a331',icon:<ICek size={20}/>,delta:'↘ %3,18 bu aya göre'},
+    {label:'Gelir - Gider (Net)',value:netGG,color:'#79d84f',icon:<ITrend size={20}/>,delta:'↗ %12,45 bu aya göre'},
+  ];
+  const aging=[
+    ['Vadesi Gelmemiş',416250,33.35,'#20e4ee'],
+    ['1 - 30 Gün',312850.5,25.05,'#20e4ee'],
+    ['31 - 60 Gün',228600.75,18.32,'#20e4ee'],
+    ['61 - 90 Gün',156750,12.55,'#20e4ee'],
+    ['90+ Gün',134119,10.73,'#ef5858'],
+  ];
+  const risky=CUSTOMERS.filter(c=>c.credit>0).sort((a,b)=>(b.balance/b.credit)-(a.balance/a.credit)).slice(0,5);
+  const banks=[
+    ['Merkez Kasa',kasaBal],
+    ['GARANTİ BBVA',1245780.45],
+    ['İŞ BANKASI',856500],
+    ['YAPI KREDİ',254500],
+  ];
+
+  return <div>
+    <div className="dashboard-head">
+      <div><div className="dashboard-title">Dashboard</div><div className="dashboard-sub">Finansal özet ve günlük görünüm</div></div>
+      <div className="grow"/>
+      <div className="date-chip"><ICal size={18}/>23 Mayıs 2025, Cuma <IDown size={12}/></div>
+    </div>
+
+    <div className="dash-kpi-grid">
+      {kpi.map((x,i)=><div className="mock-kpi" key={x.label} style={{'--tile-color':x.color}}>
+        <div className="kpi-tile-icon">{x.icon}</div>
+        <div className="kpi-label">{x.label}</div>
+        <div className="kpi-val"><MoneyPlain value={x.value}/></div>
+        <div className="kpi-delta" style={{color:x.delta.includes('↘')?'#ef6464':'rgba(205,226,226,.70)'}}><span style={{color:x.delta.includes('↘')?'#ef6464':x.color}}>{x.delta.slice(0,1)}</span>{x.delta.slice(1)}</div>
+        <MiniSpark color={x.color}/>
+      </div>)}
+    </div>
+
+    <div className="card recent-card">
+      <div className="recent-head">
+        <div className="recent-title">Son İşlemler <span className="tx-count">{allTx.length}</span></div>
+        <div className="tx-tabs">
+          {tabDefs.map(t=><button key={t.id} className={`tx-tab ${txTab===t.id?'on':''}`} onClick={()=>setTxTab(t.id)}>{t.label}<span>{allTx.filter(t.match).length}</span></button>)}
+        </div>
+        <div className="recent-actions">
+          <button className="ghost-link">Tümünü Gör <IRight size={12}/></button>
+          <button className="tool-btn"><IDoc size={14}/>Dışa Aktar</button>
+          <button className="tool-btn"><IFlt size={14}/>Filtrele</button>
+          <button className="row-menu">⋮</button>
+        </div>
+      </div>
+      <div className="tbl-wrap">
+        <table className="tbl mock-table">
+          <thead><tr><th>Tarih</th><th>Belge No</th><th>Belge Türü</th><th>Cari Hesap</th><th>Açıklama</th><th>Vadesi</th><th className="r">Borç (₺)</th><th className="r">Alacak (₺)</th><th className="r">Bakiye (₺)</th><th>Durum</th><th></th></tr></thead>
+          <tbody>
+            {filtered.map((t,i)=>{const c=CUSTOMERS.find(x=>x.id===t.customerId)||{};const meta=typeMeta[t.type]||typeMeta.fatura;return <tr key={t.id} className={i===1?'selected':''} onClick={()=>onOpenCustomer(t.customerId)}>
+              <td className="tdate">{fmtD(t.date)}</td>
+              <td className="tref">{t.ref}</td>
+              <td><span className="doc-type"><span className="doc-ico" style={{'--doc-color':meta.color}}>{meta.icon}</span>{meta.label}</span></td>
+              <td style={{fontWeight:700}}>{c.name||t.customerId}</td>
+              <td style={{color:'rgba(222,234,235,.82)'}}>{t.description}</td>
+              <td className="tdate">{i===1?'22.06.2025':fmtD(t.date)}</td>
+              <td className="tnum">{t.borc?Number(t.borc).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}):'0,00'}</td>
+              <td className="tnum">{t.alacak?Number(t.alacak).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}):'0,00'}</td>
+              <td className="tnum">{Number(t.running||0).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+              <td><span className="status-pill" style={{'--status-color':meta.statusColor}}>{i===7?'Vadesi Geldi':meta.status}</span></td>
+              <td className="row-menu">⋮</td>
+            </tr>;})}
+          </tbody>
+        </table>
+        <div className="table-scrollbar"><span/></div>
+        <div className="pager"><span>‹</span><span className="on">1</span><span>2</span><span>3</span><span>...</span><span>8</span><span>›</span><button className="tool-btn">25 / sayfa <IDown size={12}/></button></div>
+      </div>
+    </div>
+
+    <div className="bottom-grid">
+      <div className="card analysis-card">
+        <div className="card-hd"><div><div className="card-ttl">Vadesi Gelen Alacaklar (Yaşlandırma)</div></div><IIns size={13} style={{color:'var(--text-3)'}}/></div>
+        <div className="analysis-body donut-wrap">
+          <div>
+            <div className="age-row" style={{minHeight:28,color:'rgba(213,230,232,.68)',fontSize:10,fontWeight:800}}><span>Gün Aralığı</span><span>Tutar (₺)</span><span></span><span>Oran (%)</span></div>
+            {aging.map(a=><div className="age-row" key={a[0]}><span>{a[0]}</span><span className="tnum">{a[1].toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}</span><div className="bar-track"><div className="bar-fill" style={{width:`${a[2]*2}%`,background:a[3]}}/></div><span className="tnum">{a[2].toFixed(2).replace('.',',')}</span></div>)}
+            <div className="age-row" style={{borderBottom:0,color:'#20e4ee',fontWeight:850}}><span>TOPLAM</span><span className="tnum">{totalA.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}</span><span></span><span>100</span></div>
+          </div>
+          <div className="donut"><div className="donut-center">{totalA.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}<span>Toplam Alacak</span></div></div>
+        </div>
+      </div>
+      <div className="card analysis-card">
+        <div className="card-hd"><div><div className="card-ttl">Riskli Cari Hesaplar</div></div></div>
+        <div className="analysis-body">
+          <table className="mini-table"><thead><tr><th>Cari Hesap</th><th className="r">Vade Günü</th><th>Risk Skoru</th><th className="r">Bakiye (₺)</th></tr></thead><tbody>
+            {risky.map((c,i)=>{const colors=['#ef5858','#ff7e33','#f2c23e','#f2c23e','#79d84f'];return <tr key={c.id}><td>{c.name}</td><td className="tnum">{[128,97,75,62,45][i]}</td><td><span className="risk-dot" style={{'--risk-color':colors[i]}}/>{[85,72,65,55,40][i]}</td><td className="tnum">{c.balance.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}</td></tr>;})}
+          </tbody></table>
+          <div style={{textAlign:'center',color:'#20e4ee',fontSize:12,marginTop:8}}>Tüm Riskli Carileri Gör <IRight size={12} style={{display:'inline',verticalAlign:'middle'}}/></div>
+        </div>
+      </div>
+      <div className="card analysis-card">
+        <div className="card-hd"><div><div className="card-ttl">Kasa & Banka Bakiyeleri</div></div></div>
+        <div className="analysis-body">
+          <div style={{display:'grid',gridTemplateColumns:'1fr auto',height:28,alignItems:'center',color:'rgba(213,230,232,.68)',fontSize:10,fontWeight:800}}><span>Hesap</span><span>Bakiye (₺)</span></div>
+          {banks.map(b=><div className="bank-line" key={b[0]}><IApt size={15}/><span>{b[0]}</span><span className="tnum">{b[1].toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}</span></div>)}
+          <div className="bank-total"><span>TOPLAM</span><span>{banks.reduce((s,b)=>s+b[1],0).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}</span></div>
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+
+function LegacyDashboard({onOpenCustomer}){
   const totalA = CUSTOMERS.reduce((s,c)=>s+Math.max(0,c.balance),0);
   const totalB = Math.abs(CUSTOMERS.reduce((s,c)=>s+Math.min(0,c.balance),0));
   const active = CUSTOMERS.filter(c=>c.status==='active').length;
@@ -3028,12 +4400,12 @@ function App(){
   const [modal,setModal]=React.useState(null);
   const [toast,setToast]=React.useState(null);
   const [tweaks,setTweaks]=React.useState(false);
-  const [theme,setTheme]=React.useState(()=>{try{return JSON.parse(document.getElementById('tweak-defaults').textContent.match(/\{.*\}/s)[0]).theme||'dark';}catch{return 'dark';}});
+  const [theme,setTheme]=React.useState(()=>{try{var ls=localStorage.getItem('v3-theme'); if(ls)return ls; return JSON.parse(document.getElementById('tweak-defaults').textContent.match(/\{.*\}/s)[0]).theme||'light';}catch{return 'light';}});
   const [dataVersion,setDataVersion]=React.useState(0);
   const [loading,setLoading]=React.useState(true);
   const [me,setMe]=React.useState(null);
   React.useEffect(()=>{localStorage.setItem('page_v3',page);},[page]);
-  React.useEffect(()=>{document.documentElement.setAttribute('data-theme',theme);},[theme]);
+  React.useEffect(()=>{document.documentElement.setAttribute('data-theme',theme);try{localStorage.setItem('v3-theme',theme);}catch(e){}window.__toggleTheme=()=>setTheme(t=>t==='dark'?'light':'dark');},[theme]);
 
   // === DATA LOAD ===
   const reloadData = React.useCallback(async () => {
@@ -3082,6 +4454,9 @@ function App(){
       TAHSILAT_ONERI = (to || []).map(adapt.oneri);
       KARLILIK = (kr || []).map(adapt.karlilik);
       LOGS = (lg || []).map(adapt.log);
+      KASA_BAKIYE = kasa_bak || {};
+      DASH_KPI = dashKpi || {};
+      GG_OZET = gg_ozet || {};
       FIRMALAR_MASTER = (fmaster || []).map(f => ({
         kod: f.kod, ad: f.ad, vkn: f.vkn_tckn || '',
         telefon: f.tel || '', email: f.email || '',
@@ -3180,6 +4555,18 @@ function App(){
           <div style={{fontSize:14,color:'var(--text-2)'}}>Veri yükleniyor…</div>
         </div> : render()}
       </div></div>
+    </div>
+    <div className="app-footer">
+      <span className="footer-status"><ISet size={14} style={{color:'#19d7b7'}}/>Lisans: Enterprise</span>
+      <span className="footer-sep"/>
+      <span>Kullanıcı: Yusuf K.</span>
+      <span className="grow"/>
+      <span className="footer-status"><span className="footer-dot"/>Son Yedekleme: 23.05.2025 02:15</span>
+      <span className="footer-sep"/>
+      <span>Sürüm: 2.5.1</span>
+      <span className="grow"/>
+      <span className="footer-status"><span className="footer-dot"/>Sunucu: online</span>
+      <span className="footer-status"><IBell size={15}/>Destek Talebi</span>
     </div>
     {modal&&modal.kind==='collection'&&<TxModal kind={modal.kind} customerId={modal.customerId} onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
     {modal&&modal.kind==='payment'&&<TxModal kind={modal.kind} customerId={modal.customerId} onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
