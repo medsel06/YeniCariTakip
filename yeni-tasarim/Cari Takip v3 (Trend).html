@@ -1770,6 +1770,7 @@ const adapt = {
     tevkifat_orani: r.tevkifat_orani || '0',
     tevkifat_tutar: parseFloat(r.tevkifat_tutar || 0),
     aciklama: r.aciklama || '',
+    vade_tarih: r.vade_tarih || '',
   }),
   stok: (r) => ({
     kod: r.kod, ad: r.ad, kat: r.kategori || '', brm: r.birim || 'kg',
@@ -2783,7 +2784,7 @@ function hesaplaHareket(miktar, birimFiyat, kdvOrani, tevkifatStr) {
 }
 
 // ============= STOK HAREKETLER PAGE =============
-function Hareketler({onNew}){
+function Hareketler({onNew,onEdit}){
   const [yil,setYil]=React.useState(new Date().getFullYear());
   const [ay,setAy]=React.useState(new Date().getMonth()+1);
   const [tip,setTip]=React.useState('all');
@@ -2861,7 +2862,7 @@ function Hareketler({onNew}){
               <td className="tnum">{fmt(h.kdv_tutar||0)}</td>
               <td>{h.tevkifat_orani && h.tevkifat_orani!=='0' ? <Chip k="warn" dot={false}>{h.tevkifat_orani}</Chip> : <span className="muted">—</span>}</td>
               <td className="tnum" style={{fontWeight:600}}>{fmt(h.kdvli_toplam||0)}</td>
-              <td><div className="hstack" style={{gap:4}}><button className="btn btn-icon btn-ghost btn-sm" title="Düzenle"><ISet size={13}/></button><button className="btn btn-icon btn-ghost btn-sm" style={{color:'var(--bad)'}} title="Sil" onClick={(e)=>{e.stopPropagation();handleDelete('/api/hareketler',h.id,'Bu hareketi silmek istiyor musunuz?')}}><IX size={13}/></button></div></td>
+              <td><div className="hstack" style={{gap:4}}><button className="btn btn-icon btn-ghost btn-sm" title="Düzenle" onClick={(e)=>{e.stopPropagation();onEdit&&onEdit(h)}}><ISet size={13}/></button><button className="btn btn-icon btn-ghost btn-sm" style={{color:'var(--bad)'}} title="Sil" onClick={(e)=>{e.stopPropagation();handleDelete('/api/hareketler',h.id,'Bu hareketi silmek istiyor musunuz?')}}><IX size={13}/></button></div></td>
             </tr>)}
           </tbody>
         </table>
@@ -2871,17 +2872,17 @@ function Hareketler({onNew}){
 }
 
 // ============= HAREKET MODAL =============
-function HareketModal({onClose,onSaved}){
-  const [tarih,setTarih]=React.useState(new Date().toISOString().slice(0,10));
-  const [belgeNo,setBelgeNo]=React.useState('');
-  const [tur,setTur]=React.useState('ALIS');
-  const [kdv,setKdv]=React.useState(20);
-  const [tevkifat,setTevkifat]=React.useState('0');
-  const [firmaId,setFirmaId]=React.useState(CUSTOMERS[0]?.id||'');
-  const [urunKod,setUrunKod]=React.useState(STOK[0]?.kod||'');
-  const [miktar,setMiktar]=React.useState('');
-  const [birimFiyat,setBirimFiyat]=React.useState('');
-  const [aciklama,setAciklama]=React.useState('');
+function HareketModal({edit,onClose,onSaved}){
+  const [tarih,setTarih]=React.useState(edit?(edit.tarih||new Date().toISOString().slice(0,10)):new Date().toISOString().slice(0,10));
+  const [belgeNo,setBelgeNo]=React.useState(edit?(edit.belge_no||''):'');
+  const [tur,setTur]=React.useState(edit?(edit.tur||'ALIS'):'ALIS');
+  const [kdv,setKdv]=React.useState(edit?(edit.kdv_orani!=null?edit.kdv_orani:20):20);
+  const [tevkifat,setTevkifat]=React.useState(edit?(edit.tevkifat_orani||'0'):'0');
+  const [firmaId,setFirmaId]=React.useState(edit?(edit.firma_id||''):(CUSTOMERS[0]?.id||''));
+  const [urunKod,setUrunKod]=React.useState(edit?(edit.urun_kod||''):(STOK[0]?.kod||''));
+  const [miktar,setMiktar]=React.useState(edit?String(edit.miktar||''):'');
+  const [birimFiyat,setBirimFiyat]=React.useState(edit?String(edit.birim_fiyat||''):'');
+  const [aciklama,setAciklama]=React.useState(edit?(edit.aciklama||''):'');
   const [subModal,setSubModal]=React.useState(null); // 'newcari' | 'newstok' | null
   const [saving,setSaving]=React.useState(false);
 
@@ -2904,10 +2905,11 @@ function HareketModal({onClose,onSaved}){
       tevkifat_orani: tevkifat, tevkifat_tutar: calc.tevkifatTutar,
       tevkifatsiz_kdv: calc.odenecekKdv,
       aciklama,
+      vade_tarih: edit?(edit.vade_tarih||''):'',
     };
-    const res = await apiPost('/api/hareketler', payload);
+    const res = edit ? await apiPut('/api/hareketler/'+edit.id, payload) : await apiPost('/api/hareketler', payload);
     setSaving(false);
-    if(res?.ok) onSaved?.(tur==='ALIS'?'Alış kaydedildi':'Satış kaydedildi');
+    if(res?.ok) onSaved?.(edit?'Hareket güncellendi':(tur==='ALIS'?'Alış kaydedildi':'Satış kaydedildi'));
     else alert('Kayıt başarısız: ' + (res?.message || 'Hata'));
   };
 
@@ -2915,7 +2917,7 @@ function HareketModal({onClose,onSaved}){
     <form className="modal" style={{width:640}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
       <div className="m-hd">
         <div style={{width:34,height:34,borderRadius:8,background:tur==='ALIS'?'var(--info-soft)':'var(--good-soft)',color:tur==='ALIS'?'var(--info)':'var(--good)',display:'grid',placeItems:'center'}}>{tur==='ALIS'?<IDn size={15}/>:<IUp size={15}/>}</div>
-        <div style={{flex:1}}><div className="m-ttl">Yeni Hareket</div><div className="m-sub">{tur==='ALIS'?'Tedarikçiden alış':'Müşteriye satış'}</div></div>
+        <div style={{flex:1}}><div className="m-ttl">{edit?'Hareket Düzenle':'Yeni Hareket'}</div><div className="m-sub">{tur==='ALIS'?'Tedarikçiden alış':'Müşteriye satış'}</div></div>
         <button type="button" className="btn btn-icon btn-ghost" onClick={onClose}><IX size={14}/></button>
       </div>
       <div className="m-bd">
@@ -4831,7 +4833,7 @@ function App(){
     if(page==='ekstre')return <Ekstre initialCustomerId={focus} onOpenCustomer={openCustomer} onOpenModal={openModal}/>;
     if(page==='cariler')return <CariList onOpen={openCustomer} onNew={()=>setModal({kind:'newcari'})}/>;
     if(page==='cari')return <CustomerDetail customerId={focus||CUSTOMERS[0]?.id} onOpenEkstre={openEkstre} onBack={()=>nav('cariler')} onOpenModal={openModal}/>;
-    if(page==='hareketler')return <Hareketler onNew={()=>setModal({kind:'hareket'})}/>;
+    if(page==='hareketler')return <Hareketler onNew={()=>setModal({kind:'hareket'})} onEdit={(h)=>setModal({kind:'hareket',edit:h})}/>;
     if(page==='firmalar')return <FirmalarPage onNew={()=>setModal({kind:'firma'})}/>;
     if(page==='stok')return <StokPage onNew={()=>setModal({kind:'newstok'})} onNewHrk={()=>setModal({kind:'stokhrk'})} onOpenDetay={openStokDetay}/>;
     if(page==='kasa')return <Kasa onNew={()=>setModal({kind:'kasa'})}/>;
@@ -4884,7 +4886,7 @@ function App(){
     {modal&&modal.kind==='newstok'&&<NewStokModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
     {modal&&modal.kind==='stokhrk'&&<StokHrkModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
     {modal&&modal.kind==='newgg'&&<NewGGModal edit={modal.edit} onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
-    {modal&&modal.kind==='hareket'&&<HareketModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
+    {modal&&modal.kind==='hareket'&&<HareketModal edit={modal.edit} onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
     {modal&&modal.kind==='kasa'&&<KasaModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
     {modal&&modal.kind==='banka'&&<BankaModal edit={modal.edit} btip={modal.btip} onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
     {modal&&modal.kind==='transfer'&&<TransferModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
