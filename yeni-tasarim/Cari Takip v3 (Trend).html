@@ -2680,7 +2680,7 @@ let GG = [];
 // TODO Faz 2/3: const r = await fetch('/api/gelir-gider'); GG = await r.json();
 
 // ============= GELİR/GİDER PAGE =============
-function GelirGider({onNew}){
+function GelirGider({onNew,onEdit}){
   const [tip,setTip]=React.useState('all');
   const [kat,setKat]=React.useState('all');
   const [rg,setRg]=React.useState('30');
@@ -2747,7 +2747,7 @@ function GelirGider({onNew}){
           <td className="tnum" style={{fontWeight:600,color:t.tip==='gelir'?'var(--good)':'var(--bad)'}}>{t.tip==='gelir'?'+':'−'}{fmt(t.tutar)}</td>
           <td><Chip k={t.durum==='ODENDI'?'good':'warn'}>{t.durum==='ODENDI'?'Ödendi':'Ödenmedi'}</Chip></td>
           <td style={{color:'var(--text-2)',fontSize:12}}>{t.odeme}</td>
-          <td><div className="hstack" style={{gap:4}}><button className="btn btn-icon btn-ghost btn-sm" title="Düzenle"><ISet size={13}/></button><button className="btn btn-icon btn-ghost btn-sm" style={{color:'var(--bad)'}} title="Sil" onClick={(e)=>{e.stopPropagation();handleDelete('/api/gelir-gider',t.id,'Bu kaydı silmek istiyor musunuz?')}}><IX size={13}/></button></div></td>
+          <td><div className="hstack" style={{gap:4}}><button className="btn btn-icon btn-ghost btn-sm" title="Düzenle" onClick={(e)=>{e.stopPropagation();onEdit&&onEdit(t)}}><ISet size={13}/></button><button className="btn btn-icon btn-ghost btn-sm" style={{color:'var(--bad)'}} title="Sil" onClick={(e)=>{e.stopPropagation();handleDelete('/api/gelir-gider',t.id,'Bu kaydı silmek istiyor musunuz?')}}><IX size={13}/></button></div></td>
         </tr>;})}</tbody>
         {items.length>0&&<tfoot><tr style={{background:'var(--panel-2)',fontWeight:600}}>
           <td colSpan={6} style={{padding:'12px 14px',fontSize:11,color:'var(--text-3)',fontWeight:500}}>NET (Gelir − Gider)</td>
@@ -3313,16 +3313,16 @@ function StokHrkModal({onClose,onSaved}){
 }
 
 // ============= NEW GG MODAL =============
-function NewGGModal({onClose,onSaved}){
-  const [tip,setTip]=React.useState('gider');
-  const [kat,setKat]=React.useState('Maaş');
-  const [firmaId,setFirmaId]=React.useState('');
-  const [tutar,setTutar]=React.useState('');
-  const [date,setDate]=React.useState(new Date().toISOString().slice(0,10));
-  const [odeme,setOdeme]=React.useState('Banka');
-  const [durum,setDurum]=React.useState('ODENMEDI');
-  const [aciklama,setAciklama]=React.useState('');
-  React.useEffect(()=>{setKat(GG_KATEGORI[tip][0]);},[tip]);
+function NewGGModal({edit,onClose,onSaved}){
+  const [tip,setTip]=React.useState(edit?edit.tip:'gider');
+  const [kat,setKat]=React.useState(edit?(edit.kat||'Maaş'):'Maaş');
+  const [firmaId,setFirmaId]=React.useState(edit?(edit.firma_id||''):'');
+  const [tutar,setTutar]=React.useState(edit?String(edit.tutar||''):'');
+  const [date,setDate]=React.useState(edit?(edit.date||new Date().toISOString().slice(0,10)):new Date().toISOString().slice(0,10));
+  const [odeme,setOdeme]=React.useState(edit?(edit.odeme||'Banka'):'Banka');
+  const [durum,setDurum]=React.useState(edit?(edit.durum||'ODENMEDI'):'ODENMEDI');
+  const [aciklama,setAciklama]=React.useState(edit?(edit.aciklama||''):'');
+  React.useEffect(()=>{setKat(k=>GG_KATEGORI[tip]&&GG_KATEGORI[tip].includes(k)?k:((GG_KATEGORI[tip]||[''])[0]));},[tip]);
   const submit=async(e)=>{
     e.preventDefault();
     if(!tutar){ alert('Tutar zorunlu'); return; }
@@ -3334,15 +3334,15 @@ function NewGGModal({onClose,onSaved}){
       odeme_sekli: durum==='ODENDI'?odeme:'',
       odeme_durumu: durum, aciklama,
     };
-    const res = await apiPost('/api/gelir-gider', payload);
-    if(res?.ok) onSaved?.(tip==='gelir'?'Gelir kaydedildi':'Gider kaydedildi');
+    const res = edit ? await apiPut('/api/gelir-gider/'+edit.id, payload) : await apiPost('/api/gelir-gider', payload);
+    if(res?.ok) onSaved?.(edit?'Güncellendi':(tip==='gelir'?'Gelir kaydedildi':'Gider kaydedildi'));
     else alert('Kayıt başarısız');
   };
   return <div className="scrim" onClick={onClose}>
     <form className="modal" style={{width:580}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
       <div className="m-hd">
         <div style={{width:34,height:34,borderRadius:8,background:tip==='gelir'?'var(--good-soft)':'var(--bad-soft)',color:tip==='gelir'?'var(--good)':'var(--bad)',display:'grid',placeItems:'center'}}>{tip==='gelir'?<IUp size={15}/>:<IDn size={15}/>}</div>
-        <div style={{flex:1}}><div className="m-ttl">Yeni {tip==='gelir'?'Gelir':'Gider'}</div><div className="m-sub">İşletme gelir/gider kaydı</div></div>
+        <div style={{flex:1}}><div className="m-ttl">{edit?'Düzenle':'Yeni'} {tip==='gelir'?'Gelir':'Gider'}</div><div className="m-sub">İşletme gelir/gider kaydı</div></div>
         <button type="button" className="btn btn-icon btn-ghost" onClick={onClose}><IX size={14}/></button>
       </div>
       <div className="m-bd">
@@ -4837,7 +4837,7 @@ function App(){
     if(page==='kasa')return <Kasa onNew={()=>setModal({kind:'kasa'})}/>;
     if(page==='banka')return <Banka onNew={()=>setModal({kind:'banka'})} onEdit={(h)=>setModal({kind:'banka',edit:h})} onTransfer={()=>setModal({kind:'transfer'})}/>;
     if(page==='odemetakibi')return <OdemeTakibi onNew={()=>setModal({kind:'newodeme'})}/>;
-    if(page==='gelirgider')return <GelirGider onNew={()=>setModal({kind:'newgg'})}/>;
+    if(page==='gelirgider')return <GelirGider onNew={()=>setModal({kind:'newgg'})} onEdit={(t)=>setModal({kind:'newgg',edit:t})}/>;
     if(page==='personel')return <PersonelPage onNew={()=>setModal({kind:'personel'})} onMesai={(id)=>setModal({kind:'mesai',personelId:id})}/>;
     if(page==='cekler')return <CeklerPage onNew={(tab)=>setModal({kind:'cek',cekTip:tab==='alinan'?'ALINAN':'VERILEN'})}/>;
     if(page==='uretim')return <UretimPage onNew={()=>setModal({kind:'uretim'})} onView={(id)=>setModal({kind:'uretim',uretimId:id})}/>;
@@ -4883,7 +4883,7 @@ function App(){
     {modal&&modal.kind==='newcari'&&<NewCariModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
     {modal&&modal.kind==='newstok'&&<NewStokModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
     {modal&&modal.kind==='stokhrk'&&<StokHrkModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
-    {modal&&modal.kind==='newgg'&&<NewGGModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
+    {modal&&modal.kind==='newgg'&&<NewGGModal edit={modal.edit} onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
     {modal&&modal.kind==='hareket'&&<HareketModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
     {modal&&modal.kind==='kasa'&&<KasaModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
     {modal&&modal.kind==='banka'&&<BankaModal edit={modal.edit} btip={modal.btip} onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
