@@ -66,7 +66,9 @@ def odeme_takibi_page():
             rows = [r for r in rows if r['tip'] == filtre['tip']]
         if filtre['kaynak']:
             rows = [r for r in rows if r['_src'] == filtre['kaynak']]
-        rows.sort(key=lambda r: (r.get('vade_tarih') or '9999-99-99'))
+        # Vadeye gore azalan: en buyuk (en ileri) vade en ustte, en kucuk en altta.
+        # Vadesi bos olanlar en alta.
+        rows.sort(key=lambda r: (r.get('vade_tarih') or ''), reverse=True)
         return rows
 
     def _refresh():
