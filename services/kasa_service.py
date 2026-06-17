@@ -295,8 +295,8 @@ def add_hareket(data):
             INSERT INTO hareketler
                 (tarih, firma_kod, firma_ad, tur, urun_kod, urun_ad, miktar, birim_fiyat,
                  toplam, kdv_orani, kdv_tutar, kdvli_toplam,
-                 tevkifat_orani, tevkifat_tutar, tevkifatsiz_kdv, aciklama, belge_no, created_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                 tevkifat_orani, tevkifat_tutar, tevkifatsiz_kdv, aciklama, belge_no, vade_tarih, created_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             RETURNING id
         ''', (
             data['tarih'], data['firma_kod'], data['firma_ad'], data['tur'],
@@ -305,7 +305,7 @@ def add_hareket(data):
             data.get('kdvli_toplam', data['toplam']),
             data.get('tevkifat_orani', '0'), data.get('tevkifat_tutar', 0),
             data.get('tevkifatsiz_kdv', 0), data.get('aciklama', ''),
-            data.get('belge_no', ''),
+            data.get('belge_no', ''), data.get('vade_tarih', ''),
             now,
         ))
         hareket_id = cur.fetchone()['id']
@@ -320,7 +320,7 @@ def update_hareket(id, data):
         conn.execute('''
             UPDATE hareketler SET tarih=?, firma_kod=?, firma_ad=?, tur=?, urun_kod=?, urun_ad=?,
                 miktar=?, birim_fiyat=?, toplam=?, kdv_orani=?, kdv_tutar=?, kdvli_toplam=?,
-                tevkifat_orani=?, tevkifat_tutar=?, tevkifatsiz_kdv=?, aciklama=?, belge_no=?
+                tevkifat_orani=?, tevkifat_tutar=?, tevkifatsiz_kdv=?, aciklama=?, belge_no=?, vade_tarih=?
             WHERE id=?
         ''', (
             data['tarih'], data['firma_kod'], data['firma_ad'], data['tur'],
@@ -329,7 +329,7 @@ def update_hareket(id, data):
             data.get('kdvli_toplam', data['toplam']),
             data.get('tevkifat_orani', '0'), data.get('tevkifat_tutar', 0),
             data.get('tevkifatsiz_kdv', 0), data.get('aciklama', ''),
-            data.get('belge_no', ''),
+            data.get('belge_no', ''), data.get('vade_tarih', ''),
             id
         ))
         detay = json.dumps({'eski': old_dict, 'yeni': data}, ensure_ascii=False, default=str)

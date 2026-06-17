@@ -371,6 +371,7 @@ def _create_business_tables(conn):
             tevkifat_tutar NUMERIC(15,2) DEFAULT 0,
             tevkifatsiz_kdv NUMERIC(15,2) DEFAULT 0,
             aciklama TEXT DEFAULT '',
+            vade_tarih TEXT DEFAULT '',
             created_at TEXT DEFAULT ''
         )
     ''')
@@ -651,6 +652,10 @@ def _create_business_tables(conn):
     # Irsaliye/Fatura numarasi
     if not _col_exists(conn, 'hareketler', 'belge_no'):
         conn.execute("ALTER TABLE hareketler ADD COLUMN belge_no TEXT DEFAULT ''")
+    # Vadeli alis/satis: opsiyonel vade tarihi (bos=pesin). Odeme Takibi bu vadeyi
+    # okuyup FIFO ile kapanma durumunu canli turetir; cari bakiyeyi ETKILEMEZ (tek kayit).
+    if not _col_exists(conn, 'hareketler', 'vade_tarih'):
+        conn.execute("ALTER TABLE hareketler ADD COLUMN vade_tarih TEXT DEFAULT ''")
     # Soft-delete (Paket 8): firma/urun pasife alma
     if not _col_exists(conn, 'firmalar', 'aktif'):
         conn.execute("ALTER TABLE firmalar ADD COLUMN aktif INTEGER DEFAULT 1")

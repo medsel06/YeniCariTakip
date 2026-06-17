@@ -285,6 +285,32 @@ def hareketler_page():
 
                 inp_aciklama = ui.input('Açıklama').props('outlined dense label-color=cyan-8').classes('w-full')
 
+                # --- Vade (opsiyonel): bos=pesin. Dolu ise Odeme Takibi'nde "vadesi yaklasan"
+                # olarak gorunur. Cariye etkisi YOK (tutar tek kez yazilir). ---
+                inp_vade = ui.input('Vade Tarihi (opsiyonel — boş = peşin)').props(
+                    'outlined dense label-color=cyan-8 clearable').classes('w-full')
+                with inp_vade.add_slot('append'):
+                    icon_vd = ui.icon('event').classes('cursor-pointer')
+                    with ui.menu() as menu_vd:
+                        ui.date(on_change=lambda e: (inp_vade.set_value(e.value), menu_vd.close()))
+                    icon_vd.on('click', menu_vd.open)
+
+                def _set_vade_gun(gun):
+                    from datetime import datetime as _dt, timedelta as _td
+                    base = inp_tarih.value or date.today().isoformat()
+                    try:
+                        b = _dt.strptime(str(base)[:10], '%Y-%m-%d').date()
+                    except ValueError:
+                        b = date.today()
+                    inp_vade.set_value((b + _td(days=gun)).isoformat())
+
+                with ui.row().classes('w-full gap-1 items-center q-mb-xs'):
+                    ui.label('Hızlı vade:').classes('text-caption text-grey-7')
+                    ui.button('Peşin', on_click=lambda: inp_vade.set_value('')).props('dense flat no-caps size=sm color=grey-7')
+                    ui.button('+7 gün', on_click=lambda: _set_vade_gun(7)).props('dense flat no-caps size=sm')
+                    ui.button('+15 gün', on_click=lambda: _set_vade_gun(15)).props('dense flat no-caps size=sm')
+                    ui.button('+30 gün', on_click=lambda: _set_vade_gun(30)).props('dense flat no-caps size=sm')
+
                 # Hesaplama alani
                 ui.separator()
                 with ui.row().classes('w-full gap-md items-center'):
@@ -326,6 +352,7 @@ def hareketler_page():
                 inp_tevkifat.value = edit_row.get('tevkifat_orani', '0') or '0'
                 inp_aciklama.value = edit_row.get('aciklama', '')
                 inp_belge.value = edit_row.get('belge_no', '')
+                inp_vade.value = edit_row.get('vade_tarih', '') or ''
                 recalc()
                 check_risk()
 
@@ -392,6 +419,7 @@ def hareketler_page():
                         'tevkifatsiz_kdv': odenecek_kdv,
                         'aciklama': inp_aciklama.value.strip() if inp_aciklama.value else '',
                         'belge_no': inp_belge.value.strip() if inp_belge.value else '',
+                        'vade_tarih': (inp_vade.value or '').strip(),
                     }
 
                     try:
