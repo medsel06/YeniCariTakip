@@ -556,9 +556,11 @@ def cekler_page():
         </q-td>
     '''
 
+    # Vade kirmizi: SADECE cek hala acik (Portfoyde/Tahsile Verildi/Kesildi) ve vadesi
+    # gecmisse. Tahsil/Odeme/Ciro/Iade/Karsiliksiz olmus cekler kapali sayilir, kirmizi olmaz.
     vade_slot = f'''
         <q-td :props="props">
-            <span :style="props.value < '{today_str}' ? 'color:red;font-weight:bold' : ''">
+            <span :style="(props.value < '{today_str}' && (props.row.durum === 'PORTFOYDE' || props.row.durum === 'TAHSILE_VERILDI' || props.row.durum === 'KESILDI')) ? 'color:red;font-weight:bold' : ''">
                 {{{{ props.value ? props.value.split('-').reverse().join('.') : '' }}}}
             </span>
         </q-td>
@@ -608,6 +610,11 @@ def cekler_page():
                 @click.stop="$parent.$emit('change_durum', props.row)">
                 <q-tooltip>Durum Değiştir</q-tooltip>
             </q-btn>
+            <q-btn v-if="(props.row.cek_turu === 'ALINAN' && props.row.durum !== 'PORTFOYDE') || (props.row.cek_turu === 'VERILEN' && props.row.durum !== 'KESILDI')"
+                flat round dense icon="undo" color="negative" size="sm"
+                @click.stop="$parent.$emit('undo_son', props.row)">
+                <q-tooltip>Son işlemi geri al</q-tooltip>
+            </q-btn>
         </q-td>
     '''
 
@@ -620,6 +627,39 @@ def cekler_page():
         </q-td>
     '''
 
+    def _handle_undo_son(e):
+        """Islemler sutunundaki 'Geri Al' butonu: cekin SON durum degisikligini geri alir.
+        Satira tiklayinca acilan detaydaki geri-al ile ayni guvenli mekanizma."""
+        row = e.args
+        cek_id = row.get('id')
+        hareketler = get_cek_hareketleri(cek_id)
+        if not hareketler:
+            notify_err('Geri alınacak işlem bulunamadı')
+            return
+        son = hareketler[-1]
+        hid = son.get('id')
+        yd = son.get('yeni_durum', '')
+        ed = son.get('eski_durum')
+        if ed is None:
+            notify_err('Bu çek henüz işlem görmemiş; geri alınacak durum değişikliği yok. '
+                       'Silmek için satıra tıklayıp "Çeki Tamamen Sil" kullanın.')
+            return
+        msg = (f"Son işlem geri alınsın mı?\n"
+               f"{DURUM_LABELS.get(yd, yd)} → {DURUM_LABELS.get(ed, ed)}")
+        if yd in ('TAHSIL_EDILDI', 'ODENDI'):
+            msg += "\n\nBağlı kasa kaydı da silinecek."
+        elif yd == 'CIRO_EDILDI':
+            msg += "\n\nCiro firması bilgisi temizlenecek."
+
+        def confirmed():
+            ok, message = undo_cek_hareketi(hid)
+            if ok:
+                notify_ok(message)
+                load_data()
+            else:
+                notify_err(message)
+        confirm_dialog(msg, confirmed)
+
     def setup_table(tbl, cek_turu):
         tbl.props('flat bordered dense')
         tbl.add_slot('body-cell-evrak_tipi', evrak_tipi_slot)
@@ -630,6 +670,7 @@ def cekler_page():
         tbl.add_slot('body-cell-actions', actions_slot)
         tbl.on('edit', lambda e: open_edit_dialog(e.args))
         tbl.on('change_durum', lambda e: open_durum_dialog(e.args))
+        tbl.on('undo_son', _handle_undo_son)
         tbl.on('rowClick', lambda e: open_detail_dialog(e.args[1]))
 
     # --- PAGE CONTENT ---
