@@ -3689,7 +3689,7 @@ const CEK_DURUM_UP = {PORTFOYDE:'Portföyde',TAHSILE_VERILDI:'Tahsile Verildi',T
 const CEK_TRANS = {ALINAN:{PORTFOYDE:['TAHSILE_VERILDI','CIRO_EDILDI','IADE_EDILDI'],TAHSILE_VERILDI:['TAHSIL_EDILDI','KARSILIKSIZ','IADE_EDILDI']},VERILEN:{KESILDI:['ODENDI','KARSILIKSIZ']}};
 
 // ============= KASA PAGE =============
-function Kasa({onNew}){
+function Kasa({onNew,onEdit}){
   const [yil,setYil]=React.useState(new Date().getFullYear());
   const [ay,setAy]=React.useState(new Date().getMonth()+1);
   const [tip,setTip]=React.useState('all');
@@ -3741,7 +3741,7 @@ function Kasa({onNew}){
             <td className="tnum" style={{fontWeight:600,color:k.tip==='GELIR'?'var(--good)':'var(--bad)'}}>{k.tip==='GELIR'?'+':'−'}{fmt(k.tutar||0)}</td>
             <td>{k.odeme_sekli}</td>
             <td style={{color:'var(--text-2)'}}>{k.aciklama}</td>
-            <td><div className="hstack" style={{gap:4}}><button className="btn btn-icon btn-ghost btn-sm" title="Düzenle"><ISet size={13}/></button><button className="btn btn-icon btn-ghost btn-sm" style={{color:'var(--bad)'}} title="Sil" onClick={(e)=>{e.stopPropagation();handleDelete('/api/kasa',k.id,'Bu kasa kaydını silmek istiyor musunuz?')}}><IX size={13}/></button></div></td>
+            <td><div className="hstack" style={{gap:4}}><button className="btn btn-icon btn-ghost btn-sm" title="Düzenle" onClick={(e)=>{e.stopPropagation();onEdit&&onEdit(k)}}><ISet size={13}/></button><button className="btn btn-icon btn-ghost btn-sm" style={{color:'var(--bad)'}} title="Sil" onClick={(e)=>{e.stopPropagation();handleDelete('/api/kasa',k.id,'Bu kasa kaydını silmek istiyor musunuz?')}}><IX size={13}/></button></div></td>
           </tr>)}
         </tbody>
       </table></div>
@@ -3750,13 +3750,13 @@ function Kasa({onNew}){
 }
 
 // ============= KASA MODAL =============
-function KasaModal({onClose,onSaved}){
-  const [tarih,setTarih]=React.useState(new Date().toISOString().slice(0,10));
-  const [tip,setTip]=React.useState('GELIR');
-  const [firmaId,setFirmaId]=React.useState(CUSTOMERS[0]?.id||'');
-  const [tutar,setTutar]=React.useState('');
-  const [odeme,setOdeme]=React.useState('Nakit');
-  const [aciklama,setAciklama]=React.useState('');
+function KasaModal({edit,onClose,onSaved}){
+  const [tarih,setTarih]=React.useState(edit?(edit.tarih||new Date().toISOString().slice(0,10)):new Date().toISOString().slice(0,10));
+  const [tip,setTip]=React.useState(edit?(edit.tip||'GELIR'):'GELIR');
+  const [firmaId,setFirmaId]=React.useState(edit?(edit.firma_id||''):(CUSTOMERS[0]?.id||''));
+  const [tutar,setTutar]=React.useState(edit?String(edit.tutar||''):'');
+  const [odeme,setOdeme]=React.useState(edit?(edit.odeme_sekli||'Nakit'):'Nakit');
+  const [aciklama,setAciklama]=React.useState(edit?(edit.aciklama||''):'');
   // Çek alanları
   const [cekTuru,setCekTuru]=React.useState('FIRMA'); // FIRMA / CIRO
   const [cekNo,setCekNo]=React.useState('');
@@ -3781,14 +3781,14 @@ function KasaModal({onClose,onSaved}){
       tutar: parseFloat(tutar),
       odeme_sekli: odeme, aciklama,
     };
-    if(odeme==='Çek'){
+    if(odeme==='Çek' && !edit){
       payload.cek_turu = cekTuru;
       payload.cek_no = cekNo;
       payload.cek_vade_tarih = cekVade;
       payload.ciro_cek_id = ciroSecili;
     }
-    const res = await apiPost('/api/kasa', payload);
-    if(res?.ok) onSaved?.(tip==='GELIR'?'Kasa girişi kaydedildi':'Kasa çıkışı kaydedildi');
+    const res = edit ? await apiPut('/api/kasa/'+edit.id, payload) : await apiPost('/api/kasa', payload);
+    if(res?.ok) onSaved?.(edit?'Kasa kaydı güncellendi':(tip==='GELIR'?'Kasa girişi kaydedildi':'Kasa çıkışı kaydedildi'));
     else alert('Kayıt başarısız');
   };
 
@@ -3796,7 +3796,7 @@ function KasaModal({onClose,onSaved}){
     <form className="modal" style={{width:600}} onClick={e=>e.stopPropagation()} onSubmit={submit}>
       <div className="m-hd">
         <div style={{width:34,height:34,borderRadius:8,background:tip==='GELIR'?'var(--good-soft)':'var(--bad-soft)',color:tip==='GELIR'?'var(--good)':'var(--bad)',display:'grid',placeItems:'center'}}><IKasa size={15}/></div>
-        <div style={{flex:1}}><div className="m-ttl">Yeni Kasa Kaydı</div><div className="m-sub">{tip==='GELIR'?'Para girişi':'Para çıkışı'}</div></div>
+        <div style={{flex:1}}><div className="m-ttl">{edit?'Kasa Kaydı Düzenle':'Yeni Kasa Kaydı'}</div><div className="m-sub">{tip==='GELIR'?'Para girişi':'Para çıkışı'}</div></div>
         <button type="button" className="btn btn-icon btn-ghost" onClick={onClose}><IX size={14}/></button>
       </div>
       <div className="m-bd">
@@ -3812,8 +3812,8 @@ function KasaModal({onClose,onSaved}){
           <div className="field"><label>Tutar (₺)</label><input value={tutar} onChange={e=>setTutar(e.target.value)} placeholder="0,00" style={{textAlign:'right',fontSize:16,fontWeight:600,fontVariantNumeric:'tabular-nums'}} autoFocus disabled={odeme==='Çek'&&cekTuru==='CIRO'&&!!ciroSecili}/></div>
           <div className="field"><label>Ödeme Şekli</label><select value={odeme} onChange={e=>setOdeme(e.target.value)}>{ODEME_SEKLI.map(o=><option key={o} value={o}>{o}</option>)}</select></div>
         </div>
-        {/* Koşullu Çek alanları */}
-        {odeme==='Çek'&&<div style={{padding:'14px',background:'var(--warn-soft)',border:'1px solid rgba(251,191,36,0.3)',borderRadius:8,marginBottom:14}}>
+        {/* Koşullu Çek alanları — düzenlemede gizli (çek yaşam döngüsü Çek modülünden yönetilir) */}
+        {odeme==='Çek'&&!edit&&<div style={{padding:'14px',background:'var(--warn-soft)',border:'1px solid rgba(251,191,36,0.3)',borderRadius:8,marginBottom:14}}>
           <div className="field"><label>Çek Türü</label><div className="tp" style={{gridTemplateColumns:'1fr 1fr'}}>
             <label><input type="radio" name="ct" checked={cekTuru==='FIRMA'} onChange={()=>setCekTuru('FIRMA')}/><div className="tp-ic"><ICek size={14}/></div><div><div className="tp-ttl">Firma Çeki</div><div className="tp-sub">Yeni çek alındı</div></div></label>
             <label><input type="radio" name="ct" checked={cekTuru==='CIRO'} onChange={()=>setCekTuru('CIRO')}/><div className="tp-ic"><ISwap size={14}/></div><div><div className="tp-ttl">Ciro Çeki</div><div className="tp-sub">Portföyden çek ciro et</div></div></label>
@@ -5001,7 +5001,7 @@ function App(){
     if(page==='hareketler')return <Hareketler onNew={()=>setModal({kind:'hareket'})} onEdit={(h)=>setModal({kind:'hareket',edit:h})}/>;
     if(page==='firmalar')return <FirmalarPage onNew={()=>setModal({kind:'firma'})}/>;
     if(page==='stok')return <StokPage onNew={()=>setModal({kind:'newstok'})} onNewHrk={()=>setModal({kind:'stokhrk'})} onOpenDetay={openStokDetay}/>;
-    if(page==='kasa')return <Kasa onNew={()=>setModal({kind:'kasa'})}/>;
+    if(page==='kasa')return <Kasa onNew={()=>setModal({kind:'kasa'})} onEdit={(k)=>setModal({kind:'kasa',edit:k})}/>;
     if(page==='banka')return <Banka onNew={()=>setModal({kind:'banka'})} onEdit={(h)=>setModal({kind:'banka',edit:h})} onTransfer={()=>setModal({kind:'transfer'})}/>;
     if(page==='odemetakibi')return <OdemeTakibi onNew={()=>setModal({kind:'newodeme'})}/>;
     if(page==='gelirgider')return <GelirGider onNew={()=>setModal({kind:'newgg'})} onEdit={(t)=>setModal({kind:'newgg',edit:t})}/>;
@@ -5052,7 +5052,7 @@ function App(){
     {modal&&modal.kind==='stokhrk'&&<StokHrkModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
     {modal&&modal.kind==='newgg'&&<NewGGModal edit={modal.edit} onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
     {modal&&modal.kind==='hareket'&&<HareketModal edit={modal.edit} onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
-    {modal&&modal.kind==='kasa'&&<KasaModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
+    {modal&&modal.kind==='kasa'&&<KasaModal edit={modal.edit} onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
     {modal&&modal.kind==='banka'&&<BankaModal edit={modal.edit} btip={modal.btip} onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
     {modal&&modal.kind==='transfer'&&<TransferModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
     {modal&&modal.kind==='newodeme'&&<NewOdemeModal onClose={()=>setModal(null)} onSaved={(m)=>{setModal(null);setToast(m);window.__reload?.();}}/>}
