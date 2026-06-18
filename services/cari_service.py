@@ -3,6 +3,42 @@ from db import get_db
 from services.audit_service import log_action_conn
 
 
+def _tr_lower(s):
+    out = []
+    for ch in s:
+        if ch == 'I':
+            out.append('ı')
+        elif ch == 'İ':
+            out.append('i')
+        else:
+            out.append(ch.lower())
+    return ''.join(out)
+
+
+def _tr_upper_first(tok):
+    """Token'in ilk harfi Turkce-buyuk, gerisi Turkce-kucuk."""
+    if not tok:
+        return tok
+    first = tok[0]
+    fu = {'i': 'İ', 'ı': 'I'}.get(first, first.upper())
+    return fu + _tr_lower(tok[1:])
+
+
+def firma_unvan_duzelt(ad):
+    """Firma unvanini Title Case yapar (her kelime buyuk baslar, kucuk devam).
+    Noktali kisaltmalar (A.Ş., Ltd., Şti., V.D.) oldugu gibi korunur."""
+    ad = (ad or '').strip()
+    if not ad:
+        return ad
+    out = []
+    for tok in ad.split():
+        if '.' in tok:          # noktali kisaltma -> dokunma
+            out.append(tok)
+        else:
+            out.append(_tr_upper_first(tok))
+    return ' '.join(out)
+
+
 def get_firma_list():
     with get_db() as conn:
         return [dict(r) for r in conn.execute('SELECT * FROM firmalar ORDER BY ad').fetchall()]
@@ -15,6 +51,8 @@ def get_firma(kod):
 
 
 def add_firma(data):
+    data = dict(data)
+    data['ad'] = firma_unvan_duzelt(data.get('ad', ''))
     with get_db() as conn:
         conn.execute(
             '''
@@ -46,6 +84,8 @@ def add_firma(data):
 
 
 def update_firma(kod, data):
+    data = dict(data)
+    data['ad'] = firma_unvan_duzelt(data.get('ad', ''))
     with get_db() as conn:
         old_row = conn.execute('SELECT * FROM firmalar WHERE kod=?', (kod,)).fetchone()
         old_data = dict(old_row) if old_row else {}
