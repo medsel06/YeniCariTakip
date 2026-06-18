@@ -20,16 +20,13 @@ def hareketler_page():
         return
 
     ui.add_css('''
-    .hrk-alis { background: #eff6ff !important; }
-    .hrk-satis { background: #f0fdf4 !important; }
-    .hrk-tahsilat { background: #fefce8 !important; }
-    .hrk-odeme { background: #fef2f2 !important; }
-    .hrk-tarihsiz { background: #fecaca !important; color: #7f1d1d !important; }
-    tr:hover .hrk-alis { background: #dbeafe !important; }
-    tr:hover .hrk-satis { background: #dcfce7 !important; }
-    tr:hover .hrk-tahsilat { background: #fef9c3 !important; }
-    tr:hover .hrk-odeme { background: #fee2e2 !important; }
-    tr:hover .hrk-tarihsiz { background: #fca5a5 !important; }
+    /* Zebra: tek/cift satir; tur-bazli renkler kaldirildi (sade gorunum) */
+    .hrk-table tbody tr:nth-child(odd) td { background: #ffffff !important; }
+    .hrk-table tbody tr:nth-child(even) td { background: #f8fafc !important; }
+    .hrk-table tbody tr:hover td { background: #eef2f7 !important; }
+    /* Tarihsiz kayit uyarisi zebra'yi ezer (rapora girmiyor) */
+    .hrk-table tbody tr td.hrk-tarihsiz { background: #fee2e2 !important; color: #7f1d1d !important; }
+    .hrk-table tbody tr:hover td.hrk-tarihsiz { background: #fecaca !important; }
     .hrk-table td { border-right: 1px solid #e8edf2; }
     .hrk-table td:last-child { border-right: none; }
     .hrk-table th { border-right: 1px solid rgba(255,255,255,0.15); text-align: center !important; }
