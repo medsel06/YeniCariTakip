@@ -646,11 +646,11 @@ def hareketler_page():
 
     tur_slot = r'''
         <q-td :props="props" :class="%s">
-            <span style="font-weight:600;"
-                :style="props.value === 'ALIS' ? 'color:#1d4ed8;' :
-                        props.value === 'SATIS' ? 'color:#15803d;' :
-                        props.value === 'TAHSILAT' ? 'color:#b45309;' :
-                        props.value === 'ODEME' ? 'color:#b91c1c;' : 'color:#64748b;'">
+            <span style="display:inline-block;padding:2px 10px;border-radius:999px;font-weight:700;font-size:11px;letter-spacing:0.2px;"
+                :style="props.value === 'ALIS' ? 'background:#e0e7ff;color:#4338ca;' :
+                        props.value === 'SATIS' ? 'background:#dcfce7;color:#15803d;' :
+                        props.value === 'TAHSILAT' ? 'background:#cffafe;color:#0e7490;' :
+                        props.value === 'ODEME' ? 'background:#ffe4e6;color:#be123c;' : 'background:#f1f5f9;color:#475569;'">
                 {{ props.value === 'ALIS' ? 'Alış' :
                    props.value === 'SATIS' ? 'Satış' :
                    props.value === 'TAHSILAT' ? 'Tahsilat' :
