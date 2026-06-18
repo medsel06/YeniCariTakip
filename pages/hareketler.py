@@ -693,13 +693,16 @@ def hareketler_page():
             # 2. Bilgi Satırları / Body
             with ui.column().classes('w-full gap-0 q-mb-md modal-info'):
 
-                # Bilgi satırı yardımcı fonksiyonu (cerceveli zebra desen — .modal-info CSS)
+                # Bilgi satırı yardımcı fonksiyonu — belirgin zebra (inline, garanti)
+                _ridx = {'i': 0}
                 def info_row(label, value, is_mono=False, extra_style=''):
                     if value is None or value == '':
                         value = '-'
-                    with ui.row().classes('w-full py-2 px-3 justify-between items-center no-wrap info-row'):
-                        ui.label(label).classes('text-xs font-semibold text-slate-500 uppercase tracking-wider')
-                        ui.label(str(value)).classes(f'text-sm font-medium text-slate-800 text-right {"num-mono" if is_mono else ""}').style(extra_style)
+                    bg = '#f1f5f9' if _ridx['i'] % 2 else '#ffffff'
+                    _ridx['i'] += 1
+                    with ui.row().classes('w-full justify-between items-center no-wrap info-row').style(f'background:{bg};padding:9px 14px;'):
+                        ui.label(label).classes('uppercase').style('font-size:11px;font-weight:700;color:#64748b;letter-spacing:0.5px;')
+                        ui.label(str(value)).classes(f'text-right {"num-mono" if is_mono else ""}').style('font-size:13.5px;font-weight:600;color:#1e293b;' + extra_style)
 
                 # Cari Bilgileri
                 info_row('Firma Adı', row.get('firma_ad'))
