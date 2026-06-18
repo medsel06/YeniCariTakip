@@ -542,7 +542,7 @@ def gelir_gider_page(focus: int = None):
         all_rows = get_gelir_gider_list(yil=state['yil'], ay=state['ay'])
         ozet = get_gelir_gider_ozet(yil=state['yil'], ay=state['ay'])
 
-        with ui.card().classes('w-full q-pa-xs q-mb-xs'):
+        with ui.element('div').classes('w-full q-mb-sm'):
             with ui.row().classes('w-full items-center gap-2 no-wrap'):
                 def _on_search_change(e):
                     search_val['text'] = e.value or ''
