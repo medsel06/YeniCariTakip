@@ -760,6 +760,8 @@ tr:hover .tarihsiz-cell { background: #fecaca !important; }
 @media (min-width: 769px) {
   .alse-header { display: none !important; }
   .q-page-container { padding-top: 0 !important; }
+  /* Sayfa icerik sarmalayicisi: ust boslugu ve bolum araligini kis (tablo dibi scroll'suz gorunsun) */
+  .nicegui-content { padding-top: 6px !important; gap: 8px !important; }
 }
 '''
 
@@ -993,10 +995,10 @@ def create_layout(active_path='/', page_title=''):
             'Haftalık Bilanço': 'Haftalık nakit akışı ve gelir/gider dengesi',
         }
         sub = SUBTITLES.get(page_title, f'{page_title} detayları ve yönetimi')
-        with ui.row().classes('w-full justify-between items-center q-pa-md desktop-only-header').style('border-bottom: 1px solid #e2e8f0; margin-bottom: 16px; background: #ffffff;'):
-            with ui.column().classes('gap-1'):
-                ui.label(page_title).style('font-size: 20px; font-weight: 800; color: #0f172a; font-family: "Plus Jakarta Sans", sans-serif;')
-                ui.label(sub).style('font-size: 12px; color: #64748b; font-family: "Plus Jakarta Sans", sans-serif;')
+        with ui.row().classes('w-full justify-between items-center q-px-md q-py-xs desktop-only-header').style('border-bottom: 1px solid #e2e8f0; margin-bottom: 6px; background: #ffffff;'):
+            with ui.column().classes('gap-0'):
+                ui.label(page_title).style('font-size: 18px; font-weight: 800; color: #0f172a; font-family: "Plus Jakarta Sans", sans-serif; line-height: 1.2;')
+                ui.label(sub).style('font-size: 12px; color: #64748b; font-family: "Plus Jakarta Sans", sans-serif; line-height: 1.1;')
 
     return drawer
 
