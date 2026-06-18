@@ -242,7 +242,7 @@ def dashboard_page():
                                 ui.label(f'{fmt_para(value)} TL').classes('text-weight-bold').style('font-size: 13px; line-height: 15px')
         else:
             # --- NEW MODERN CARDS & COMPARISON ---
-            with ui.element('div').classes('w-full gap-4 q-mb-md primary-kpis-grid').style('margin-top: 34px;'):
+            with ui.element('div').classes('w-full gap-4 q-mb-md primary-kpis-grid').style('margin-top: 52px;'):
                 # Net Kar / Zarar Card
                 card_class = 'gradient-card-profit' if is_profit else 'gradient-card-loss'
                 with ui.card().classes(f'{card_class} justify-between').style('border-radius: 12px; padding: 16px 18px !important; gap: 4px;'):
