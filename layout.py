@@ -495,9 +495,7 @@ tr:hover .tarihsiz-cell { background: #fecaca !important; }
 .q-btn--unelevated { transition: all 0.2s ease; }
 .q-btn--unelevated:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important; }
 
-/* Yazili (dikdortgen) butonlardan ikon kaldir + yaziyi ortala.
-   Yuvarlak/sadece-ikon butonlar (duzenle/sil, menu, zil, cikis, +ekle) etkilenmez. */
-.q-btn--rectangle .q-btn__content .q-icon { display: none !important; }
+/* Yazili (dikdortgen) buton icerigini ortala (ikon + yazi birlikte ortalanir). */
 .q-btn--rectangle .q-btn__content { justify-content: center !important; }
 
 /* ---- Skeuomorphic Apple-Style (cam & isik efekti) — dolu (renkli) butonlar ---- */
