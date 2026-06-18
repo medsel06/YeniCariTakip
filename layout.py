@@ -652,6 +652,12 @@ tr:hover .tarihsiz-cell { background: #fecaca !important; }
   padding-bottom: 8px !important;
   border-bottom: 1px solid #e2e8f0 !important;
 }
+/* TUM TABLOLAR standardizasyonu (referans: Islemler tablosu):
+   saga hizali (rakam/tutar) hucreler tabular figures + 12px */
+.q-table tbody td.text-right {
+  font-variant-numeric: tabular-nums !important;
+  font-size: 12px !important;
+}
 .q-table tbody tr:hover {
   background: #e8f2f4 !important;
   transform: none !important;
@@ -1084,7 +1090,7 @@ MIKTAR_SLOT = r'''
 
 TARIH_SLOT = r'''
     <q-td :props="props" :class="!props.value ? 'tarihsiz-cell' : ''">
-        <span v-if="props.value">{{ props.value.split('-').reverse().join('.') }}</span>
+        <span v-if="props.value" style="font-weight:700;font-size:11px;color:#334155;">{{ props.value.split('-').reverse().join('.') }}</span>
         <span v-else style="color:#b91c1c;font-weight:600;">⚠ TARİH YOK</span>
     </q-td>
 '''
