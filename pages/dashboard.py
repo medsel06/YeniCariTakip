@@ -21,7 +21,8 @@ def _odeme_yaklasanlar(limit=5, gun=7):
     bugun_s = bugun.isoformat()
     rows = []
     for r in list_odeme_takibi():
-        rows.append({'tip': r['tip'], 'firma_ad': r.get('firma_ad', '') or '',
+        ad = (r.get('firma_ad') or '').strip() or (r.get('aciklama') or '').strip() or (r.get('kaynak') or '')
+        rows.append({'tip': r['tip'], 'firma_ad': ad,
                      'kalan': float(r['tutar'] or 0) - float(r['odenen'] or 0),
                      'vade_tarih': r.get('vade_tarih', '') or '', 'durum': r['durum']})
     for r in get_vadeli_cari():
