@@ -245,21 +245,21 @@ def dashboard_page():
             with ui.element('div').classes('w-full gap-4 q-mt-lg q-mb-md primary-kpis-grid'):
                 # Net Kar / Zarar Card
                 card_class = 'gradient-card-profit' if is_profit else 'gradient-card-loss'
-                with ui.card().classes(f'q-pa-xs {card_class} justify-between').style('border-radius: 12px;'):
-                    with ui.row().classes('w-full justify-between items-start no-wrap'):
-                        ui.label('Net Kar / Zarar').classes('text-weight-medium').style('font-size: 9px; text-transform: uppercase; letter-spacing: 0.4px; opacity: 0.9;')
-                        with ui.element('div').style('background: rgba(255,255,255,0.2); border-radius: 7px; display: flex; align-items: center; justify-content: center; width: 18px; height: 18px;'):
-                            ui.icon('trending_up' if is_profit else 'trending_down', color='white', size='12px')
-                    ui.label(f'{fmt_para(net_kar)} TL').classes('text-weight-bolder').style('font-size: 13px; font-weight: 800; letter-spacing: -0.5px;')
+                with ui.card().classes(f'{card_class} justify-between').style('border-radius: 12px; padding: 6px 14px !important; gap: 2px;'):
+                    with ui.row().classes('w-full justify-between items-center no-wrap'):
+                        ui.label('Net Kar / Zarar').classes('text-weight-medium').style('font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; opacity: 0.9;')
+                        with ui.element('div').style('background: rgba(255,255,255,0.2); border-radius: 7px; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px;'):
+                            ui.icon('trending_up' if is_profit else 'trending_down', color='white', size='16px')
+                    ui.label(f'{fmt_para(net_kar)} TL').classes('text-weight-bolder').style('font-size: 18px; font-weight: 800; letter-spacing: -0.5px;')
 
                 # Kasa Bakiyesi Card
                 kasa_bakiye = summary['kasa_bakiye']
-                with ui.card().classes('q-pa-xs gradient-card-kasa justify-between').style('border-radius: 12px;'):
-                    with ui.row().classes('w-full justify-between items-start no-wrap'):
-                        ui.label('Kasa Bakiyesi').classes('text-weight-medium').style('font-size: 9px; text-transform: uppercase; letter-spacing: 0.4px; opacity: 0.9;')
-                        with ui.element('div').style('background: rgba(255,255,255,0.2); border-radius: 7px; display: flex; align-items: center; justify-content: center; width: 18px; height: 18px;'):
-                            ui.icon('account_balance_wallet', color='white', size='12px')
-                    ui.label(f'{fmt_para(kasa_bakiye)} TL').classes('text-weight-bolder').style('font-size: 13px; font-weight: 800; letter-spacing: -0.5px;')
+                with ui.card().classes('gradient-card-kasa justify-between').style('border-radius: 12px; padding: 6px 14px !important; gap: 2px;'):
+                    with ui.row().classes('w-full justify-between items-center no-wrap'):
+                        ui.label('Kasa Bakiyesi').classes('text-weight-medium').style('font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; opacity: 0.9;')
+                        with ui.element('div').style('background: rgba(255,255,255,0.2); border-radius: 7px; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px;'):
+                            ui.icon('account_balance_wallet', color='white', size='16px')
+                    ui.label(f'{fmt_para(kasa_bakiye)} TL').classes('text-weight-bolder').style('font-size: 18px; font-weight: 800; letter-spacing: -0.5px;')
 
                 # Satış ve Alış Karşılaştırma Kartı
                 satis = summary['toplam_satis']
@@ -275,14 +275,14 @@ def dashboard_page():
                 else:
                     hacim_txt = f"{int(toplam_hacim)} TL"
 
-                with ui.card().classes('q-pa-xs modern-card justify-between').style('border-radius: 12px;'):
+                with ui.card().classes('modern-card justify-between').style('border-radius: 12px; padding: 6px 14px !important; gap: 3px;'):
                     with ui.row().classes('w-full justify-between items-center no-wrap'):
-                        ui.label('SATIŞ / ALIŞ').classes('text-weight-bold').style('font-size: 9px; text-transform: uppercase; letter-spacing: 0.4px; color: #64748b;')
-                        ui.label(f'HACİM: {hacim_txt}').style('background:#eff6ff;color:#2563eb;border-radius:20px;font-size:9px;font-weight:700;padding:1px 7px;')
+                        ui.label('SATIŞ / ALIŞ').classes('text-weight-bold').style('font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: #64748b;')
+                        ui.label(f'HACİM: {hacim_txt}').style('background:#eff6ff;color:#2563eb;border-radius:20px;font-size:10px;font-weight:700;padding:1px 8px;')
                     with ui.row().classes('w-full justify-between items-center no-wrap'):
-                        ui.label(f'{fmt_para(satis)} TL').classes('text-weight-bold text-green-6').style('font-size: 11px;')
-                        ui.label(f'{fmt_para(alis)} TL').classes('text-weight-bold text-red-6').style('font-size: 11px;')
-                    with ui.row().classes('w-full no-wrap items-center').style('height: 4px; background: #e2e8f0; border-radius: 3px; overflow: hidden; gap: 0;'):
+                        ui.label(f'{fmt_para(satis)} TL').classes('text-weight-bold text-green-6').style('font-size: 14px;')
+                        ui.label(f'{fmt_para(alis)} TL').classes('text-weight-bold text-red-6').style('font-size: 14px;')
+                    with ui.row().classes('w-full no-wrap items-center').style('height: 5px; background: #e2e8f0; border-radius: 3px; overflow: hidden; gap: 0;'):
                         ui.element('div').style(f'width: {satis_pct}%; height: 100%; background: #10b981;')
                         ui.element('div').style(f'width: {alis_pct}%; height: 100%; background: #ef4444;')
 
