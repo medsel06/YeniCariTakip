@@ -33,6 +33,13 @@ def hareketler_page():
     .hrk-table .num-mono { font-variant-numeric: tabular-nums; font-size: 12px; }
     /* Satırların tıklanabilir olduğunu belirten pointer */
     .hrk-table tbody tr { cursor: pointer; }
+    /* Detay modal bilgi satirlari: cerceveli, zebra desen */
+    .modal-info { border: 1px solid #e8edf2; border-radius: 10px; overflow: hidden; }
+    .modal-info .info-row { border-bottom: 1px solid #eef2f7; }
+    .modal-info .info-row:last-child { border-bottom: none; }
+    .modal-info .info-row:nth-child(odd) { background: #ffffff; }
+    .modal-info .info-row:nth-child(even) { background: #f8fafc; }
+    .modal-info .info-row:hover { background: #eef4fb; }
     ''')
 
     table_ref = None
@@ -684,15 +691,15 @@ def hareketler_page():
                     ui.badge(f"ID: {row.get('id', '')}", color='grey-2').props('text-color=grey-7')
 
             # 2. Bilgi Satırları / Body
-            with ui.column().classes('w-full gap-1 q-mb-md'):
-                
-                # Bilgi satırı yardımcı fonksiyonu (Açık tema uyumlu minimal çizgilerle)
+            with ui.column().classes('w-full gap-0 q-mb-md modal-info'):
+
+                # Bilgi satırı yardımcı fonksiyonu (cerceveli zebra desen — .modal-info CSS)
                 def info_row(label, value, is_mono=False, extra_style=''):
                     if value is None or value == '':
                         value = '-'
-                    with ui.row().classes('w-full py-2 px-3 justify-between items-center rounded transition-all hover:bg-slate-50 border-b border-slate-100'):
+                    with ui.row().classes('w-full py-2 px-3 justify-between items-center no-wrap info-row'):
                         ui.label(label).classes('text-xs font-semibold text-slate-500 uppercase tracking-wider')
-                        ui.label(str(value)).classes(f'text-sm font-medium text-slate-800 {"num-mono" if is_mono else ""}').style(extra_style)
+                        ui.label(str(value)).classes(f'text-sm font-medium text-slate-800 text-right {"num-mono" if is_mono else ""}').style(extra_style)
 
                 # Cari Bilgileri
                 info_row('Firma Adı', row.get('firma_ad'))
