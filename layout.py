@@ -917,7 +917,6 @@ def create_layout(active_path='/', page_title=''):
 
     drawer = ui.left_drawer(value=True, bordered=True).classes('alse-drawer alse-root').props('width=258 breakpoint=768')
     with drawer:
-        ui.element('div').style('height: 6px')
         active_group_index = 0
         for i, (_, _, items) in enumerate(MENU_GROUPS):
             if any(path == active_path for path, _, _ in items):
