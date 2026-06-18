@@ -500,6 +500,33 @@ tr:hover .tarihsiz-cell { background: #fecaca !important; }
 .q-btn--rectangle .q-btn__content .q-icon { display: none !important; }
 .q-btn--rectangle .q-btn__content { justify-content: center !important; }
 
+/* ---- Skeuomorphic Apple-Style (cam & isik efekti) — dolu (renkli) butonlar ---- */
+/* Ust ince ic beyaz isik cizgisi (inset) + yumusak dikey gradient + hafif dis golge */
+.q-btn--rectangle.q-btn--unelevated,
+.q-btn--rectangle.q-btn--standard {
+  background-image: linear-gradient(to bottom, rgba(255,255,255,0.24), rgba(255,255,255,0) 48%, rgba(0,0,0,0.12)) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.45),
+              0 1px 1px rgba(0,0,0,0.10),
+              0 2px 4px rgba(0,0,0,0.14) !important;
+  border: 1px solid rgba(0,0,0,0.10) !important;
+  font-weight: 600 !important;
+  transition: filter 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease;
+}
+.q-btn--rectangle.q-btn--unelevated:hover,
+.q-btn--rectangle.q-btn--standard:hover {
+  filter: brightness(1.05);
+  transform: none !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5),
+              0 2px 4px rgba(0,0,0,0.16),
+              0 4px 8px rgba(0,0,0,0.14) !important;
+}
+.q-btn--rectangle.q-btn--unelevated:active,
+.q-btn--rectangle.q-btn--standard:active {
+  filter: brightness(0.97);
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.22) !important;
+}
+
 /* Confirm dialog ozel */
 .alse-confirm-danger { border-left: 4px solid #ef4444; }
 
