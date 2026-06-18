@@ -11,6 +11,7 @@ from services.kasa_service import (
 )
 from services.cari_service import get_firma_list, add_firma, generate_firma_kod, get_firma_risk_durumu
 from services.stok_service import get_urun_list, add_urun, generate_urun_kod
+from services.banka_service import list_banka_hesaplari
 
 
 @ui.page('/hareketler')
@@ -497,6 +498,16 @@ def hareketler_page():
         firma_opts = {f['kod']: f"{f['ad']}" for f in firmalar}
         firma_opts[''] = '(Firma yok — serbest kayit)'
 
+        # Banka secenekleri (Bankalar sayfasinda tanimli aktif hesaplar)
+        banka_opts = {'': '(Banka yok)'}
+        for b in list_banka_hesaplari(sadece_aktif=True):
+            ad = (b.get('ad') or '').strip()
+            if ad:
+                banka_opts[ad] = ad
+        # Duzenlemede eski kayittaki banka listede yoksa koru
+        if banka_default and banka_default not in banka_opts:
+            banka_opts[banka_default] = banka_default
+
         baslik = ('Tahsilat Düzenle' if tur_default == 'GELIR' else 'Ödeme Düzenle') if is_edit else \
                  ('Yeni Tahsilat' if tur_default == 'GELIR' else 'Yeni Ödeme')
 
@@ -526,7 +537,11 @@ def hareketler_page():
                 ).props('outlined dense').classes('col')
 
             with ui.row().classes('w-full q-mt-sm gap-2'):
-                inp_banka = ui.input('Banka', value=banka_default).props('outlined dense').classes('col')
+                inp_banka = ui.select(
+                    options=banka_opts,
+                    value=banka_default if banka_default in banka_opts else '',
+                    label='Banka', with_input=True,
+                ).props('outlined dense').classes('col')
                 inp_kategori = ui.input('Kategori', value=kategori_default).props('outlined dense').classes('col')
 
             inp_aciklama = ui.input('Açıklama', value=aciklama_default).classes('w-full q-mt-sm').props('outlined dense')
