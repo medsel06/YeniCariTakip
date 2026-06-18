@@ -37,7 +37,8 @@ def hareketler_page():
     columns = [
         {'name': 'tarih', 'label': 'TARİH', 'field': 'tarih', 'align': 'center', 'sortable': True},
         {'name': 'belge_no', 'label': 'BELGE NO', 'field': 'belge_no', 'align': 'left', 'sortable': True},
-        {'name': 'firma_ad', 'label': 'FİRMA', 'field': 'firma_ad', 'align': 'left', 'sortable': True},
+        {'name': 'firma_ad', 'label': 'FİRMA', 'field': 'firma_ad', 'align': 'left', 'sortable': True,
+         'style': 'width:170px;max-width:170px', 'headerStyle': 'width:170px'},
         {'name': 'tur', 'label': 'TÜR', 'field': 'tur', 'align': 'center', 'sortable': True},
         {'name': 'urun_ad', 'label': 'ÜRÜN', 'field': 'urun_ad', 'align': 'left', 'sortable': True,
          'style': 'width:150px;max-width:150px', 'headerStyle': 'width:150px'},
@@ -697,6 +698,7 @@ def hareketler_page():
 
     _urun_slot = _ellipsis_slot(150, 18)
     _aciklama_slot = _ellipsis_slot(200, 26)
+    _firma_slot = _ellipsis_slot(170, 22)
 
     actions_slot = r'''
         <q-td :props="props" :class="%s">
@@ -787,7 +789,7 @@ def hareketler_page():
         table_ref.add_slot('body-cell-kdvli_toplam', _para_slot)
         table_ref.add_slot('body-cell-belge_no', _default_slot)
         table_ref.add_slot('body-cell-urun_ad', _urun_slot)
-        table_ref.add_slot('body-cell-firma_ad', _default_slot)
+        table_ref.add_slot('body-cell-firma_ad', _firma_slot)
         table_ref.add_slot('body-cell-aciklama', _aciklama_slot)
         table_ref.add_slot('body-cell-birim', _default_slot)
         table_ref.add_slot('body-cell-kdv_orani', _default_slot)
