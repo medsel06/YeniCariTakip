@@ -19,7 +19,7 @@ def hareketler_page():
     if not create_layout(active_path='/hareketler', page_title='Hareketler'):
         return
 
-    ui.add_head_html('<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">')
+    ui.add_head_html('<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">')
     ui.add_css('''
     /* Zebra: Odeme Takibi ile ayni (global .q-table zebra: odd #fff / even #f1f5f9). Tur-bazli renkler kaldirildi. */
     /* Tarihsiz kayit uyarisi zebra'yi ezer (rapora girmiyor) */
@@ -30,7 +30,7 @@ def hareketler_page():
     .hrk-table th { border-right: 1px solid rgba(255,255,255,0.15); text-align: center !important; }
     .hrk-table th:last-child { border-right: none; }
     /* Rakam sutunlari: IBM Plex Mono + tabular figures (hizali sayilar) */
-    .hrk-table .num-mono { font-family: 'IBM Plex Mono', monospace !important; font-variant-numeric: tabular-nums; font-weight: 500; letter-spacing: -0.2px; }
+    .hrk-table .num-mono { font-family: 'JetBrains Mono', monospace !important; font-variant-numeric: tabular-nums; font-weight: 500; letter-spacing: -0.3px; }
     ''')
 
     table_ref = None
