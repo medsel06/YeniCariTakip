@@ -3,7 +3,7 @@ from datetime import date, datetime
 from nicegui import ui
 from layout import (
     create_layout, fmt_para, ozet_pill, PARA_SLOT, TARIH_SLOT,
-    notify_ok, notify_err, confirm_dialog, normalize_search, donem_secici,
+    notify_ok, notify_err, confirm_dialog, normalize_search, donem_secici, donem_popover_btn,
 )
 from services.gelir_gider_service import (
     get_gelir_gider_list, get_gelir_gider_ozet,
@@ -20,15 +20,7 @@ from services.pdf_service import generate_table_pdf, save_pdf_preview
 def gelir_gider_page(focus: int = None):
     if not create_layout(active_path='/gelir-gider', page_title='Gelir / Gider'):
         return
-    ui.add_css('''
-    .gg-table tbody tr { cursor: pointer; }
-    /* Donem secici kucultuldu */
-    .gg-donem .q-field__control { min-height: 28px !important; height: 28px !important; }
-    .gg-donem .q-field__marginal { height: 28px !important; }
-    .gg-donem .q-select { min-width: 84px !important; }
-    .gg-donem .q-icon { font-size: 16px !important; }
-    .gg-donem .nicegui-row { gap: 4px !important; }
-    ''')
+    ui.add_css('.gg-table tbody tr { cursor: pointer; }')
 
     table_ref = None
     all_rows = []
@@ -560,8 +552,7 @@ def gelir_gider_page(focus: int = None):
                     placeholder='Ara (kategori, açıklama)...',
                     on_change=_on_search_change,
                 ).props('outlined dense clearable').classes('w-64')
-                with ui.element('div').classes('gg-donem'):
-                    donem_secici(on_donem_change, include_all=True)
+                donem_popover_btn(on_donem_change, default_mode='YIL')
                 ui.space()
                 ozet_box = ui.row().classes('items-center no-wrap q-mr-sm')
                 with ozet_box:
