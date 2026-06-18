@@ -629,7 +629,7 @@ def dashboard_page():
         state['ay'] = ay
         dash_content.refresh()
 
-    with ui.column().classes('w-full q-px-sm q-pt-xs q-pb-sm gap-2 dash-container').style('max-width: 1400px; margin: 0 auto;'):
+    with ui.column().classes('w-full q-px-sm q-pb-sm gap-2 dash-container').style('max-width: 1400px; margin: 18px auto 0;'):
         header_container()
 
         dash_content()
