@@ -3,7 +3,8 @@ from datetime import date, datetime
 from nicegui import ui
 from layout import (
     create_layout, PARA_SLOT, MIKTAR_SLOT, TARIH_SLOT,
-    notify_ok, notify_err, confirm_dialog, normalize_search, donem_secici, segment_group
+    notify_ok, notify_err, confirm_dialog, normalize_search, donem_secici, segment_group,
+    fmt_para, fmt_miktar
 )
 from services.kasa_service import (
     get_hareketler, add_hareket, update_hareket, delete_hareket,
@@ -30,6 +31,8 @@ def hareketler_page():
     .hrk-table th:last-child { border-right: none; }
     /* Rakam sutunlari: orijinal font + tabular figures (hizali) + biraz kucuk */
     .hrk-table .num-mono { font-variant-numeric: tabular-nums; font-size: 12px; }
+    /* Satırların tıklanabilir olduğunu belirten pointer */
+    .hrk-table tbody tr { cursor: pointer; }
     ''')
 
     table_ref = None
@@ -637,6 +640,159 @@ def hareketler_page():
                 ui.button('Evet, Sil', color='negative', on_click=confirm).props('unelevated')
         dlg.open()
 
+    def _show_row_detail(row):
+        """Satır detaylarını gösteren modern bir kart/modal açar."""
+        tur = row.get('tur', '')
+        source = row.get('source', 'STOK')
+        
+        # Tür-bazlı renk, başlık ve ikon atamaları (Açık Tema / Beyaz Zeminle Uyumlu)
+        if tur == 'ALIS':
+            bg_color = 'bg-blue-50'
+            text_color = 'text-blue-800'
+            border_color = 'border-blue-100'
+            tur_label = 'Alış İşlemi'
+            icon = 'shopping_cart'
+        elif tur == 'SATIS':
+            bg_color = 'bg-emerald-50'
+            text_color = 'text-emerald-800'
+            border_color = 'border-emerald-100'
+            tur_label = 'Satış İşlemi'
+            icon = 'trending_up'
+        elif tur == 'TAHSILAT':
+            bg_color = 'bg-amber-50'
+            text_color = 'text-amber-800'
+            border_color = 'border-amber-100'
+            tur_label = 'Tahsilat'
+            icon = 'account_balance_wallet'
+        else: # ODEME
+            bg_color = 'bg-rose-50'
+            text_color = 'text-rose-800'
+            border_color = 'border-rose-100'
+            tur_label = 'Ödeme'
+            icon = 'credit_card'
+            
+        with ui.dialog() as dlg, ui.card().classes('q-pa-md').style('width: 90vw; max-width: 550px; border-radius: 12px;'):
+            # 1. Üst Kısım / Header (İşlem Türüne Göre Renkli)
+            with ui.row().classes(f'w-full items-center justify-between q-pa-sm rounded-lg border {bg_color} {border_color} q-mb-md'):
+                with ui.row().classes('items-center gap-2'):
+                    ui.icon(icon).classes(f'text-xl {text_color}')
+                    ui.label(tur_label).classes(f'text-base font-bold {text_color}')
+                with ui.row().classes('items-center gap-1'):
+                    belge = row.get('belge_no', '')
+                    if belge:
+                        ui.badge(f"Belge: {belge}", color='grey-3').props('text-color=grey-8')
+                    ui.badge(f"ID: {row.get('id', '')}", color='grey-2').props('text-color=grey-7')
+
+            # 2. Bilgi Satırları / Body
+            with ui.column().classes('w-full gap-1 q-mb-md'):
+                
+                # Bilgi satırı yardımcı fonksiyonu (Açık tema uyumlu minimal çizgilerle)
+                def info_row(label, value, is_mono=False, extra_style=''):
+                    if value is None or value == '':
+                        value = '-'
+                    with ui.row().classes('w-full py-2 px-3 justify-between items-center rounded transition-all hover:bg-slate-50 border-b border-slate-100'):
+                        ui.label(label).classes('text-xs font-semibold text-slate-500 uppercase tracking-wider')
+                        ui.label(str(value)).classes(f'text-sm font-medium text-slate-800 {"num-mono" if is_mono else ""}').style(extra_style)
+
+                # Cari Bilgileri
+                info_row('Firma Adı', row.get('firma_ad'))
+                
+                # Tarih
+                tarih_str = row.get('tarih', '')
+                if tarih_str:
+                    try:
+                        dt = datetime.strptime(tarih_str, '%Y-%m-%d')
+                        tarih_str = dt.strftime('%d.%m.%Y')
+                    except Exception:
+                        pass
+                info_row('Tarih', tarih_str)
+                
+                # Stok İşlemleri Detayı
+                if source == 'STOK':
+                    info_row('Ürün Adı', row.get('urun_ad'))
+                    
+                    # Miktar + Birim
+                    birim = row.get('birim') or 'KG'
+                    miktar = row.get('miktar', 0)
+                    info_row('Miktar', f"{fmt_miktar(miktar)} {birim}", is_mono=True)
+                    
+                    # Birim Fiyat
+                    bf = row.get('birim_fiyat', 0)
+                    info_row('Birim Fiyat', f"{fmt_para(bf)} TL", is_mono=True)
+                    
+                    # Toplam (Matrah)
+                    toplam = row.get('toplam', 0)
+                    info_row('Matrah (KDV Hariç)', f"{fmt_para(toplam)} TL", is_mono=True)
+                    
+                    # KDV
+                    kdv_orani = row.get('kdv_orani', 0)
+                    kdv_tutar = row.get('kdv_tutar', 0)
+                    if kdv_orani > 0:
+                        info_row('KDV Oranı', f"% {int(kdv_orani)}")
+                        info_row('KDV Tutarı', f"{fmt_para(kdv_tutar)} TL", is_mono=True)
+                    
+                    # Tevkifat
+                    tevkifat = row.get('tevkifat_orani', '0')
+                    if tevkifat and tevkifat != '0':
+                        tevkifat_tutar = row.get('tevkifat_tutar', 0)
+                        info_row('Tevkifat Oranı', tevkifat)
+                        info_row('Tevkifat Tutarı', f"{fmt_para(tevkifat_tutar)} TL", is_mono=True)
+                    
+                    # Net Toplam
+                    kdvli = row.get('kdvli_toplam', 0)
+                    info_row('KDV\'li Toplam', f"{fmt_para(kdvli)} TL", is_mono=True, extra_style='font-weight: 700; color: #1e293b; font-size: 15px;')
+                
+                # Kasa/Banka İşlemleri Detayı
+                else: 
+                    # Tutar
+                    toplam = row.get('toplam', 0)
+                    info_row('Tutar', f"{fmt_para(toplam)} TL", is_mono=True, extra_style='font-weight: 700; color: #1e293b; font-size: 15px;')
+                    
+                    # Ödeme Şekli & Banka Bilgisi
+                    odeme = row.get('odeme_sekli', '')
+                    banka = row.get('banka', '')
+                    if odeme:
+                        info_row('Ödeme Şekli', odeme)
+                    if banka:
+                        info_row('Banka / Kasa', banka)
+                        
+                    # Kasa Kaynak Bilgisi
+                    kaynak = row.get('kasa_kaynak', '')
+                    if kaynak:
+                        kaynak_label = 'Serbest Kasa Kaydı'
+                        if kaynak == 'gelir_gider':
+                            kaynak_label = 'Gelir/Gider Modülü'
+                        elif kaynak == 'cek':
+                            kaynak_label = 'Çek/Senet Modülü'
+                        info_row('Kaynak', kaynak_label)
+                        
+                # Açıklama
+                info_row('Açıklama', row.get('aciklama'))
+
+            ui.separator().classes('q-my-xs')
+
+            # 3. Alt Kısım / Footer (İsimlendirilmiş Aksiyon Butonları)
+            with ui.row().classes('w-full justify-between items-center q-mt-md'):
+                ui.button('Kapat', on_click=dlg.close).props('flat color=grey')
+                
+                with ui.row().classes('gap-2'):
+                    if source == 'STOK':
+                        ui.button('Düzenle', icon='edit', 
+                                  on_click=lambda: (dlg.close(), do_edit(row))) \
+                            .props('unelevated no-caps color=primary dense')
+                        ui.button('Sil', icon='delete', 
+                                  on_click=lambda: (dlg.close(), do_delete(row.get('id')))) \
+                            .props('unelevated no-caps color=negative dense')
+                    else: # KASA
+                        ui.button('Düzenle', icon='edit', 
+                                  on_click=lambda: (dlg.close(), do_edit_kasa(row))) \
+                            .props('unelevated no-caps color=primary dense')
+                        ui.button('Sil', icon='delete', 
+                                  on_click=lambda: (dlg.close(), do_delete_kasa(row))) \
+                            .props('unelevated no-caps color=negative dense')
+                            
+        dlg.open()
+
     # --- Slot template'leri ---
     # Satir arka plan rengi: tarih bos ise kirmizi (tarihsiz uyarisi),
     # aksi halde tur'e gore cok hafif tint
@@ -706,23 +862,23 @@ def hareketler_page():
         <q-td :props="props" :class="%s">
             <template v-if="props.row.source === 'STOK' || !props.row.source">
                 <q-btn flat round dense icon="drive_file_rename_outline" color="primary" size="sm"
-                    @click="$parent.$emit('edit', props.row)">
+                    @click.stop="$parent.$emit('edit', props.row)">
                     <q-tooltip>Düzenle</q-tooltip>
                 </q-btn>
                 <q-btn flat round dense icon="delete_outline" color="negative" size="sm"
-                    @click="$parent.$emit('delete', props.row)">
+                    @click.stop="$parent.$emit('delete', props.row)">
                     <q-tooltip>Sil</q-tooltip>
                 </q-btn>
             </template>
             <template v-else>
                 <q-btn flat round dense icon="drive_file_rename_outline" color="primary" size="sm"
-                    @click="$parent.$emit('edit_kasa', props.row)">
+                    @click.stop="$parent.$emit('edit_kasa', props.row)">
                     <q-tooltip>{{ props.row.kasa_kaynak === 'gelir_gider' ? 'Gelir-Gider sayfasından düzenle' :
                                   props.row.kasa_kaynak === 'cek' ? 'Çek sayfasından düzenle' :
                                   'Düzenle' }}</q-tooltip>
                 </q-btn>
                 <q-btn flat round dense icon="delete_outline" color="negative" size="sm"
-                    @click="$parent.$emit('delete_kasa', props.row)">
+                    @click.stop="$parent.$emit('delete_kasa', props.row)">
                     <q-tooltip>Sil</q-tooltip>
                 </q-btn>
                 <q-chip dense
@@ -809,6 +965,7 @@ def hareketler_page():
         table_ref.on('delete', lambda e: do_delete(e.args['id']))
         table_ref.on('edit_kasa', lambda e: do_edit_kasa(e.args))
         table_ref.on('delete_kasa', lambda e: do_delete_kasa(e.args))
+        table_ref.on('row-click', lambda e: _show_row_detail(e.args[1]))
 
 
 
