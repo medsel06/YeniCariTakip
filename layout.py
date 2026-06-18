@@ -923,7 +923,7 @@ def create_layout(active_path='/', page_title=''):
                             ui.label(text).classes('nav-label ' + ('active-label' if is_active else 'inactive-label'))
         else:
             # Modern mode: Flat navigation categories
-            with ui.element('div').classes('alse-drawer-brand desktop-only-header q-px-md').style('display: flex; align-items: center; justify-content: center; height: 68px; border-bottom: 1px solid #e2e8f0; margin-bottom: 12px;'):
+            with ui.element('div').classes('alse-drawer-brand desktop-only-header q-px-md').style('display: flex; align-items: center; justify-content: center; height: 58px; border-bottom: 1px solid #e2e8f0; margin-bottom: 12px;'):
                 ui.html(
                     f'<div style="font-size: 20px; font-weight: 800; color: #2563eb; letter-spacing: 1.5px; font-family: \'Plus Jakarta Sans\', sans-serif;">'
                     f'{_firma_p1}<span style="font-weight: 800; color: #0f172a;"> {_firma_p2}</span>'
@@ -1006,7 +1006,7 @@ def create_layout(active_path='/', page_title=''):
             'Haftalık Bilanço': 'Haftalık nakit akışı ve gelir/gider dengesi',
         }
         sub = SUBTITLES.get(page_title, f'{page_title} detayları ve yönetimi')
-        with ui.row().classes('justify-between items-center q-px-md q-py-sm desktop-only-header').style('width: calc(100% + 32px); max-width: none; margin: 0 -16px 8px -16px; border-bottom: 1px solid #e2e8f0; background: #ffffff;'):
+        with ui.row().classes('justify-between items-center q-px-md desktop-only-header').style('height: 58px; width: calc(100% + 32px); max-width: none; margin: 0 -16px 8px -16px; border-bottom: 1px solid #e2e8f0; background: #ffffff;'):
             with ui.column().classes('gap-0'):
                 ui.label(page_title).style('font-size: 18px; font-weight: 800; color: #0f172a; font-family: "Plus Jakarta Sans", sans-serif; line-height: 1.2;')
                 ui.label(sub).style('font-size: 12px; color: #64748b; font-family: "Plus Jakarta Sans", sans-serif; line-height: 1.1;')
