@@ -17,7 +17,7 @@ from services.pdf_service import generate_table_pdf, save_pdf_preview
 
 
 @ui.page('/gelir-gider')
-def gelir_gider_page():
+def gelir_gider_page(focus: int = None):
     if not create_layout(active_path='/gelir-gider', page_title='Gelir / Gider'):
         return
 
@@ -590,3 +590,9 @@ def gelir_gider_page():
 
         table_ref.on('edit', lambda e: open_dialog(edit_row=e.args))
         table_ref.on('delete', lambda e: do_delete(e.args['id']))
+
+        # Islemler detay modalindan 'Kaynak -> kayda git' ile gelinince ilgili kaydi ac
+        if focus:
+            _rec = next((r for r in all_rows if str(r.get('id')) == str(focus)), None)
+            if _rec:
+                open_dialog(edit_row=_rec)

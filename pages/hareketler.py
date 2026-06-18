@@ -560,6 +560,8 @@ def hareketler_page():
                     options=banka_opts,
                     value=banka_sel_default,
                     label='Banka',
+                    on_change=lambda e: (inp_odeme.set_value('HAVALE')
+                                         if (e.value and inp_odeme.value == 'NAKIT') else None),
                 ).props('outlined dense').classes('col')
                 inp_kategori = ui.input('Kategori', value=kategori_default).props('outlined dense').classes('col')
 
@@ -695,14 +697,25 @@ def hareketler_page():
 
                 # Bilgi satırı yardımcı fonksiyonu — belirgin zebra (inline, garanti)
                 _ridx = {'i': 0}
-                def info_row(label, value, is_mono=False, extra_style=''):
+                def info_row(label, value, is_mono=False, extra_style='', on_click=None):
                     if value is None or value == '':
                         value = '-'
                     bg = '#f1f5f9' if _ridx['i'] % 2 else '#ffffff'
                     _ridx['i'] += 1
-                    with ui.row().classes('w-full justify-between items-center no-wrap info-row').style(f'background:{bg};padding:9px 14px;'):
+                    cls = 'w-full justify-between items-center no-wrap info-row'
+                    if on_click:
+                        cls += ' cursor-pointer'
+                    rw = ui.row().classes(cls).style(f'background:{bg};padding:9px 14px;')
+                    if on_click:
+                        rw.on('click', on_click)
+                    with rw:
                         ui.label(label).classes('uppercase').style('font-size:11px;font-weight:700;color:#64748b;letter-spacing:0.5px;')
-                        ui.label(str(value)).classes(f'text-right {"num-mono" if is_mono else ""}').style('font-size:13.5px;font-weight:600;color:#1e293b;' + extra_style)
+                        if on_click:
+                            with ui.row().classes('items-center gap-1 no-wrap'):
+                                ui.label(str(value)).classes('text-right').style('font-size:13.5px;font-weight:700;color:#2563eb;' + extra_style)
+                                ui.icon('open_in_new').style('font-size:15px;color:#2563eb;')
+                        else:
+                            ui.label(str(value)).classes(f'text-right {"num-mono" if is_mono else ""}').style('font-size:13.5px;font-weight:600;color:#1e293b;' + extra_style)
 
                 # Cari Bilgileri
                 info_row('Firma Adı', row.get('firma_ad'))
@@ -766,15 +779,25 @@ def hareketler_page():
                     if banka:
                         info_row('Banka / Kasa', banka)
                         
-                    # Kasa Kaynak Bilgisi
+                    # Kasa Kaynak Bilgisi (ilgili kayda gidilebilir)
                     kaynak = row.get('kasa_kaynak', '')
                     if kaynak:
-                        kaynak_label = 'Serbest Kasa Kaydı'
                         if kaynak == 'gelir_gider':
-                            kaynak_label = 'Gelir/Gider Modülü'
+                            gg_id = row.get('gelir_gider_id')
+                            if gg_id:
+                                info_row('Kaynak', 'Gelir/Gider kaydına git',
+                                         on_click=lambda g=gg_id: (dlg.close(), ui.navigate.to(f'/gelir-gider?focus={g}')))
+                            else:
+                                info_row('Kaynak', 'Gelir/Gider Modülü')
                         elif kaynak == 'cek':
-                            kaynak_label = 'Çek/Senet Modülü'
-                        info_row('Kaynak', kaynak_label)
+                            c_id = row.get('cek_id')
+                            if c_id:
+                                info_row('Kaynak', 'Çek/Senet kaydına git',
+                                         on_click=lambda c=c_id: (dlg.close(), ui.navigate.to(f'/cekler?focus={c}')))
+                            else:
+                                info_row('Kaynak', 'Çek/Senet Modülü')
+                        else:
+                            info_row('Kaynak', 'Serbest Kasa Kaydı')
                         
                 # Açıklama
                 info_row('Açıklama', row.get('aciklama'))

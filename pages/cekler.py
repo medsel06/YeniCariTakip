@@ -13,7 +13,7 @@ from services.pdf_service import generate_cek_raporu_pdf, save_pdf_preview
 
 
 @ui.page('/cekler')
-def cekler_page():
+def cekler_page(focus: int = None):
     if not create_layout(active_path='/cekler', page_title='Çekler'):
         return
 
@@ -723,6 +723,12 @@ def cekler_page():
                     pagination={'rowsPerPage': 50, 'sortBy': 'vade_tarih', 'descending': True}
                 ).classes('w-full')
                 setup_table(verilen_table, 'VERILEN')
+
+        # Islemler detay modalindan 'Cek/Senet kaydina git' ile gelinince ilgili cek detayini ac
+        if focus:
+            _cek = get_cek_by_id(focus)
+            if _cek:
+                open_detail_dialog(_cek)
 
 
 
