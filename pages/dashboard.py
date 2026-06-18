@@ -245,7 +245,7 @@ def dashboard_page():
             with ui.element('div').classes('w-full gap-4 q-mt-lg q-mb-md primary-kpis-grid'):
                 # Net Kar / Zarar Card
                 card_class = 'gradient-card-profit' if is_profit else 'gradient-card-loss'
-                with ui.card().classes(f'q-pa-md {card_class} justify-between').style('height: 96px; border-radius: 12px;'):
+                with ui.card().classes(f'q-pa-md {card_class} justify-between').style('border-radius: 12px;'):
                     with ui.row().classes('w-full justify-between items-start no-wrap'):
                         ui.label('Net Kar / Zarar').classes('text-weight-medium').style('font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9;')
                         with ui.element('div').classes('q-pa-xs').style('background: rgba(255,255,255,0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px;'):
@@ -255,7 +255,7 @@ def dashboard_page():
 
                 # Kasa Bakiyesi Card
                 kasa_bakiye = summary['kasa_bakiye']
-                with ui.card().classes('q-pa-md gradient-card-kasa justify-between').style('height: 96px; border-radius: 12px;'):
+                with ui.card().classes('q-pa-md gradient-card-kasa justify-between').style('border-radius: 12px;'):
                     with ui.row().classes('w-full justify-between items-start no-wrap'):
                         ui.label('Kasa Bakiyesi').classes('text-weight-medium').style('font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9;')
                         with ui.element('div').classes('q-pa-xs').style('background: rgba(255,255,255,0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px;'):
@@ -277,7 +277,7 @@ def dashboard_page():
                 else:
                     hacim_txt = f"{int(toplam_hacim)} TL"
 
-                with ui.card().classes('q-pa-sm modern-card justify-between').style('height: 96px; border-radius: 12px;'):
+                with ui.card().classes('q-pa-sm modern-card justify-between').style('border-radius: 12px;'):
                     with ui.row().classes('w-full justify-between items-center no-wrap'):
                         ui.label('SATIŞ VE ALIŞ DENGESİ').classes('text-weight-bold').style('font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b;')
                         with ui.row().classes('items-center q-px-sm q-py-xs').style('background: #eff6ff; color: #2563eb; border-radius: 20px; font-size: 11px; font-weight: 700;'):
