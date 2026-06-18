@@ -981,7 +981,7 @@ def create_layout(active_path='/', page_title=''):
                         else:
                             row_cls += ' inactive-nav-modern'
                         
-                        with ui.row().classes(row_cls).style('height: 32px; display: flex; align-items: center; gap: 10px; padding: 0 12px;').on('click', lambda p=path: ui.navigate.to(p)):
+                        with ui.row().classes(row_cls).style('height: 36px; display: flex; align-items: center; gap: 10px; padding: 0 12px;').on('click', lambda p=path: ui.navigate.to(p)):
                             ui.icon(icon, size='18px').classes('nav-item-icon')
                             ui.label(text).classes('nav-item-label').style('font-size: 13px; font-weight: 600;')
             
