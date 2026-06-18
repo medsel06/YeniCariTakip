@@ -27,7 +27,7 @@ def odeme_takibi_page():
         .odeme-tbl tbody td { border-bottom: 1px solid #e0e0e0; }
         .odeme-tbl .q-table__middle {
             min-height: 0 !important;
-            max-height: calc(100vh - 200px) !important;
+            max-height: calc(100vh - 235px) !important;
             overflow: auto !important;
             overscroll-behavior: contain;
         }
@@ -40,10 +40,10 @@ def odeme_takibi_page():
         .odeme-filtre .q-btn { min-height: 26px !important; padding: 2px 11px !important; font-size: 11px !important; }
         .odeme-filtre .q-btn .q-icon { font-size: 15px !important; }
         @media (max-width: 1200px) {
-            .odeme-tbl .q-table__middle { max-height: calc(100vh - 190px) !important; }
+            .odeme-tbl .q-table__middle { max-height: calc(100vh - 225px) !important; }
         }
         @media (max-width: 900px) {
-            .odeme-tbl .q-table__middle { max-height: calc(100vh - 180px) !important; }
+            .odeme-tbl .q-table__middle { max-height: calc(100vh - 215px) !important; }
         }
     ''')
 
@@ -511,7 +511,7 @@ def odeme_takibi_page():
         dlg.open()
 
     # --- PAGE ---
-    with ui.column().classes('w-full q-pa-sm gap-2'):
+    with ui.column().classes('w-full q-px-sm q-pt-none q-pb-xs gap-1'):
         with ui.row().classes('w-full items-center justify-end'):
             with ui.row().classes('items-center gap-2 no-wrap'):
                 ui.button('İpucu', icon='help_outline', on_click=_ipucu_dialog).props('flat dense no-caps size=sm color=primary')
