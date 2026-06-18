@@ -481,6 +481,7 @@ def hareketler_page():
             tutar_default = float(kasa_rec.get('tutar') or 0)
             odeme_default = kasa_rec.get('odeme_sekli', 'NAKIT')
             banka_default = kasa_rec.get('banka', '')
+            banka_hesap_id_default = kasa_rec.get('banka_hesap_id')
             kategori_default = kasa_rec.get('kategori', '')
             aciklama_default = kasa_rec.get('aciklama', '')
         else:
@@ -491,6 +492,7 @@ def hareketler_page():
             tutar_default = 0.0
             odeme_default = 'NAKIT'
             banka_default = ''
+            banka_hesap_id_default = None
             kategori_default = ''
             aciklama_default = ''
 
@@ -498,15 +500,23 @@ def hareketler_page():
         firma_opts = {f['kod']: f"{f['ad']}" for f in firmalar}
         firma_opts[''] = '(Firma yok — serbest kayit)'
 
-        # Banka secenekleri (Bankalar sayfasinda tanimli aktif hesaplar)
+        # Banka secenekleri (Bankalar sayfasinda tanimli aktif hesaplar) — id ile eslesir
         banka_opts = {'': '(Banka yok)'}
+        banka_ad_by_id = {}
         for b in list_banka_hesaplari(sadece_aktif=True):
             ad = (b.get('ad') or '').strip()
             if ad:
-                banka_opts[ad] = ad
-        # Duzenlemede eski kayittaki banka listede yoksa koru
-        if banka_default and banka_default not in banka_opts:
-            banka_opts[banka_default] = banka_default
+                banka_opts[str(b['id'])] = ad
+                banka_ad_by_id[str(b['id'])] = ad
+        # Duzenleme: kayittaki banka_hesap_id'yi sec; yoksa eski metin banka adina gore esle
+        banka_sel_default = ''
+        if banka_hesap_id_default and str(banka_hesap_id_default) in banka_opts:
+            banka_sel_default = str(banka_hesap_id_default)
+        elif banka_default:
+            for k, v in banka_ad_by_id.items():
+                if v == banka_default:
+                    banka_sel_default = k
+                    break
 
         baslik = ('Tahsilat Düzenle' if tur_default == 'GELIR' else 'Ödeme Düzenle') if is_edit else \
                  ('Yeni Tahsilat' if tur_default == 'GELIR' else 'Yeni Ödeme')
@@ -539,8 +549,8 @@ def hareketler_page():
             with ui.row().classes('w-full q-mt-sm gap-2'):
                 inp_banka = ui.select(
                     options=banka_opts,
-                    value=banka_default if banka_default in banka_opts else '',
-                    label='Banka', with_input=True,
+                    value=banka_sel_default,
+                    label='Banka',
                 ).props('outlined dense').classes('col')
                 inp_kategori = ui.input('Kategori', value=kategori_default).props('outlined dense').classes('col')
 
@@ -567,7 +577,8 @@ def hareketler_page():
                         'tur': inp_tur.value,
                         'tutar': float(inp_tutar.value),
                         'odeme_sekli': inp_odeme.value or 'NAKIT',
-                        'banka': inp_banka.value or '',
+                        'banka_hesap_id': int(inp_banka.value) if inp_banka.value else None,
+                        'banka': banka_ad_by_id.get(inp_banka.value or '', ''),
                         'kategori': inp_kategori.value or '',
                         'aciklama': inp_aciklama.value or '',
                     }

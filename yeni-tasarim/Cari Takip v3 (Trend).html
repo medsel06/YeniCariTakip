@@ -3532,7 +3532,7 @@ function TxModal({kind,customerId,onClose,onSaved}){
   const [method,setMethod]=React.useState('havale');
   const [date,setDate]=React.useState(new Date().toISOString().slice(0,10));
   const [note,setNote]=React.useState('');
-  const [banka,setBanka]=React.useState('');
+  const [bankaId,setBankaId]=React.useState('');
   const bankaList=(BANKA||[]).filter(b=>b.aktif && b.tip==='BANKA');
   const c=CUSTOMERS.find(x=>x.id===cust);
   const isC=type==='collection';
@@ -3544,7 +3544,8 @@ function TxModal({kind,customerId,onClose,onSaved}){
       firma_kod: c?.code||'', firma_ad: c?.name||'',
       tutar: parseFloat(amount),
       odeme_sekli: method==='nakit'?'Nakit':method==='havale'?'Havale':method==='kredi'?'Kredi Kartı':'Çek',
-      banka: method==='nakit'?'':banka,
+      banka_hesap_id: (method!=='nakit' && bankaId) ? parseInt(bankaId) : null,
+      banka: (method!=='nakit' && bankaId) ? (bankaList.find(b=>String(b.id)===String(bankaId))?.ad||'') : '',
       aciklama: note,
     };
     const res = await apiPost('/api/kasa', payload);
@@ -3568,7 +3569,7 @@ function TxModal({kind,customerId,onClose,onSaved}){
         </div>
         <div className="field-row"><div className="field"><label>Tutar (₺)</label><input type="text" placeholder="0,00" value={amount} onChange={e=>setAmount(e.target.value)} style={{fontSize:18,fontWeight:600,textAlign:'right',fontVariantNumeric:'tabular-nums',letterSpacing:'-0.02em'}} autoFocus/></div><div className="field"><label>Tarih</label><input type="date" value={date} onChange={e=>setDate(e.target.value)}/></div></div>
         <div className="field"><label>Tahsilat Şekli</label><div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6}}>{[{k:'nakit',l:'Nakit'},{k:'havale',l:'Havale'},{k:'kredi',l:'Kart'},{k:'cek',l:'Çek'}].map(m=><button key={m.k} type="button" className={`flt ${method===m.k?'on':''}`} onClick={()=>setMethod(m.k)} style={{justifyContent:'center'}}>{m.l}</button>)}</div></div>
-        {method!=='nakit'&&<div className="field"><label>Banka</label><select value={banka} onChange={e=>setBanka(e.target.value)}><option value="">(Banka seçin)</option>{bankaList.map(b=><option key={b.id} value={b.ad}>{b.ad}</option>)}</select></div>}
+        {method!=='nakit'&&<div className="field"><label>Banka</label><select value={bankaId} onChange={e=>setBankaId(e.target.value)}><option value="">(Banka seçin)</option>{bankaList.map(b=><option key={b.id} value={b.id}>{b.ad}</option>)}</select></div>}
         <div className="field"><label>Açıklama</label><textarea rows="2" value={note} onChange={e=>setNote(e.target.value)} placeholder="Örn: Nisan faturası kapatıldı"/></div>
       </div>
       <div className="m-ft"><button type="button" className="btn" onClick={onClose}>İptal</button><button type="submit" className={isC?'btn btn-good':'btn btn-bad'}><ICk size={13}/>Kaydet</button></div>

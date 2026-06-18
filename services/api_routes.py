@@ -501,6 +501,7 @@ async def api_kasa_create(request: Request):
         'tutar': data.get('tutar', 0),
         'odeme_sekli': odeme_sekli,
         'banka': data.get('banka', ''),
+        'banka_hesap_id': data.get('banka_hesap_id'),
         'aciklama': data.get('aciklama', ''),
         'cek_id': data.get('cek_id'),
     })
