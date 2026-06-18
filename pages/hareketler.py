@@ -20,10 +20,7 @@ def hareketler_page():
         return
 
     ui.add_css('''
-    /* Zebra: tek/cift satir; tur-bazli renkler kaldirildi (sade gorunum) */
-    .hrk-table tbody tr:nth-child(odd) td { background: #ffffff !important; }
-    .hrk-table tbody tr:nth-child(even) td { background: #f8fafc !important; }
-    .hrk-table tbody tr:hover td { background: #eef2f7 !important; }
+    /* Zebra: Odeme Takibi ile ayni (global .q-table zebra: odd #fff / even #f1f5f9). Tur-bazli renkler kaldirildi. */
     /* Tarihsiz kayit uyarisi zebra'yi ezer (rapora girmiyor) */
     .hrk-table tbody tr td.hrk-tarihsiz { background: #fee2e2 !important; color: #7f1d1d !important; }
     .hrk-table tbody tr:hover td.hrk-tarihsiz { background: #fecaca !important; }
@@ -759,7 +756,7 @@ def hareketler_page():
         table_ref = ui.table(
             columns=columns, rows=all_rows, row_key='id',
             pagination={'rowsPerPage': 50, 'sortBy': 'tarih', 'descending': True}
-        ).classes('w-full hrk-table').style('--table-extra-rows: 2;')
+        ).classes('w-full hrk-table').style('--table-extra-rows: 3;')
         table_ref.props('flat bordered dense')
 
         # Slot'lar
