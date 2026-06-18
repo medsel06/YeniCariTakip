@@ -245,23 +245,21 @@ def dashboard_page():
             with ui.element('div').classes('w-full gap-4 q-mt-lg q-mb-md primary-kpis-grid'):
                 # Net Kar / Zarar Card
                 card_class = 'gradient-card-profit' if is_profit else 'gradient-card-loss'
-                with ui.card().classes(f'q-pa-md {card_class} justify-between').style('border-radius: 12px;'):
+                with ui.card().classes(f'q-pa-sm {card_class} justify-between').style('height: 78px; border-radius: 12px; overflow: hidden;'):
                     with ui.row().classes('w-full justify-between items-start no-wrap'):
-                        ui.label('Net Kar / Zarar').classes('text-weight-medium').style('font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9;')
-                        with ui.element('div').classes('q-pa-xs').style('background: rgba(255,255,255,0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px;'):
-                            ui.icon('trending_up' if is_profit else 'trending_down', color='white', size='20px')
-                    with ui.column().classes('gap-0'):
-                        ui.label(f'{fmt_para(net_kar)} TL').classes('text-weight-bolder').style('font-size: 20px; font-weight: 800; letter-spacing: -0.5px;')
+                        ui.label('Net Kar / Zarar').classes('text-weight-medium').style('font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; opacity: 0.9;')
+                        with ui.element('div').style('background: rgba(255,255,255,0.2); border-radius: 7px; display: flex; align-items: center; justify-content: center; width: 26px; height: 26px;'):
+                            ui.icon('trending_up' if is_profit else 'trending_down', color='white', size='17px')
+                    ui.label(f'{fmt_para(net_kar)} TL').classes('text-weight-bolder').style('font-size: 19px; font-weight: 800; letter-spacing: -0.5px;')
 
                 # Kasa Bakiyesi Card
                 kasa_bakiye = summary['kasa_bakiye']
-                with ui.card().classes('q-pa-md gradient-card-kasa justify-between').style('border-radius: 12px;'):
+                with ui.card().classes('q-pa-sm gradient-card-kasa justify-between').style('height: 78px; border-radius: 12px; overflow: hidden;'):
                     with ui.row().classes('w-full justify-between items-start no-wrap'):
-                        ui.label('Kasa Bakiyesi').classes('text-weight-medium').style('font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9;')
-                        with ui.element('div').classes('q-pa-xs').style('background: rgba(255,255,255,0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px;'):
-                            ui.icon('account_balance_wallet', color='white', size='20px')
-                    with ui.column().classes('gap-0'):
-                        ui.label(f'{fmt_para(kasa_bakiye)} TL').classes('text-weight-bolder').style('font-size: 20px; font-weight: 800; letter-spacing: -0.5px;')
+                        ui.label('Kasa Bakiyesi').classes('text-weight-medium').style('font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; opacity: 0.9;')
+                        with ui.element('div').style('background: rgba(255,255,255,0.2); border-radius: 7px; display: flex; align-items: center; justify-content: center; width: 26px; height: 26px;'):
+                            ui.icon('account_balance_wallet', color='white', size='17px')
+                    ui.label(f'{fmt_para(kasa_bakiye)} TL').classes('text-weight-bolder').style('font-size: 19px; font-weight: 800; letter-spacing: -0.5px;')
 
                 # Satış ve Alış Karşılaştırma Kartı
                 satis = summary['toplam_satis']
@@ -277,26 +275,16 @@ def dashboard_page():
                 else:
                     hacim_txt = f"{int(toplam_hacim)} TL"
 
-                with ui.card().classes('q-pa-sm modern-card justify-between').style('border-radius: 12px;'):
+                with ui.card().classes('q-pa-sm modern-card justify-between').style('height: 78px; border-radius: 12px; overflow: hidden;'):
                     with ui.row().classes('w-full justify-between items-center no-wrap'):
-                        ui.label('SATIŞ VE ALIŞ DENGESİ').classes('text-weight-bold').style('font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b;')
-                        with ui.row().classes('items-center q-px-sm q-py-xs').style('background: #eff6ff; color: #2563eb; border-radius: 20px; font-size: 11px; font-weight: 700;'):
-                            ui.label(f'HACİM: {hacim_txt}')
-                    
-                    with ui.row().classes('w-full justify-between items-center no-wrap q-mt-xs'):
-                        with ui.column().classes('gap-0'):
-                            ui.label('Toplam Satış').style('font-size: 10px; color: #64748b;')
-                            ui.label(f'{fmt_para(satis)} TL').classes('text-weight-bold text-green-6').style('font-size: 16px;')
-                        with ui.element('div').style('border-left: 1px solid #e2e8f0; height: 24px;'):
-                            pass
-                        with ui.column().classes('gap-0 items-end'):
-                            ui.label('Toplam Alış').style('font-size: 10px; color: #64748b;')
-                            ui.label(f'{fmt_para(alis)} TL').classes('text-weight-bold text-red-6').style('font-size: 16px;')
-                            
-                    with ui.column().classes('w-full gap-0 q-mt-xs'):
-                        with ui.row().classes('w-full no-wrap items-center').style('height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; gap: 0;'):
-                            ui.element('div').style(f'width: {satis_pct}%; height: 100%; background: #10b981;')
-                            ui.element('div').style(f'width: {alis_pct}%; height: 100%; background: #ef4444;')
+                        ui.label('SATIŞ / ALIŞ').classes('text-weight-bold').style('font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: #64748b;')
+                        ui.label(f'HACİM: {hacim_txt}').style('background:#eff6ff;color:#2563eb;border-radius:20px;font-size:10px;font-weight:700;padding:1px 8px;')
+                    with ui.row().classes('w-full justify-between items-center no-wrap'):
+                        ui.label(f'{fmt_para(satis)} TL').classes('text-weight-bold text-green-6').style('font-size: 14px;')
+                        ui.label(f'{fmt_para(alis)} TL').classes('text-weight-bold text-red-6').style('font-size: 14px;')
+                    with ui.row().classes('w-full no-wrap items-center').style('height: 5px; background: #e2e8f0; border-radius: 3px; overflow: hidden; gap: 0;'):
+                        ui.element('div').style(f'width: {satis_pct}%; height: 100%; background: #10b981;')
+                        ui.element('div').style(f'width: {alis_pct}%; height: 100%; background: #ef4444;')
 
             # --- Secondary KPIs Row ---
             cards_secondary = [
