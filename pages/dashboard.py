@@ -245,7 +245,7 @@ def dashboard_page():
             with ui.element('div').classes('w-full gap-4 q-mt-lg q-mb-md primary-kpis-grid'):
                 # Net Kar / Zarar Card
                 card_class = 'gradient-card-profit' if is_profit else 'gradient-card-loss'
-                with ui.card().classes(f'q-pa-sm {card_class} justify-between').style('height: 78px; border-radius: 12px; overflow: hidden;'):
+                with ui.card().classes(f'q-pa-sm {card_class} justify-between').style('border-radius: 12px;'):
                     with ui.row().classes('w-full justify-between items-start no-wrap'):
                         ui.label('Net Kar / Zarar').classes('text-weight-medium').style('font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; opacity: 0.9;')
                         with ui.element('div').style('background: rgba(255,255,255,0.2); border-radius: 7px; display: flex; align-items: center; justify-content: center; width: 26px; height: 26px;'):
@@ -254,7 +254,7 @@ def dashboard_page():
 
                 # Kasa Bakiyesi Card
                 kasa_bakiye = summary['kasa_bakiye']
-                with ui.card().classes('q-pa-sm gradient-card-kasa justify-between').style('height: 78px; border-radius: 12px; overflow: hidden;'):
+                with ui.card().classes('q-pa-sm gradient-card-kasa justify-between').style('border-radius: 12px;'):
                     with ui.row().classes('w-full justify-between items-start no-wrap'):
                         ui.label('Kasa Bakiyesi').classes('text-weight-medium').style('font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; opacity: 0.9;')
                         with ui.element('div').style('background: rgba(255,255,255,0.2); border-radius: 7px; display: flex; align-items: center; justify-content: center; width: 26px; height: 26px;'):
@@ -275,7 +275,7 @@ def dashboard_page():
                 else:
                     hacim_txt = f"{int(toplam_hacim)} TL"
 
-                with ui.card().classes('q-pa-sm modern-card justify-between').style('height: 78px; border-radius: 12px; overflow: hidden;'):
+                with ui.card().classes('q-pa-sm modern-card justify-between').style('border-radius: 12px;'):
                     with ui.row().classes('w-full justify-between items-center no-wrap'):
                         ui.label('SATIŞ / ALIŞ').classes('text-weight-bold').style('font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: #64748b;')
                         ui.label(f'HACİM: {hacim_txt}').style('background:#eff6ff;color:#2563eb;border-radius:20px;font-size:10px;font-weight:700;padding:1px 8px;')
