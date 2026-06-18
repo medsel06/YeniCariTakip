@@ -1,7 +1,7 @@
 """ALSE Plastik Hammadde - Kasa Sayfası"""
 from datetime import date, datetime
 from nicegui import ui
-from layout import create_layout, fmt_para, PARA_SLOT, BAKIYE_SLOT, TARIH_SLOT, notify_ok, notify_err, confirm_dialog, normalize_search, donem_popover_btn, odeme_banka_secici
+from layout import create_layout, fmt_para, ozet_pill, PARA_SLOT, BAKIYE_SLOT, TARIH_SLOT, notify_ok, notify_err, confirm_dialog, normalize_search, donem_popover_btn, odeme_banka_secici
 from services.kasa_service import get_kasa_list, get_kasa_bakiye, add_kasa, delete_kasa, update_kasa, get_kasa_by_id
 from services.cari_service import get_firma_list
 from services.cek_service import list_cekler_portfoyde, generate_firma_cek_no, add_cek, change_durum
@@ -24,9 +24,7 @@ def kasa_page():
     state = {'yil': now.year, 'ay': None}
 
     table_ref = None
-    card_giris = None
-    card_cikis = None
-    card_bakiye = None
+    ozet_box = None
     search_val = {'text': ''}
 
     columns = [
@@ -73,12 +71,14 @@ def kasa_page():
         _compute_bakiye(all_rows)
         apply_filters()
         bakiye = get_kasa_bakiye(yil=state['yil'], ay=state['ay'])
-        if card_giris:
-            card_giris.set_text(fmt_para(bakiye['giris']) + ' TL')
-        if card_cikis:
-            card_cikis.set_text(fmt_para(bakiye['cikis']) + ' TL')
-        if card_bakiye:
-            card_bakiye.set_text(fmt_para(bakiye['bakiye']) + ' TL')
+        if ozet_box is not None:
+            ozet_box.clear()
+            with ozet_box:
+                ozet_pill([
+                    ('Giriş', bakiye['giris'], '#15803d'),
+                    ('Çıkış', bakiye['cikis'], '#b91c1c'),
+                    ('Bakiye', bakiye['bakiye'], '#1d4ed8'),
+                ])
 
     def open_add_dialog():
         firmalar = get_firma_list()
@@ -494,34 +494,8 @@ def kasa_page():
             # Ayirici bosluk
             ui.element('div').style('flex:1')
 
-            # Orta grup: ozet chipleri (kompakt — tek satira sigsin)
-            def _summary_chip(icon, label_text, value_label_ref, accent_bg, accent_fg, accent_border):
-                with ui.element('div').style(
-                    f'display:inline-flex;align-items:center;gap:6px;padding:4px 10px;'
-                    f'background:{accent_bg};border:1px solid {accent_border};border-radius:999px;'
-                    f'white-space:nowrap;'
-                ):
-                    ui.icon(icon).style(f'font-size:14px;color:{accent_fg};')
-                    ui.label(label_text).classes('text-caption').style(
-                        f'color:{accent_fg};font-weight:600;font-size:11px;line-height:1;'
-                    )
-                    value_label_ref['ref'] = ui.label(f'{fmt_para(0)} TL').style(
-                        f'color:{accent_fg};font-weight:700;font-size:12.5px;line-height:1;'
-                        'font-variant-numeric:tabular-nums;'
-                    )
-
-            _giris_ref = {}
-            _cikis_ref = {}
-            _bakiye_ref = {}
-            _summary_chip('arrow_downward', 'Giriş', _giris_ref, '#dcfce7', '#15803d', '#86efac')
-            _summary_chip('arrow_upward', 'Çıkış', _cikis_ref, '#fee2e2', '#b91c1c', '#fca5a5')
-            _summary_chip('account_balance', 'Bakiye', _bakiye_ref, '#dbeafe', '#1d4ed8', '#93c5fd')
-            card_giris = _giris_ref['ref']
-            card_cikis = _cikis_ref['ref']
-            card_bakiye = _bakiye_ref['ref']
-            card_giris.set_text(f'{fmt_para(bakiye["giris"])} TL')
-            card_cikis.set_text(f'{fmt_para(bakiye["cikis"])} TL')
-            card_bakiye.set_text(f'{fmt_para(bakiye["bakiye"])} TL')
+            # Orta grup: ozet (Cari referans pill — Giris/Cikis/Bakiye); load_data() doldurur
+            ozet_box = ui.row().classes('items-center no-wrap')
 
             ui.element('div').style('flex:1')
 
@@ -580,7 +554,6 @@ def kasa_page():
         table_ref.on('edit', lambda e: open_edit_dialog(e.args))
         table_ref.on('delete', lambda e: do_delete(e.args['id']))
         table_ref.on('row-click', lambda e: open_detail_dialog(e.args[1]))
-        table_ref.on('rowClick', lambda e: open_detail_dialog(e.args[1]))
 
 
 

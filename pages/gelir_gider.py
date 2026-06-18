@@ -2,7 +2,7 @@
 from datetime import date, datetime
 from nicegui import ui
 from layout import (
-    create_layout, fmt_para, PARA_SLOT, TARIH_SLOT,
+    create_layout, fmt_para, ozet_pill, PARA_SLOT, TARIH_SLOT,
     notify_ok, notify_err, confirm_dialog, normalize_search, donem_secici,
 )
 from services.gelir_gider_service import (
@@ -24,9 +24,7 @@ def gelir_gider_page(focus: int = None):
 
     table_ref = None
     all_rows = []
-    lbl_gelir = None
-    lbl_gider = None
-    lbl_net = None
+    ozet_box = None
     now = datetime.now()
     # Default: yil=mevcut, ay=None (Tumu) — UI donem_secici default_ay=0 ile sync
     state = {'yil': now.year, 'ay': None}
@@ -64,12 +62,15 @@ def gelir_gider_page(focus: int = None):
         all_rows = get_gelir_gider_list(yil=state['yil'], ay=state['ay'])
         apply_filters()
         ozet = get_gelir_gider_ozet(yil=state['yil'], ay=state['ay'])
-        if lbl_gelir:
-            lbl_gelir.set_text(f'Gelir: {fmt_para(ozet["gelir"])} TL')
-        if lbl_gider:
-            lbl_gider.set_text(f'Gider: {fmt_para(ozet["gider"])} TL')
-        if lbl_net:
-            lbl_net.set_text(f'Net: {fmt_para(ozet["net"])} TL')
+        if ozet_box is not None:
+            net_fg = '#15803d' if (ozet['net'] or 0) >= 0 else '#b91c1c'
+            ozet_box.clear()
+            with ozet_box:
+                ozet_pill([
+                    ('Gelir', ozet['gelir'], '#15803d'),
+                    ('Gider', ozet['gider'], '#b91c1c'),
+                    ('Net', ozet['net'], net_fg),
+                ])
 
     def _build_kategori_options(tur):
         """Kategori secenekleri - one cikanlar en ustte, renkli iconlu."""
@@ -542,7 +543,6 @@ def gelir_gider_page(focus: int = None):
         ozet = get_gelir_gider_ozet(yil=state['yil'], ay=state['ay'])
 
         with ui.card().classes('w-full q-pa-xs q-mb-xs'):
-            net_color = 'positive' if ozet['net'] >= 0 else 'negative'
             with ui.row().classes('w-full items-center gap-2 no-wrap'):
                 def _on_search_change(e):
                     search_val['text'] = e.value or ''
@@ -553,12 +553,14 @@ def gelir_gider_page(focus: int = None):
                     on_change=_on_search_change,
                 ).props('outlined dense clearable').classes('w-64')
                 donem_secici(on_donem_change, include_all=True)
-                with ui.element('q-chip').props('color="green-2" text-color="green-9" icon="trending_up" dense'):
-                    lbl_gelir = ui.label(f'Gelir: {fmt_para(ozet["gelir"])} TL').classes('text-weight-medium')
-                with ui.element('q-chip').props('color="red-2" text-color="red-9" icon="trending_down" dense'):
-                    lbl_gider = ui.label(f'Gider: {fmt_para(ozet["gider"])} TL').classes('text-weight-medium')
-                with ui.element('q-chip').props(f'color="{net_color}" text-color="white" icon="account_balance" dense'):
-                    lbl_net = ui.label(f'Net: {fmt_para(ozet["net"])} TL').classes('text-weight-bold')
+                ozet_box = ui.row().classes('items-center no-wrap')
+                with ozet_box:
+                    _ng = '#15803d' if (ozet['net'] or 0) >= 0 else '#b91c1c'
+                    ozet_pill([
+                        ('Gelir', ozet['gelir'], '#15803d'),
+                        ('Gider', ozet['gider'], '#b91c1c'),
+                        ('Net', ozet['net'], _ng),
+                    ])
                 ui.space()
 
                 def _open_pdf(pdf_bytes, filename):
@@ -668,7 +670,6 @@ def gelir_gider_page(focus: int = None):
         table_ref.on('edit', lambda e: open_dialog(edit_row=e.args))
         table_ref.on('delete', lambda e: do_delete(e.args['id']))
         table_ref.on('row-click', lambda e: _show_row_detail(e.args[1]))
-        table_ref.on('rowClick', lambda e: _show_row_detail(e.args[1]))
 
         # Islemler detay modalindan 'Kaynak -> kayda git' ile gelinince ilgili kaydi ac
         if focus:

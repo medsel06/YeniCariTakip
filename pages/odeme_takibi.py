@@ -1,7 +1,7 @@
 """Ödeme / Tahsilat Takibi — vade planı sayfası."""
 from datetime import date, datetime
 from nicegui import ui
-from layout import create_layout, fmt_para, notify_ok, notify_err, confirm_dialog, segment_group, donem_popover_btn
+from layout import create_layout, fmt_para, ozet_pill, notify_ok, notify_err, confirm_dialog, segment_group, donem_popover_btn
 from services.odeme_takibi_service import (
     list_odeme_takibi, get_ozet, add_odeme_takibi, update_odeme_takibi,
     delete_odeme_takibi, ode, ode_toplu, get_vadeli_cari, get_cek_vadeleri,
@@ -128,20 +128,11 @@ def odeme_takibi_page():
         gecmis = sum(r['kalan'] for r in data
                      if r['durum'] != 'ODENDI' and r.get('vade_tarih') and r['vade_tarih'] < bugun)
         with ozet_box:
-            for baslik, deger, bg, fg, icon in [
-                ('Açık Borç', acik_borc, '#fef2f2', '#b91c1c', 'south_west'),
-                ('Açık Alacak', acik_alacak, '#f0fdf4', '#15803d', 'north_east'),
-                ('Geçmiş Vade', gecmis, '#fff7ed', '#c2410c', 'warning_amber'),
-            ]:
-                with ui.element('div').style(
-                    f'background:{bg};border:1px solid {fg}33;border-radius:8px;'
-                    'padding:3px 10px;min-width:118px;'
-                ):
-                    with ui.row().classes('items-center no-wrap gap-1'):
-                        ui.icon(icon).style(f'color:{fg};font-size:16px')
-                        with ui.column().classes('gap-0'):
-                            ui.label(baslik).style('font-size:8px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.4px')
-                            ui.label(f"{fmt_para(deger)} ₺").style(f'font-size:12.5px;font-weight:800;color:{fg};line-height:1.05')
+            ozet_pill([
+                ('Açık Borç', acik_borc, '#b91c1c'),
+                ('Açık Alacak', acik_alacak, '#15803d'),
+                ('Geçmiş Vade', gecmis, '#c2410c'),
+            ])
 
     def _secim_iptal_bar(mesaj=None):
         """Secim modunda her zaman gorunen ust cubuk (Iptal cikisi garanti)."""
@@ -295,7 +286,6 @@ def odeme_takibi_page():
             tbl.on('cari_ode', lambda e: _cari_ode_dialog(e.args))
             tbl.on('goto_cek', lambda e: ui.navigate.to('/cekler'))
             tbl.on('row-click', lambda e: _show_row_detail(e.args[1]))
-            tbl.on('rowClick', lambda e: _show_row_detail(e.args[1]))
 
             top_tutar = sum(float(r['tutar'] or 0) for r in data)
             top_kalan = sum(float(r['kalan'] or 0) for r in data)

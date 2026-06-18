@@ -1070,6 +1070,22 @@ def fmt_miktar(value):
     return s
 
 
+def ozet_pill(segs):
+    """Tablo ustu toplam ozeti — Cari Hesaplar referans yapisi (tek cerceveli inline pill).
+    segs: [(etiket, deger_sayi, renk_hex), ...]. Caller bunu bir 'with box:' icine cagirir;
+    dinamik guncelleme box.clear() + tekrar cagrı ile yapilir."""
+    with ui.row().classes('items-center no-wrap').style(
+        'border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#fff;height:34px'
+    ):
+        for i, (lbl, val, fg) in enumerate(segs):
+            sep = 'border-right:1px solid #eef2f6;' if i < len(segs) - 1 else ''
+            with ui.row().classes('items-center no-wrap').style(
+                f'padding:0 12px;gap:6px;height:100%;{sep}'
+            ):
+                ui.label(lbl).style('font-size:9px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:0.4px')
+                ui.label(f"{fmt_para(val)} ₺").style(f'font-size:13px;font-weight:800;color:{fg}')
+
+
 def normalize_search(value):
     text = str(value or '').strip().casefold()
     text = ''.join(ch for ch in unicodedata.normalize('NFKD', text) if not unicodedata.combining(ch))

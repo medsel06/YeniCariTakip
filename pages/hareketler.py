@@ -34,10 +34,9 @@ def hareketler_page():
     /* Tarihsiz kayit uyarisi zebra'yi ezer (rapora girmiyor) */
     .hrk-table tbody tr td.hrk-tarihsiz { background: #fee2e2 !important; color: #7f1d1d !important; }
     .hrk-table tbody tr:hover td.hrk-tarihsiz { background: #fecaca !important; }
-    .hrk-table td { border-right: 1px solid #e8edf2; }
-    .hrk-table td:last-child { border-right: none; }
-    .hrk-table th { border-right: 1px solid rgba(255,255,255,0.15); text-align: center !important; }
-    .hrk-table th:last-child { border-right: none; }
+    /* Sutun (dikey) cizgileri kaldirildi */
+    .hrk-table td { border-right: none; }
+    .hrk-table th { border-right: none; text-align: center !important; }
     /* Rakam sutunlari: orijinal font + tabular figures (hizali) + biraz kucuk */
     .hrk-table .num-mono { font-variant-numeric: tabular-nums; font-size: 12px; }
     /* Satırların tıklanabilir olduğunu belirten pointer */
