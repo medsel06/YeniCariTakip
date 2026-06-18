@@ -752,11 +752,11 @@ def hareketler_page():
 
             ui.space()
             ui.button('TAHSİLAT', icon='payments', color='positive',
-                      on_click=lambda: open_kasa_dialog(default_tur='GELIR')).props('unelevated')
+                      on_click=lambda: open_kasa_dialog(default_tur='GELIR')).props('unelevated dense no-caps size=sm')
             ui.button('ÖDEME', icon='shopping_cart_checkout', color='warning',
-                      on_click=lambda: open_kasa_dialog(default_tur='GIDER')).props('unelevated')
+                      on_click=lambda: open_kasa_dialog(default_tur='GIDER')).props('unelevated dense no-caps size=sm')
             ui.button('İŞLEM', icon='add', color='primary',
-                      on_click=lambda: open_hareket_dialog())
+                      on_click=lambda: open_hareket_dialog()).props('unelevated dense no-caps size=sm')
 
         # Tablo
         table_ref = ui.table(
