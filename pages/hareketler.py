@@ -30,7 +30,7 @@ def hareketler_page():
     .hrk-table th { border-right: 1px solid rgba(255,255,255,0.15); text-align: center !important; }
     .hrk-table th:last-child { border-right: none; }
     /* Rakam sutunlari: IBM Plex Mono + tabular figures (hizali sayilar) */
-    .hrk-table .num-mono { font-family: 'JetBrains Mono', monospace !important; font-variant-numeric: tabular-nums; font-weight: 500; letter-spacing: -0.3px; }
+    .hrk-table .num-mono { font-family: 'JetBrains Mono', monospace !important; font-variant-numeric: tabular-nums; font-weight: 500; letter-spacing: -0.3px; font-size: 12px; }
     ''')
 
     table_ref = None
