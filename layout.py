@@ -952,7 +952,7 @@ def create_layout(active_path='/', page_title=''):
                             ui.label(text).classes('nav-label ' + ('active-label' if is_active else 'inactive-label'))
         else:
             # Modern mode: Flat navigation categories
-            with ui.element('div').classes('alse-drawer-brand desktop-only-header q-px-md').style('display: flex; align-items: center; justify-content: center; height: 58px; border-bottom: 1px solid #e2e8f0; margin-bottom: 12px;'):
+            with ui.element('div').classes('alse-drawer-brand desktop-only-header q-px-md').style('position: sticky; top: 0; z-index: 20; background: #ffffff; display: flex; align-items: center; justify-content: center; height: 58px; border-bottom: 1px solid #e2e8f0; margin-bottom: 12px;'):
                 ui.html(
                     f'<div style="font-size: 20px; font-weight: 800; color: #2563eb; letter-spacing: 1.5px; font-family: \'Plus Jakarta Sans\', sans-serif;">'
                     f'{_firma_p1}<span style="font-weight: 800; color: #0f172a;"> {_firma_p2}</span>'
