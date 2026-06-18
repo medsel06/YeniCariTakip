@@ -536,7 +536,7 @@ def dashboard_page():
                             {'name': 'kalan', 'label': 'Tutar', 'field': 'kalan', 'align': 'right'},
                         ]
                         ykt = ui.table(columns=yk_cols, rows=yk_rows, row_key='_rid',
-                                       pagination={'rowsPerPage': 0}).classes('w-full dash-table').props('flat dense')
+                                       pagination={'rowsPerPage': 0}).classes('w-full dash-table').props('flat dense hide-bottom')
                         ykt.add_slot('body-cell-vade', r'''
                             <q-td :props="props"><span style="font-weight:700;font-size:11px;color:#334155;">{{ props.value }}</span></q-td>''')
                         ykt.add_slot('body-cell-tip', r'''
