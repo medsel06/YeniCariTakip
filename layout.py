@@ -514,14 +514,15 @@ tr:hover .tarihsiz-cell { background: #fecaca !important; }
 .alse-drawer .scroll {
   background: #ffffff !important;
 }
-.alse-drawer .q-drawer__content {
+/* NOT: .alse-drawer ile q-drawer__content AYNI element (nicegui-drawer). Compound seçici şart. */
+.alse-drawer.q-drawer__content {
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;        /* drawer'in kendisi kaymaz; sadece icteki menu kayar */
   height: 100% !important;
   max-height: 100% !important;
-  padding-top: 0 !important;          /* firma isminin ustunde bosluk olmasin */
-  padding-bottom: 0 !important;
+  padding: 0 !important;              /* NiceGUI varsayilan 16px padding kaldirildi (firma ismi ustu bosluk) */
+  gap: 0 !important;
 }
 /* Brand: ust sabit baslik (kaymaz, ortulmez) */
 .alse-drawer .alse-drawer-brand { flex: 0 0 auto !important; }
@@ -969,7 +970,7 @@ def create_layout(active_path='/', page_title=''):
                     f'</div>'
                 )
 
-            with ui.column().classes('w-full gap-3 q-px-sm alse-nav-scroll').style('padding-top: 8px; padding-bottom: 16px;'):
+            with ui.column().classes('w-full gap-4 q-px-sm alse-nav-scroll').style('padding-top: 8px; padding-bottom: 16px;'):
                 for group_title, group_icon, items in menu_groups:
                     # Category heading
                     ui.label(group_title.upper()).style('font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-top: 8px; margin-bottom: 2px; padding-left: 8px;')
