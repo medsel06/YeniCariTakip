@@ -52,7 +52,7 @@ def hareketler_page():
         {'name': 'kdvli_toplam', 'label': 'KDV\'Lİ TOPLAM', 'field': 'kdvli_toplam', 'align': 'right', 'sortable': True},
         {'name': 'tevkifat_orani', 'label': 'TEVKİFAT', 'field': 'tevkifat_orani', 'align': 'center', 'sortable': True},
         {'name': 'aciklama', 'label': 'AÇIKLAMA', 'field': 'aciklama', 'align': 'left', 'sortable': False},
-        {'name': 'actions', 'label': 'İŞLEMLER', 'field': 'actions', 'align': 'center', 'sortable': False},
+        {'name': 'actions', 'label': 'İŞLEMLER', 'field': 'actions', 'align': 'left', 'sortable': False},
     ]
 
     search_text = {'value': ''}
