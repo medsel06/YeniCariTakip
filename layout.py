@@ -968,7 +968,7 @@ def create_layout(active_path='/', page_title=''):
                     f'</div>'
                 )
 
-            with ui.column().classes('w-full gap-2 q-px-sm alse-nav-scroll').style('padding-top: 8px; padding-bottom: 16px;'):
+            with ui.column().classes('w-full gap-3 q-px-sm alse-nav-scroll').style('padding-top: 8px; padding-bottom: 16px;'):
                 for group_title, group_icon, items in menu_groups:
                     # Category heading
                     ui.label(group_title.upper()).style('font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-top: 8px; margin-bottom: 2px; padding-left: 8px;')
