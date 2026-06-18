@@ -520,6 +520,7 @@ tr:hover .tarihsiz-cell { background: #fecaca !important; }
   overflow: hidden !important;        /* drawer'in kendisi kaymaz; sadece icteki menu kayar */
   height: 100% !important;
   max-height: 100% !important;
+  padding-top: 0 !important;          /* firma isminin ustunde bosluk olmasin */
   padding-bottom: 0 !important;
 }
 /* Brand: ust sabit baslik (kaymaz, ortulmez) */
