@@ -494,8 +494,15 @@ def kasa_page():
             # Ayirici bosluk
             ui.element('div').style('flex:1')
 
-            # Orta grup: ozet (Cari referans pill — Giris/Cikis/Bakiye); load_data() doldurur
+            # Orta grup: ozet (Cari referans pill — Giris/Cikis/Bakiye)
             ozet_box = ui.row().classes('items-center no-wrap')
+            with ozet_box:
+                _bk0 = get_kasa_bakiye(yil=state['yil'], ay=state['ay'])
+                ozet_pill([
+                    ('Giriş', _bk0['giris'], '#15803d'),
+                    ('Çıkış', _bk0['cikis'], '#b91c1c'),
+                    ('Bakiye', _bk0['bakiye'], '#1d4ed8'),
+                ])
 
             ui.element('div').style('flex:1')
 

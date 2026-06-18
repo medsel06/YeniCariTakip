@@ -20,7 +20,15 @@ from services.pdf_service import generate_table_pdf, save_pdf_preview
 def gelir_gider_page(focus: int = None):
     if not create_layout(active_path='/gelir-gider', page_title='Gelir / Gider'):
         return
-    ui.add_css('.gg-table tbody tr { cursor: pointer; }')
+    ui.add_css('''
+    .gg-table tbody tr { cursor: pointer; }
+    /* Donem secici kucultuldu */
+    .gg-donem .q-field__control { min-height: 28px !important; height: 28px !important; }
+    .gg-donem .q-field__marginal { height: 28px !important; }
+    .gg-donem .q-select { min-width: 84px !important; }
+    .gg-donem .q-icon { font-size: 16px !important; }
+    .gg-donem .nicegui-row { gap: 4px !important; }
+    ''')
 
     table_ref = None
     all_rows = []
@@ -552,8 +560,10 @@ def gelir_gider_page(focus: int = None):
                     placeholder='Ara (kategori, açıklama)...',
                     on_change=_on_search_change,
                 ).props('outlined dense clearable').classes('w-64')
-                donem_secici(on_donem_change, include_all=True)
-                ozet_box = ui.row().classes('items-center no-wrap')
+                with ui.element('div').classes('gg-donem'):
+                    donem_secici(on_donem_change, include_all=True)
+                ui.space()
+                ozet_box = ui.row().classes('items-center no-wrap q-mr-sm')
                 with ozet_box:
                     _ng = '#15803d' if (ozet['net'] or 0) >= 0 else '#b91c1c'
                     ozet_pill([
@@ -561,7 +571,6 @@ def gelir_gider_page(focus: int = None):
                         ('Gider', ozet['gider'], '#b91c1c'),
                         ('Net', ozet['net'], _ng),
                     ])
-                ui.space()
 
                 def _open_pdf(pdf_bytes, filename):
                     preview_url = save_pdf_preview(pdf_bytes, filename)
