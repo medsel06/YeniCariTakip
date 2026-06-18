@@ -537,21 +537,30 @@ def dashboard_page():
                         ]
                         ykt = ui.table(columns=yk_cols, rows=yk_rows, row_key='_rid',
                                        pagination={'rowsPerPage': 0}).classes('w-full dash-table').props('flat dense hide-bottom')
-                        ykt.add_slot('body-cell-vade', r'''
-                            <q-td :props="props"><span style="font-weight:700;font-size:11px;color:#334155;">{{ props.value }}</span></q-td>''')
-                        ykt.add_slot('body-cell-tip', r'''
-                            <q-td :props="props" class="text-center">
-                                <span style="display:inline-block;padding:2px 10px;border-radius:999px;font-weight:700;font-size:11px;"
-                                    :style="props.row._borc ? 'background:#ffe4e6;color:#be123c;' : 'background:#dcfce7;color:#15803d;'">{{ props.value }}</span>
-                            </q-td>''')
-                        ykt.add_slot('body-cell-durum', r'''
-                            <q-td :props="props" class="text-center">
-                                <span :style="props.row._gun < 0 ? 'color:#b91c1c;font-weight:700;' : (props.row._gun <= 3 ? 'color:#c2410c;font-weight:600;' : 'color:#64748b;')">{{ props.value }}</span>
-                            </q-td>''')
-                        ykt.add_slot('body-cell-kalan', r'''
-                            <q-td :props="props" class="text-right">
-                                <span :style="props.row._borc ? 'color:#ef4444;font-weight:700;' : 'color:#10b981;font-weight:700;'">{{ Number(props.value).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}) }} TL</span>
-                            </q-td>''')
+                        ykt.add_slot('body', r'''
+                            <q-tr :props="props"
+                                :style="props.row._gun === 0 ? 'background:#fef2f2 !important;' : ''"
+                                :class="props.row._gun === 0 ? 'yk-bugun' : ''">
+                                <q-td key="vade" :props="props"
+                                    :style="props.row._gun === 0 ? 'border-left:4px solid #ef4444;' : (props.row._gun < 0 ? 'border-left:4px solid #f59e0b;' : '')">
+                                    <span style="font-weight:700;font-size:11px;color:#334155;">{{ props.row.vade }}</span>
+                                </q-td>
+                                <q-td key="tip" :props="props" class="text-center">
+                                    <span style="display:inline-block;padding:2px 10px;border-radius:999px;font-weight:700;font-size:11px;"
+                                        :style="props.row._borc ? 'background:#ffe4e6;color:#be123c;' : 'background:#dcfce7;color:#15803d;'">{{ props.row.tip }}</span>
+                                </q-td>
+                                <q-td key="firma" :props="props">{{ props.row.firma }}</q-td>
+                                <q-td key="durum" :props="props" class="text-center">
+                                    <span v-if="props.row._gun === 0"
+                                        style="display:inline-block;background:#ef4444;color:#fff;padding:2px 10px;border-radius:999px;font-weight:800;font-size:10.5px;letter-spacing:0.3px;">
+                                        ● BUGÜN SON GÜN
+                                    </span>
+                                    <span v-else :style="props.row._gun < 0 ? 'color:#b91c1c;font-weight:700;' : (props.row._gun <= 3 ? 'color:#c2410c;font-weight:600;' : 'color:#64748b;')">{{ props.row.durum }}</span>
+                                </q-td>
+                                <q-td key="kalan" :props="props" class="text-right">
+                                    <span :style="props.row._borc ? 'color:#ef4444;font-weight:700;' : 'color:#10b981;font-weight:700;'">{{ Number(props.row.kalan).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}) }} TL</span>
+                                </q-td>
+                            </q-tr>''')
 
                 # Sağ: Vade Uyarıları (flex-1, Compact Liste)
                 with ui.card().classes('modern-card q-pa-md').style('flex: 1; border-radius: 16px; min-width: 0;'):
