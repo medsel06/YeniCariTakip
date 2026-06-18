@@ -241,7 +241,7 @@ def dashboard_page():
                                 ui.label(f'{fmt_para(value)} TL').classes('text-weight-bold').style('font-size: 13px; line-height: 15px')
         else:
             # --- NEW MODERN CARDS & COMPARISON ---
-            with ui.element('div').classes('w-full gap-4 q-mt-md q-mb-md primary-kpis-grid'):
+            with ui.element('div').classes('w-full gap-4 q-mt-lg q-mb-md primary-kpis-grid'):
                 # Net Kar / Zarar Card
                 card_class = 'gradient-card-profit' if is_profit else 'gradient-card-loss'
                 with ui.card().classes(f'q-pa-md {card_class} justify-between').style('height: 128px; border-radius: 12px;'):
@@ -505,27 +505,52 @@ def dashboard_page():
                     if not yaklasan:
                         ui.label('Önümüzdeki 7 günde vadesi gelen açık kayıt yok.').classes('text-caption text-grey-6 q-pa-sm')
                     else:
-                        with ui.column().classes('w-full gap-2'):
-                            for item in yaklasan:
-                                borc = item['tip'] == 'BORC'
-                                renk = '#ef4444' if borc else '#10b981'
-                                gun = item.get('_gun')
-                                if gun is None:
-                                    gun_lbl = ''
-                                elif gun < 0:
-                                    gun_lbl = f'{abs(gun)} gün geçti'
-                                elif gun == 0:
-                                    gun_lbl = 'Bugün'
-                                else:
-                                    gun_lbl = f'{gun} gün kaldı'
-                                vade_disp = (item.get('vade_tarih') or '')[:10]
-                                if vade_disp:
-                                    vade_disp = '.'.join(reversed(vade_disp.split('-')))
-                                with ui.row().classes('w-full justify-between items-center q-pa-sm').style(f'border-left: 4px solid {renk}; border-radius: 8px; background: #f8fafc; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;'):
-                                    with ui.column().classes('gap-0'):
-                                        ui.label(f"{'Borç' if borc else 'Alacak'} • {item.get('firma_ad') or '—'}").classes('text-weight-bold text-slate-800').style('font-size: 12px; line-height: 1.25;')
-                                        ui.label(f'{vade_disp} • {gun_lbl}').classes('text-grey-5').style('font-size: 10px; margin-top: 2px;')
-                                    ui.label(f"{fmt_para(item['kalan'])} TL").classes('text-weight-bold').style(f'font-size: 12px; color: {renk};')
+                        def _gunlbl(g):
+                            if g is None:
+                                return ''
+                            if g < 0:
+                                return f'{abs(g)} gün geçti'
+                            if g == 0:
+                                return 'Bugün'
+                            return f'{g} gün kaldı'
+                        yk_rows = []
+                        for i, item in enumerate(yaklasan):
+                            vd = (item.get('vade_tarih') or '')[:10]
+                            vd = '.'.join(reversed(vd.split('-'))) if vd else ''
+                            yk_rows.append({
+                                '_rid': i,
+                                'vade': vd,
+                                'tip': 'Borç' if item['tip'] == 'BORC' else 'Alacak',
+                                'firma': item.get('firma_ad') or '—',
+                                'durum': _gunlbl(item.get('_gun')),
+                                'kalan': float(item['kalan'] or 0),
+                                '_borc': item['tip'] == 'BORC',
+                                '_gun': item.get('_gun') if item.get('_gun') is not None else 999,
+                            })
+                        yk_cols = [
+                            {'name': 'vade', 'label': 'Vade', 'field': 'vade', 'align': 'left'},
+                            {'name': 'tip', 'label': 'Tip', 'field': 'tip', 'align': 'center'},
+                            {'name': 'firma', 'label': 'Firma', 'field': 'firma', 'align': 'left'},
+                            {'name': 'durum', 'label': 'Durum', 'field': 'durum', 'align': 'center'},
+                            {'name': 'kalan', 'label': 'Tutar', 'field': 'kalan', 'align': 'right'},
+                        ]
+                        ykt = ui.table(columns=yk_cols, rows=yk_rows, row_key='_rid',
+                                       pagination={'rowsPerPage': 0}).classes('w-full dash-table').props('flat dense')
+                        ykt.add_slot('body-cell-vade', r'''
+                            <q-td :props="props"><span style="font-weight:700;font-size:11px;color:#334155;">{{ props.value }}</span></q-td>''')
+                        ykt.add_slot('body-cell-tip', r'''
+                            <q-td :props="props" class="text-center">
+                                <span style="display:inline-block;padding:2px 10px;border-radius:999px;font-weight:700;font-size:11px;"
+                                    :style="props.row._borc ? 'background:#ffe4e6;color:#be123c;' : 'background:#dcfce7;color:#15803d;'">{{ props.value }}</span>
+                            </q-td>''')
+                        ykt.add_slot('body-cell-durum', r'''
+                            <q-td :props="props" class="text-center">
+                                <span :style="props.row._gun < 0 ? 'color:#b91c1c;font-weight:700;' : (props.row._gun <= 3 ? 'color:#c2410c;font-weight:600;' : 'color:#64748b;')">{{ props.value }}</span>
+                            </q-td>''')
+                        ykt.add_slot('body-cell-kalan', r'''
+                            <q-td :props="props" class="text-right">
+                                <span :style="props.row._borc ? 'color:#ef4444;font-weight:700;' : 'color:#10b981;font-weight:700;'">{{ Number(props.value).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}) }} TL</span>
+                            </q-td>''')
 
                 # Sağ: Vade Uyarıları (flex-1, Compact Liste)
                 with ui.card().classes('modern-card q-pa-md').style('flex: 1; border-radius: 16px; min-width: 0;'):
