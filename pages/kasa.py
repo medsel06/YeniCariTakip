@@ -13,6 +13,7 @@ from services.gelir_gider_service import GIDER_KATEGORILER, GELIR_KATEGORILER
 def kasa_page():
     if not create_layout(active_path='/kasa', page_title='Kasa'):
         return
+    ui.add_css('.kasa-table tbody tr { cursor: pointer; }')
 
     def _open_pdf(pdf_bytes, filename: str):
         preview_url = save_pdf_preview(pdf_bytes, filename)
@@ -367,60 +368,89 @@ def kasa_page():
         dlg.open()
 
     def open_detail_dialog(row):
-        with ui.dialog() as dlg, ui.card().classes('alse-dialog').style('width:90vw; max-width:500px'):
-            with ui.element('div').classes('alse-dialog-header'):
-                ui.icon('account_balance_wallet')
-                ui.label('Kasa Kaydı Detayı').classes('dialog-title')
+        """Kasa satır detaylarını gösteren modern bir kart/modal açar (Yeni Tasarım)."""
+        tur = row.get('tur', '')
+        
+        # Tür-bazlı renk ve başlık atamaları (Açık Tema)
+        if tur == 'GELIR':
+            bg_color = 'bg-emerald-50'
+            text_color = 'text-emerald-800'
+            border_color = 'border-emerald-100'
+            tur_label = 'Kasa Girişi (Gelir)'
+            icon = 'arrow_downward'
+        else: # GIDER
+            bg_color = 'bg-rose-50'
+            text_color = 'text-rose-800'
+            border_color = 'border-rose-100'
+            tur_label = 'Kasa Çıkışı (Gider)'
+            icon = 'arrow_upward'
+            
+        with ui.dialog() as dlg, ui.card().classes('q-pa-md').style('width: 90vw; max-width: 500px; border-radius: 12px;'):
+            # 1. Header (İşlem Türüne Göre Renkli)
+            with ui.row().classes(f'w-full items-center justify-between q-pa-sm rounded-lg border {bg_color} {border_color} q-mb-md'):
+                with ui.row().classes('items-center gap-2'):
+                    ui.icon(icon).classes(f'text-xl {text_color}')
+                    ui.label(tur_label).classes(f'text-base font-bold {text_color}')
+                ui.badge(f"ID: {row.get('id', '')}", color='grey-2').props('text-color=grey-7')
 
-            tarih = row.get('tarih', '')
-            if tarih and '-' in tarih:
-                parts = tarih.split('-')
-                tarih = f'{parts[2]}.{parts[1]}.{parts[0]}'
+            # 2. Body
+            with ui.column().classes('w-full gap-1 q-mb-md'):
+                def info_row(label, value, is_mono=False, extra_style=''):
+                    if value is None or value == '':
+                        value = '-'
+                    with ui.row().classes('w-full py-2 px-3 justify-between items-center rounded transition-all hover:bg-slate-50 border-b border-slate-100'):
+                        ui.label(label).classes('text-xs font-semibold text-slate-500 uppercase tracking-wider')
+                        ui.label(str(value)).classes(f'text-sm font-medium text-slate-800 {"num-mono" if is_mono else ""}').style(extra_style)
 
-            tur = row.get('tur', '')
-            tur_label = 'Gelir' if tur == 'GELIR' else 'Gider'
-            tur_color = 'positive' if tur == 'GELIR' else 'negative'
+                # Bilgiler
+                tarih_str = row.get('tarih', '')
+                if tarih_str:
+                    try:
+                        dt = datetime.strptime(tarih_str, '%Y-%m-%d')
+                        tarih_str = dt.strftime('%d.%m.%Y')
+                    except Exception:
+                        pass
+                info_row('Tarih', tarih_str)
+                info_row('Firma Adı', row.get('firma_ad'))
+                
+                # Tutar (vurgulu)
+                tutar = row.get('tutar', 0)
+                info_row('Tutar', f"{fmt_para(tutar)} TL", is_mono=True, extra_style='font-weight: 700; color: #1e293b; font-size: 15px;')
+                
+                info_row('Kategori', row.get('kategori'))
+                info_row('Ödeme Şekli', row.get('odeme_sekli'))
+                
+                # Yürüyen Bakiye
+                bakiye = row.get('yuruyen_bakiye', 0)
+                info_row('Yürüyen Bakiye', f"{fmt_para(bakiye)} TL", is_mono=True)
+                
+                info_row('Açıklama', row.get('aciklama'))
 
-            info_pairs = [
-                ('Tarih', tarih),
-                ('Firma', row.get('firma_ad', '-') or '-'),
-                ('Tutar', f'{fmt_para(row.get("tutar", 0))} TL'),
-                ('Ödeme Şekli', row.get('odeme_sekli', '-') or '-'),
-            ]
-            with ui.element('div').classes('q-mt-sm'):
-                for label, value in info_pairs:
-                    with ui.row().classes('w-full items-center q-py-xs'):
-                        ui.label(label).classes('text-body2 text-grey-7').style('width:120px')
-                        ui.label(str(value)).classes('text-body2 text-weight-medium')
-
-            with ui.row().classes('items-center q-py-xs'):
-                ui.label('Tür').classes('text-body2 text-grey-7').style('width:120px')
-                with ui.element('q-chip').props(f'dense color="{tur_color}" text-color="white" size="sm"'):
-                    ui.label(tur_label).classes('text-weight-bold')
-
-            if row.get('aciklama'):
-                ui.separator().classes('q-my-xs')
-                ui.label(f'Not: {row["aciklama"]}').classes('text-body2 text-grey-7')
-
-            if row.get('cek_id'):
-                ui.separator().classes('q-my-xs')
-                ui.label('Bağlı Çek Bilgisi').classes('text-subtitle2 text-weight-medium')
-                from services.cek_service import get_cek_by_id
-                cek = get_cek_by_id(row['cek_id'])
-                if cek:
-                    cek_pairs = [
-                        ('Çek No', cek.get('cek_no', '-')),
-                        ('Tutar', f'{fmt_para(cek.get("tutar", 0))} TL'),
-                        ('Durum', cek.get('durum', '-')),
-                    ]
-                    for label, value in cek_pairs:
-                        with ui.row().classes('w-full items-center q-py-xs'):
-                            ui.label(label).classes('text-body2 text-grey-7').style('width:120px')
-                            ui.label(str(value)).classes('text-body2 text-weight-medium')
+                # Bağlı Çek Bilgisi
+                if row.get('cek_id'):
+                    from services.cek_service import get_cek_by_id
+                    cek = get_cek_by_id(row['cek_id'])
+                    if cek:
+                        ui.separator().classes('q-my-xs')
+                        ui.label('Bağlı Çek Bilgisi').classes('text-xs font-bold text-slate-400 uppercase tracking-wider q-px-3 q-pt-sm')
+                        info_row('Çek No', cek.get('cek_no'))
+                        info_row('Çek Tutarı', f"{fmt_para(cek.get('tutar', 0))} TL", is_mono=True)
+                        info_row('Çek Durumu', cek.get('durum'))
 
             ui.separator().classes('q-my-xs')
-            with ui.row().classes('w-full justify-end'):
-                ui.button('Kapat', on_click=dlg.close).props('flat')
+
+            # 3. Footer (Aksiyon Butonları)
+            with ui.row().classes('w-full justify-between items-center q-mt-md'):
+                ui.button('Kapat', on_click=dlg.close).props('flat color=grey')
+                
+                with ui.row().classes('gap-2'):
+                    ui.button('Düzenle', icon='edit', 
+                              on_click=lambda: (dlg.close(), open_edit_dialog(row))) \
+                        .props('unelevated no-caps color=primary dense')
+                    ui.button('Sil', icon='delete', 
+                              on_click=lambda: (dlg.close(), do_delete(row.get('id')))) \
+                        .props('unelevated no-caps color=negative dense')
+                        
         dlg.open()
 
     def do_delete(row_id):
@@ -432,6 +462,8 @@ def kasa_page():
             except Exception as e:
                 notify_err(f'Hata: {e}')
         confirm_dialog('Bu kasa kaydını silmek istediğinize emin misiniz?', confirmed)
+
+
 
     # --- PAGE CONTENT ---
     with ui.column().classes('w-full q-pa-sm'):
@@ -505,7 +537,7 @@ def kasa_page():
         table_ref = ui.table(
             columns=columns, rows=all_rows, row_key='id',
             pagination={'rowsPerPage': 50}
-        ).classes('w-full').style('--table-extra-rows: 2;')
+        ).classes('w-full kasa-table').style('--table-extra-rows: 2;')
         table_ref.props('flat bordered dense')
 
         # Slot - tarih ve tutar NaN fix
@@ -547,8 +579,7 @@ def kasa_page():
         ''')
         table_ref.on('edit', lambda e: open_edit_dialog(e.args))
         table_ref.on('delete', lambda e: do_delete(e.args['id']))
-
-        # Satir tiklama - detay dialog
+        table_ref.on('row-click', lambda e: open_detail_dialog(e.args[1]))
         table_ref.on('rowClick', lambda e: open_detail_dialog(e.args[1]))
 
 

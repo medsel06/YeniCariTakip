@@ -20,6 +20,7 @@ from services.pdf_service import generate_table_pdf, save_pdf_preview
 def gelir_gider_page(focus: int = None):
     if not create_layout(active_path='/gelir-gider', page_title='Gelir / Gider'):
         return
+    ui.add_css('.gg-table tbody tr { cursor: pointer; }')
 
     table_ref = None
     all_rows = []
@@ -454,6 +455,82 @@ def gelir_gider_page(focus: int = None):
                 notify_err(f'Hata: {e}')
         confirm_dialog('Bu kaydı silmek istediğinize emin misiniz?', confirmed)
 
+    def _show_row_detail(row):
+        """Gelir/Gider satır detaylarını gösteren modern bir kart/modal açar."""
+        tur = row.get('tur', '')
+        
+        # Tür-bazlı renk ve başlık atamaları (Açık Tema)
+        if tur == 'GELIR':
+            bg_color = 'bg-emerald-50'
+            text_color = 'text-emerald-800'
+            border_color = 'border-emerald-100'
+            tur_label = 'Gelir Kaydı'
+            icon = 'arrow_downward'
+        else: # GIDER
+            bg_color = 'bg-rose-50'
+            text_color = 'text-rose-800'
+            border_color = 'border-rose-100'
+            tur_label = 'Gider Kaydı'
+            icon = 'arrow_upward'
+            
+        with ui.dialog() as dlg, ui.card().classes('q-pa-md').style('width: 90vw; max-width: 500px; border-radius: 12px;'):
+            # Header
+            with ui.row().classes(f'w-full items-center justify-between q-pa-sm rounded-lg border {bg_color} {border_color} q-mb-md'):
+                with ui.row().classes('items-center gap-2'):
+                    ui.icon(icon).classes(f'text-xl {text_color}')
+                    ui.label(tur_label).classes(f'text-base font-bold {text_color}')
+                ui.badge(f"ID: {row.get('id', '')}", color='grey-2').props('text-color=grey-7')
+
+            # Body
+            with ui.column().classes('w-full gap-1 q-mb-md'):
+                def info_row(label, value, is_mono=False, extra_style=''):
+                    if value is None or value == '':
+                        value = '-'
+                    with ui.row().classes('w-full py-2 px-3 justify-between items-center rounded transition-all hover:bg-slate-50 border-b border-slate-100'):
+                        ui.label(label).classes('text-xs font-semibold text-slate-500 uppercase tracking-wider')
+                        ui.label(str(value)).classes(f'text-sm font-medium text-slate-800 {"num-mono" if is_mono else ""}').style(extra_style)
+
+                # Bilgiler
+                tarih_str = row.get('tarih', '')
+                if tarih_str:
+                    try:
+                        dt = datetime.strptime(tarih_str, '%Y-%m-%d')
+                        tarih_str = dt.strftime('%d.%m.%Y')
+                    except Exception:
+                        pass
+                info_row('Tarih', tarih_str)
+                info_row('Firma Adı', row.get('firma_ad'))
+                
+                # Tutar (vurgulu)
+                toplam = row.get('toplam', 0)
+                info_row('Tutar (Matrah)', f"{fmt_para(toplam)} TL", is_mono=True, extra_style='font-weight: 700; color: #1e293b; font-size: 15px;')
+                
+                info_row('Kategori', row.get('kategori'))
+                
+                # Ödeme Durumu
+                durum = row.get('odeme_durumu', '')
+                durum_label = 'Ödendi' if durum == 'ODENDI' else 'Kısmi' if durum == 'KISMI' else 'Ödenmedi'
+                info_row('Ödeme Durumu', durum_label)
+                
+                info_row('Ödeme Şekli', row.get('odeme_sekli'))
+                info_row('Açıklama', row.get('aciklama'))
+
+            ui.separator().classes('q-my-xs')
+
+            # Footer
+            with ui.row().classes('w-full justify-between items-center q-mt-md'):
+                ui.button('Kapat', on_click=dlg.close).props('flat color=grey')
+                
+                with ui.row().classes('gap-2'):
+                    ui.button('Düzenle', icon='edit', 
+                              on_click=lambda: (dlg.close(), open_dialog(edit_row=row))) \
+                        .props('unelevated no-caps color=primary dense')
+                    ui.button('Sil', icon='delete', 
+                              on_click=lambda: (dlg.close(), do_delete(row.get('id')))) \
+                        .props('unelevated no-caps color=negative dense')
+                        
+        dlg.open()
+
     def on_donem_change(yil, ay):
         state['yil'] = yil
         state['ay'] = ay
@@ -525,7 +602,7 @@ def gelir_gider_page(focus: int = None):
         table_ref = ui.table(
             columns=columns, rows=all_rows, row_key='id',
             pagination={'rowsPerPage': 50, 'sortBy': 'tarih', 'descending': True}
-        ).classes('w-full').style('--table-extra-rows: 2;')
+        ).classes('w-full gg-table').style('--table-extra-rows: 2;')
         table_ref.props('flat bordered dense')
 
         table_ref.add_slot('body-cell-tarih', TARIH_SLOT)
@@ -590,6 +667,8 @@ def gelir_gider_page(focus: int = None):
 
         table_ref.on('edit', lambda e: open_dialog(edit_row=e.args))
         table_ref.on('delete', lambda e: do_delete(e.args['id']))
+        table_ref.on('row-click', lambda e: _show_row_detail(e.args[1]))
+        table_ref.on('rowClick', lambda e: _show_row_detail(e.args[1]))
 
         # Islemler detay modalindan 'Kaynak -> kayda git' ile gelinince ilgili kaydi ac
         if focus:

@@ -772,6 +772,36 @@ tr:hover .tarihsiz-cell { background: #fecaca !important; }
   /* Sayfa icerik sarmalayicisi: ust/alt boslugu kaldir, bolum araligini kis (tablo dibi scroll'suz gorunsun) */
   .nicegui-content { padding-top: 0 !important; padding-bottom: 0 !important; gap: 8px !important; }
 }
+
+/* Sidebar (drawer) scrollbar styling: thin & faded */
+.alse-drawer,
+.alse-drawer *,
+.alse-drawer .q-drawer__content {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+.alse-drawer::-webkit-scrollbar,
+.alse-drawer *::-webkit-scrollbar,
+.alse-drawer .q-drawer__content::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.alse-drawer::-webkit-scrollbar-track,
+.alse-drawer *::-webkit-scrollbar-track,
+.alse-drawer .q-drawer__content::-webkit-scrollbar-track {
+  background: transparent;
+}
+.alse-drawer::-webkit-scrollbar-thumb,
+.alse-drawer *::-webkit-scrollbar-thumb,
+.alse-drawer .q-drawer__content::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+.alse-drawer::-webkit-scrollbar-thumb:hover,
+.alse-drawer *::-webkit-scrollbar-thumb:hover,
+.alse-drawer .q-drawer__content::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
 '''
 
 

@@ -245,26 +245,26 @@ def dashboard_page():
             with ui.element('div').classes('w-full gap-4 q-mt-lg q-mb-md primary-kpis-grid'):
                 # Net Kar / Zarar Card
                 card_class = 'gradient-card-profit' if is_profit else 'gradient-card-loss'
-                with ui.card().classes(f'q-pa-md {card_class} justify-between').style('height: 128px; border-radius: 12px;'):
+                with ui.card().classes(f'q-pa-md {card_class} justify-between').style('height: 104px; border-radius: 12px;'):
                     with ui.row().classes('w-full justify-between items-start no-wrap'):
                         ui.label('Net Kar / Zarar').classes('text-weight-medium').style('font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9;')
                         with ui.element('div').classes('q-pa-xs').style('background: rgba(255,255,255,0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px;'):
                             ui.icon('trending_up' if is_profit else 'trending_down', color='white', size='20px')
                     with ui.column().classes('gap-0'):
-                        ui.label(f'{fmt_para(net_kar)} TL').classes('text-weight-bolder').style('font-size: 24px; font-weight: 800; letter-spacing: -0.5px;')
+                        ui.label(f'{fmt_para(net_kar)} TL').classes('text-weight-bolder').style('font-size: 20px; font-weight: 800; letter-spacing: -0.5px;')
                         with ui.row().classes('items-center gap-1 q-mt-xs').style('font-size: 11px; opacity: 0.85;'):
                             ui.icon('check_circle' if is_profit else 'warning', size='14px')
                             ui.label('Bu dönem karlı geçiyor' if is_profit else 'Bu dönem giderler gelirleri aştı')
 
                 # Kasa Bakiyesi Card
                 kasa_bakiye = summary['kasa_bakiye']
-                with ui.card().classes('q-pa-md gradient-card-kasa justify-between').style('height: 128px; border-radius: 12px;'):
+                with ui.card().classes('q-pa-md gradient-card-kasa justify-between').style('height: 104px; border-radius: 12px;'):
                     with ui.row().classes('w-full justify-between items-start no-wrap'):
                         ui.label('Kasa Bakiyesi').classes('text-weight-medium').style('font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9;')
                         with ui.element('div').classes('q-pa-xs').style('background: rgba(255,255,255,0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px;'):
                             ui.icon('account_balance_wallet', color='white', size='20px')
                     with ui.column().classes('gap-0'):
-                        ui.label(f'{fmt_para(kasa_bakiye)} TL').classes('text-weight-bolder').style('font-size: 24px; font-weight: 800; letter-spacing: -0.5px;')
+                        ui.label(f'{fmt_para(kasa_bakiye)} TL').classes('text-weight-bolder').style('font-size: 20px; font-weight: 800; letter-spacing: -0.5px;')
                         with ui.row().classes('items-center gap-1 q-mt-xs').style('font-size: 11px; opacity: 0.85;'):
                             ui.icon('check_circle', size='14px')
                             ui.label('Aktif nakit likiditesi')
@@ -283,7 +283,7 @@ def dashboard_page():
                 else:
                     hacim_txt = f"{int(toplam_hacim)} TL"
 
-                with ui.card().classes('q-pa-md modern-card justify-between').style('height: 128px; border-radius: 12px;'):
+                with ui.card().classes('q-pa-md modern-card justify-between').style('height: 104px; border-radius: 12px;'):
                     with ui.row().classes('w-full justify-between items-center no-wrap'):
                         ui.label('SATIŞ VE ALIŞ DENGESİ').classes('text-weight-bold').style('font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b;')
                         with ui.row().classes('items-center q-px-sm q-py-xs').style('background: #eff6ff; color: #2563eb; border-radius: 20px; font-size: 11px; font-weight: 700;'):

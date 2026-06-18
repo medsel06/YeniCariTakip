@@ -23,7 +23,7 @@ def odeme_takibi_page():
     # Min-height'i sifirliyoruz ki az kayitta altta bos gri alan olusmasin.
     ui.add_css('''
         .odeme-tbl td, .odeme-tbl th { padding: 2px 10px !important; }
-        .odeme-tbl tbody tr { height: 34px; background: #fff; }
+        .odeme-tbl tbody tr { height: 34px; background: #fff; cursor: pointer; }
         .odeme-tbl tbody td { border-bottom: 1px solid #e0e0e0; }
         .odeme-tbl .q-table__middle {
             min-height: 0 !important;
@@ -273,19 +273,19 @@ def odeme_takibi_page():
                     <div class="row no-wrap items-center" style="gap:2px;">
                         <span style="display:inline-flex;width:30px;justify-content:center;">
                             <q-btn v-if="props.row._src==='MANUEL' && props.row._durumraw!=='ODENDI'" flat round dense icon="account_balance_wallet" color="positive" size="sm"
-                                @click="$parent.$emit('ode', props.row)"><q-tooltip>Öde/Tahsil</q-tooltip></q-btn>
+                                @click.stop="$parent.$emit('ode', props.row)"><q-tooltip>Öde/Tahsil</q-tooltip></q-btn>
                             <q-btn v-else-if="props.row._src==='CARI' && props.row._durumraw!=='ODENDI'" flat round dense icon="account_balance_wallet" color="positive" size="sm"
-                                @click="$parent.$emit('cari_ode', props.row)"><q-tooltip>Tahsilat / Ödeme yap</q-tooltip></q-btn>
+                                @click.stop="$parent.$emit('cari_ode', props.row)"><q-tooltip>Tahsilat / Ödeme yap</q-tooltip></q-btn>
                             <q-btn v-else-if="props.row._src==='CEK'" flat round dense icon="open_in_new" color="primary" size="sm"
-                                @click="$parent.$emit('goto_cek', props.row)"><q-tooltip>Çek Sayfası</q-tooltip></q-btn>
+                                @click.stop="$parent.$emit('goto_cek', props.row)"><q-tooltip>Çek Sayfası</q-tooltip></q-btn>
                         </span>
                         <span style="display:inline-flex;width:30px;justify-content:center;">
                             <q-btn v-if="props.row._src==='MANUEL'" flat round dense icon="edit" color="primary" size="sm"
-                                @click="$parent.$emit('edit', props.row)" />
+                                @click.stop="$parent.$emit('edit', props.row)" />
                         </span>
                         <span style="display:inline-flex;width:30px;justify-content:center;">
                             <q-btn v-if="props.row._src==='MANUEL'" flat round dense icon="delete" color="negative" size="sm"
-                                @click="$parent.$emit('sil', props.row)" />
+                                @click.stop="$parent.$emit('sil', props.row)" />
                         </span>
                     </div>
                 </q-td>''')
@@ -294,6 +294,8 @@ def odeme_takibi_page():
             tbl.on('sil', lambda e: _sil(e.args))
             tbl.on('cari_ode', lambda e: _cari_ode_dialog(e.args))
             tbl.on('goto_cek', lambda e: ui.navigate.to('/cekler'))
+            tbl.on('row-click', lambda e: _show_row_detail(e.args[1]))
+            tbl.on('rowClick', lambda e: _show_row_detail(e.args[1]))
 
             top_tutar = sum(float(r['tutar'] or 0) for r in data)
             top_kalan = sum(float(r['kalan'] or 0) for r in data)
@@ -429,6 +431,89 @@ def odeme_takibi_page():
     def _sil(row):
         confirm_dialog(f"'{row['aciklama']}' kaydını silmek istediğinize emin misiniz?",
                        lambda: (delete_odeme_takibi(row['id']), notify_ok('Silindi'), _refresh()))
+
+    def _show_row_detail(row):
+        """Ödeme Takibi satır detaylarını gösteren modern bir kart/modal açar."""
+        tipraw = row.get('_tipraw', 'BORC')
+        src = row.get('_src', 'MANUEL')
+        durumraw = row.get('_durumraw', 'ACIK')
+        
+        # Tür-bazlı renk ve başlık atamaları (Açık Tema)
+        if tipraw == 'ALACAK':
+            bg_color = 'bg-emerald-50'
+            text_color = 'text-emerald-800'
+            border_color = 'border-emerald-100'
+            tur_label = 'Alacak Kaydı (Tahsilat)'
+            icon = 'arrow_downward'
+        else: # BORC
+            bg_color = 'bg-rose-50'
+            text_color = 'text-rose-800'
+            border_color = 'border-rose-100'
+            tur_label = 'Borç Kaydı (Ödeme)'
+            icon = 'arrow_upward'
+            
+        with ui.dialog() as dlg, ui.card().classes('q-pa-md').style('width: 90vw; max-width: 500px; border-radius: 12px;'):
+            # Header
+            with ui.row().classes(f'w-full items-center justify-between q-pa-sm rounded-lg border {bg_color} {border_color} q-mb-md'):
+                with ui.row().classes('items-center gap-2'):
+                    ui.icon(icon).classes(f'text-xl {text_color}')
+                    ui.label(tur_label).classes(f'text-base font-bold {text_color}')
+                ui.badge(f"ID: {row.get('id', '')}", color='grey-2').props('text-color=grey-7')
+
+            # Body
+            with ui.column().classes('w-full gap-1 q-mb-md'):
+                def info_row(label, value, is_mono=False, extra_style=''):
+                    if value is None or value == '':
+                        value = '-'
+                    with ui.row().classes('w-full py-2 px-3 justify-between items-center rounded transition-all hover:bg-slate-50 border-b border-slate-100'):
+                        ui.label(label).classes('text-xs font-semibold text-slate-500 uppercase tracking-wider')
+                        ui.label(str(value)).classes(f'text-sm font-medium text-slate-800 {"num-mono" if is_mono else ""}').style(extra_style)
+
+                # Bilgiler
+                info_row('Firma Adı', row.get('firma_ad'))
+                info_row('Vade Tarihi', row.get('_vade_disp'))
+                info_row('İşlem Tipi', row.get('tip'))
+                info_row('Kaynak', row.get('kaynak'))
+                
+                # Tutar Bilgileri
+                info_row('Toplam Tutar', f"{row.get('tutar')} TL", is_mono=True)
+                info_row('Kalan Tutar', f"{row.get('kalan')} TL", is_mono=True, extra_style='font-weight: 700; color: #1e293b; font-size: 15px;')
+                
+                # Ödeme Durumu
+                info_row('Durum', row.get('durum'))
+                info_row('Açıklama', row.get('aciklama'))
+
+            ui.separator().classes('q-my-xs')
+
+            # Footer (Dinamik Aksiyonlar)
+            with ui.row().classes('w-full justify-between items-center q-mt-md'):
+                ui.button('Kapat', on_click=dlg.close).props('flat color=grey')
+                
+                with ui.row().classes('gap-2'):
+                    # 1. Öde/Tahsil Et Aksiyonu
+                    if src == 'MANUEL' and durumraw != 'ODENDI':
+                        ui.button('Öde/Tahsil', icon='account_balance_wallet', 
+                                  on_click=lambda: (dlg.close(), _ode_dialog(row))) \
+                            .props('unelevated no-caps color=positive dense')
+                    elif src == 'CARI' and durumraw != 'ODENDI':
+                        ui.button('Ödeme Yap', icon='account_balance_wallet', 
+                                  on_click=lambda: (dlg.close(), _cari_ode_dialog(row))) \
+                            .props('unelevated no-caps color=positive dense')
+                    elif src == 'CEK':
+                        ui.button('Çek Sayfası', icon='open_in_new', 
+                                  on_click=lambda: (dlg.close(), ui.navigate.to('/cekler'))) \
+                            .props('unelevated no-caps color=primary dense')
+                    
+                    # 2. Düzenle Aksiyonu (Sadece Manuel)
+                    if src == 'MANUEL':
+                        ui.button('Düzenle', icon='edit', 
+                                  on_click=lambda: (dlg.close(), _edit_manuel(row))) \
+                            .props('unelevated no-caps color=primary dense')
+                        ui.button('Sil', icon='delete', 
+                                  on_click=lambda: (dlg.close(), _sil(row))) \
+                            .props('unelevated no-caps color=negative dense')
+                            
+        dlg.open()
 
     def _ode_secili(tbl):
         """Toplu odeme: secili kredi karti borclarini tek odemede kapat."""
