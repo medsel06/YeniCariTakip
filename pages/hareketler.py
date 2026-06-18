@@ -39,13 +39,15 @@ def hareketler_page():
         {'name': 'belge_no', 'label': 'BELGE NO', 'field': 'belge_no', 'align': 'left', 'sortable': True},
         {'name': 'firma_ad', 'label': 'FİRMA', 'field': 'firma_ad', 'align': 'left', 'sortable': True},
         {'name': 'tur', 'label': 'TÜR', 'field': 'tur', 'align': 'center', 'sortable': True},
-        {'name': 'urun_ad', 'label': 'ÜRÜN', 'field': 'urun_ad', 'align': 'left', 'sortable': True},
+        {'name': 'urun_ad', 'label': 'ÜRÜN', 'field': 'urun_ad', 'align': 'left', 'sortable': True,
+         'style': 'width:150px;max-width:150px', 'headerStyle': 'width:150px'},
         {'name': 'miktar', 'label': 'MİKTAR', 'field': 'miktar', 'align': 'right', 'sortable': True},
         {'name': 'birim_fiyat', 'label': 'BİRİM FİYAT', 'field': 'birim_fiyat', 'align': 'right', 'sortable': True},
         {'name': 'toplam', 'label': 'TOPLAM', 'field': 'toplam', 'align': 'right', 'sortable': True},
         {'name': 'kdvli_toplam', 'label': 'KDV\'Lİ TOPLAM', 'field': 'kdvli_toplam', 'align': 'right', 'sortable': True},
         {'name': 'tevkifat_orani', 'label': 'TEVKİFAT', 'field': 'tevkifat_orani', 'align': 'center', 'sortable': True},
-        {'name': 'aciklama', 'label': 'AÇIKLAMA', 'field': 'aciklama', 'align': 'left', 'sortable': False},
+        {'name': 'aciklama', 'label': 'AÇIKLAMA', 'field': 'aciklama', 'align': 'left', 'sortable': False,
+         'style': 'width:200px;max-width:200px', 'headerStyle': 'width:200px'},
         {'name': 'actions', 'label': 'İŞLEMLER', 'field': 'actions', 'align': 'left', 'sortable': False},
     ]
 
@@ -679,6 +681,23 @@ def hareketler_page():
         </q-td>
     ''' % _rcls
 
+    # Daraltilmis sutun: ellipsis + sadece metin sigmazsa (esik karakter sayisi) tooltip
+    def _ellipsis_slot(max_w, thr):
+        return (r'''
+        <q-td :props="props" :class="''' + _rcls + r'''">
+            <div style="max-width:''' + str(max_w) + r'''px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                {{ props.value }}
+                <q-tooltip v-if="props.value && String(props.value).length > ''' + str(thr) + r'''"
+                    anchor="top middle" self="bottom middle"
+                    style="font-size:12.5px;max-width:360px;white-space:normal;background:#1e293b;">
+                    {{ props.value }}
+                </q-tooltip>
+            </div>
+        </q-td>''')
+
+    _urun_slot = _ellipsis_slot(150, 18)
+    _aciklama_slot = _ellipsis_slot(200, 26)
+
     actions_slot = r'''
         <q-td :props="props" :class="%s">
             <template v-if="props.row.source === 'STOK' || !props.row.source">
@@ -767,9 +786,9 @@ def hareketler_page():
         table_ref.add_slot('body-cell-toplam', _para_slot)
         table_ref.add_slot('body-cell-kdvli_toplam', _para_slot)
         table_ref.add_slot('body-cell-belge_no', _default_slot)
-        table_ref.add_slot('body-cell-urun_ad', _default_slot)
+        table_ref.add_slot('body-cell-urun_ad', _urun_slot)
         table_ref.add_slot('body-cell-firma_ad', _default_slot)
-        table_ref.add_slot('body-cell-aciklama', _default_slot)
+        table_ref.add_slot('body-cell-aciklama', _aciklama_slot)
         table_ref.add_slot('body-cell-birim', _default_slot)
         table_ref.add_slot('body-cell-kdv_orani', _default_slot)
         table_ref.add_slot('body-cell-tevkifat_orani', r'''
