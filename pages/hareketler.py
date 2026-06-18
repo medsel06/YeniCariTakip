@@ -9,7 +9,16 @@ from layout import (
 from services.kasa_service import (
     get_hareketler, add_hareket, update_hareket, delete_hareket,
     get_kasa_by_id, add_kasa, update_kasa, delete_kasa, get_kasa_silme_etkisi,
+    get_kasa_kategoriler,
 )
+
+# Tur-bazli onerilen kategoriler (ön muhasebe)
+GELIR_KATEGORILER = ['Satış Tahsilatı', 'Cari Tahsilat', 'Çek/Senet Tahsilatı', 'Avans Alınan',
+                     'Kira Geliri', 'Faiz Geliri', 'İade/Geri Ödeme', 'Diğer Gelir']
+GIDER_KATEGORILER = ['Tedarikçi Ödemesi', 'Cari Ödeme', 'Personel/Maaş', 'Kira', 'Elektrik', 'Su',
+                     'Doğalgaz', 'Telefon/İnternet', 'Nakliye', 'Yakıt', 'Vergi/SGK',
+                     'Kredi/Kredi Kartı', 'Ofis/Kırtasiye', 'Bakım/Onarım', 'Sigorta',
+                     'Komisyon/Banka Masrafı', 'Diğer Gider']
 from services.cari_service import get_firma_list, add_firma, generate_firma_kod, get_firma_risk_durumu
 from services.stok_service import get_urun_list, add_urun, generate_urun_kod
 from services.banka_service import list_banka_hesaplari
@@ -563,7 +572,30 @@ def hareketler_page():
                     on_change=lambda e: (inp_odeme.set_value('HAVALE')
                                          if (e.value and inp_odeme.value == 'NAKIT') else None),
                 ).props('outlined dense').classes('col')
-                inp_kategori = ui.input('Kategori', value=kategori_default).props('outlined dense').classes('col')
+                _db_kats = get_kasa_kategoriler()
+
+                def _kat_opts(tur):
+                    base = GELIR_KATEGORILER if tur == 'GELIR' else GIDER_KATEGORILER
+                    out = []
+                    for k in base + _db_kats:
+                        if k and k not in out:
+                            out.append(k)
+                    if kategori_default and kategori_default not in out:
+                        out.append(kategori_default)
+                    return out
+
+                inp_kategori = ui.select(
+                    options=_kat_opts(tur_default), value=kategori_default or None,
+                    label='Kategori', with_input=True,
+                ).props('outlined dense new-value-mode=add-unique').classes('col')
+
+                def _sync_kat_opts(_=None):
+                    opts = _kat_opts(inp_tur.value)
+                    cur = inp_kategori.value
+                    if cur and cur not in opts:
+                        opts = opts + [cur]
+                    inp_kategori.set_options(opts)
+                inp_tur.on_value_change(_sync_kat_opts)
 
             inp_aciklama = ui.input('Açıklama', value=aciklama_default).classes('w-full q-mt-sm').props('outlined dense')
 

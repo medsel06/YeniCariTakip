@@ -62,6 +62,15 @@ def _add_kasa_conn(conn, data):
     return cur.fetchone()['id']
 
 
+def get_kasa_kategoriler():
+    """Kasa'da daha once kullanilmis benzersiz kategoriler (oneri listesi icin)."""
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT DISTINCT kategori FROM kasa WHERE kategori IS NOT NULL AND kategori <> '' ORDER BY kategori"
+        ).fetchall()
+        return [r['kategori'] for r in rows]
+
+
 def add_kasa(data):
     with get_db() as conn:
         return _add_kasa_conn(conn, data)
