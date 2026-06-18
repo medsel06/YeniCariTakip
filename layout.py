@@ -804,6 +804,7 @@ def create_layout(active_path='/', page_title=''):
     ''', shared=True)
     ui.add_body_html('''
         <script>
+        document.documentElement.lang = 'tr';  /* CSS text-transform:uppercase Turkce olsun (YENI -> YENİ) */
         if ('serviceWorker' in navigator) {
           navigator.serviceWorker.register('/assets/sw.js').catch(()=>{});
         }

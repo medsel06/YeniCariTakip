@@ -76,7 +76,7 @@ def cari_page():
             ui.space()
             # Tek parca ozet panel (butonlarin saginda, ayni satirda)
             ozet_box = ui.row().classes('items-center no-wrap')
-            ui.button('Yeni Firma', icon='add', on_click=lambda: open_new_firma_dialog()) \
+            ui.button('Yeni', icon='add_business', on_click=lambda: open_new_firma_dialog()) \
                 .props('color=primary dense')
 
         def _render_ozet():

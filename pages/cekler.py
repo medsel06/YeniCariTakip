@@ -693,7 +693,7 @@ def cekler_page():
                             'PDF', icon='picture_as_pdf', color='primary',
                             on_click=lambda: _open_pdf(generate_cek_raporu_pdf(alinan_rows), 'alinan_cekler.pdf')
                         ).props('dense')
-                        ui.button('Yeni Çek/Senet', icon='add', color='primary',
+                        ui.button('Yeni Çek/Senet', icon='receipt_long', color='primary',
                                   on_click=lambda: open_add_dialog('ALINAN')).props('dense')
 
                 alinan_table = ui.table(
@@ -715,7 +715,7 @@ def cekler_page():
                             'PDF', icon='picture_as_pdf', color='primary',
                             on_click=lambda: _open_pdf(generate_cek_raporu_pdf(verilen_rows), 'verilen_cekler.pdf')
                         ).props('dense')
-                        ui.button('Yeni Çek/Senet', icon='add', color='primary',
+                        ui.button('Yeni Çek/Senet', icon='receipt_long', color='primary',
                                   on_click=lambda: open_add_dialog('VERILEN')).props('dense')
 
                 verilen_table = ui.table(

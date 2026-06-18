@@ -20,6 +20,8 @@ def banka_page():
     kartlar_box = None
     hareket_box = None
     ozet_box = None
+    btn_banka = None
+    btn_kredi = None
 
     def _refresh():
         _ozet()
@@ -60,25 +62,41 @@ def banka_page():
             if not hesaplar:
                 ui.label(f"Tanımlı {TIP_LABEL[state['tip']].lower()} yok. \"Yeni\" ile ekleyin.").classes('text-grey-6 q-pa-sm')
                 return
-            # SATIR (liste) gorunumu — her hesap tek ince satir
-            with ui.column().classes('w-full gap-0').style('border:1px solid #e0e0e0;border-radius:8px;overflow:hidden'):
-                for i, h in enumerate(hesaplar):
-                    bakiye = h['bakiye']
-                    renk = 'text-negative' if bakiye < 0 else 'text-positive'
-                    sel = state['secili'] == h['id']
-                    bg = '#e3f2fd' if sel else ('#fafafa' if i % 2 else '#ffffff')
-                    satir = ui.row().classes('w-full items-center no-wrap cursor-pointer q-px-sm') \
-                        .style(f'background:{bg};min-height:38px;border-bottom:1px solid #eee')
-                    with satir.on('click', lambda hid=h['id']: _sec(hid)):
-                        ui.icon('credit_card' if is_kart_tip else 'account_balance',
-                                color='deep-purple' if is_kart_tip else 'indigo').style('font-size:18px')
-                        ui.label(h['ad']).classes('text-body2 text-weight-medium').style('flex:1;min-width:120px')
-                        if is_kart_tip and h.get('kart_limiti'):
-                            kullanilabilir = float(h['kart_limiti']) + bakiye
-                            ui.label(f"Limit {fmt_para(h['kart_limiti'])} · Kull. {fmt_para(kullanilabilir)}").classes('text-caption text-grey-6').style('min-width:200px;text-align:right')
-                        ui.label(f"{fmt_para(bakiye)} TL").classes(f'text-body2 text-weight-bold {renk}').style('min-width:130px;text-align:right')
-                        ui.button(icon='edit', on_click=lambda e, hh=h: _form(hh)).props('flat round dense size=sm color=primary')
-                        ui.button(icon='delete', on_click=lambda e, hh=h: _sil(hh)).props('flat round dense size=sm color=negative')
+            # Tablo gorunumu (Islemler referans: zebra + tablo, cerceve degil)
+            cols = [
+                {'name': 'ad', 'label': 'Hesap', 'field': 'ad', 'align': 'left', 'sortable': True},
+                {'name': 'bakiye', 'label': 'Bakiye', 'field': 'bakiye', 'align': 'right', 'sortable': True},
+                {'name': 'actions', 'label': 'İşlem', 'field': 'actions', 'align': 'right'},
+            ]
+            if is_kart_tip:
+                cols.insert(1, {'name': 'limit', 'label': 'Limit / Kullanılabilir', 'field': 'limit', 'align': 'right'})
+            rows = []
+            for h in hesaplar:
+                bakiye = h['bakiye']
+                row = {'id': h['id'], 'ad': h['ad'], 'bakiye': float(bakiye or 0)}
+                if is_kart_tip:
+                    if h.get('kart_limiti'):
+                        kullanilabilir = float(h['kart_limiti']) + bakiye
+                        row['limit'] = f"Limit {fmt_para(h['kart_limiti'])} · Kull. {fmt_para(kullanilabilir)}"
+                    else:
+                        row['limit'] = ''
+                rows.append(row)
+            htbl = ui.table(columns=cols, rows=rows, row_key='id',
+                            pagination={'rowsPerPage': 0}).classes('w-full').props('flat dense')
+            htbl.add_slot('body-cell-bakiye', r'''
+                <q-td :props="props" class="text-right">
+                    <span :class="(Number(props.value)||0) < 0 ? 'text-negative text-weight-bold' : 'text-positive text-weight-bold'">
+                        {{ ((Number(props.value)||0)<0?'-':'') + Math.abs(Number(props.value)||0).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}) }} TL
+                    </span>
+                </q-td>''')
+            htbl.add_slot('body-cell-actions', r'''
+                <q-td :props="props" class="text-right">
+                    <q-btn flat round dense size="sm" color="primary" icon="edit" @click.stop="$parent.$emit('duzenle', props.row)" />
+                    <q-btn flat round dense size="sm" color="negative" icon="delete" @click.stop="$parent.$emit('sil', props.row)" />
+                </q-td>''')
+            htbl.on('rowClick', lambda e: _sec(e.args[1]['id']))
+            htbl.on('duzenle', lambda e: _form(get_banka_hesap(e.args['id'])))
+            htbl.on('sil', lambda e: _sil(get_banka_hesap(e.args['id'])))
 
     def _sec(hid):
         state['secili'] = hid
@@ -118,7 +136,7 @@ def banka_page():
                      'bakiye': fmt_para(r.get('_yuruyen', 0)),
                      'aciklama': r.get('aciklama', '') or ''} for r in hareketler]
             ui.table(columns=cols, rows=rows, row_key='aciklama',
-                     pagination={'rowsPerPage': 20}).classes('w-full').props('flat bordered dense')
+                     pagination={'rowsPerPage': 20}).classes('w-full').props('flat dense')
 
     def _form(h=None):
         duzenle = h is not None
@@ -196,20 +214,53 @@ def banka_page():
     def _tab_degis(tip):
         state['tip'] = tip
         state['secili'] = None
+        
+        # Sekme butonlarının stillerini dinamik olarak güncelle
+        if btn_banka and btn_kredi:
+            if tip == 'BANKA':
+                btn_banka.classes('bg-white text-slate-900 shadow-sm', remove='text-slate-500 hover:text-slate-900')
+                btn_kredi.classes('text-slate-500 hover:text-slate-900', remove='bg-white text-slate-900 shadow-sm')
+            else:
+                btn_banka.classes('text-slate-500 hover:text-slate-900', remove='bg-white text-slate-900 shadow-sm')
+                btn_kredi.classes('bg-white text-slate-900 shadow-sm', remove='text-slate-500 hover:text-slate-900')
+                
         _refresh()
 
     # --- PAGE ---
-    with ui.column().classes('w-full q-pa-sm gap-1'):
-        with ui.row().classes('w-full items-center justify-between'):
-            with ui.row().classes('gap-1'):
-                ui.button('Banka Hesapları', icon='account_balance',
-                          on_click=lambda: _tab_degis('BANKA')).props('flat no-caps').bind_visibility_from(state, 'tip', lambda t: True)
-                ui.button('Kredi Kartları', icon='credit_card',
-                          on_click=lambda: _tab_degis('KREDI_KARTI')).props('flat no-caps')
-            with ui.row().classes('items-center gap-2'):
+    with ui.column().classes('w-full q-pa-md gap-4'):
+        # Üst Arayüz Satırı (Sekmeler ve İşlem Butonları)
+        with ui.row().classes('w-full items-center justify-between border-b border-slate-100 pb-4'):
+            
+            # 1. SOL TARAF: Modern Tab Görünümü (Segmented Control)
+            with ui.row().classes('bg-slate-100 p-1 rounded-lg gap-1 items-center'):
+                # Banka Hesapları Sekmesi
+                btn_banka = ui.button('Banka Hesapları', icon='account_balance',
+                           on_click=lambda: _tab_degis('BANKA')).props('flat no-caps dense')
+                btn_banka.classes('px-4 py-1.5 text-sm font-medium rounded-md transition-all')
+                
+                # Kredi Kartları Sekmesi
+                btn_kredi = ui.button('Kredi Kartları', icon='credit_card',
+                           on_click=lambda: _tab_degis('KREDI_KARTI')).props('flat no-caps dense')
+                btn_kredi.classes('px-4 py-1.5 text-sm font-medium rounded-md transition-all')
+
+                # Başlangıç durumu (BANKA aktif)
+                btn_banka.classes('bg-white text-slate-900 shadow-sm')
+                btn_kredi.classes('text-slate-500 hover:text-slate-900')
+
+            # 2. SAĞ TARAF: Dengeli İşlem Butonları
+            with ui.row().classes('items-center gap-3'):
                 ozet_box = ui.row().classes('items-center no-wrap')
-                ui.button('Transfer', icon='swap_horiz', on_click=_transfer).props('outline color=primary dense')
-                ui.button('Yeni', icon='add', on_click=lambda: _form(), color='primary').props('unelevated dense')
+                
+                # Transfer Butonu (İkincil - İnce Çerçeveli)
+                ui.button('Transfer', icon='swap_horiz', on_click=_transfer) \
+                    .props('unelevated no-caps') \
+                    .classes('h-10 px-4 border border-slate-300 text-slate-700 hover:bg-slate-50 font-medium rounded-lg transition-all')
+                
+                # Yeni Butonu (Birincil - Koyu Slate)
+                ui.button('Yeni', icon='account_balance', on_click=lambda: _form()) \
+                    .props('unelevated') \
+                    .classes('h-10 px-4 bg-slate-900 text-white hover:bg-slate-800 font-medium rounded-lg shadow-sm transition-all')
+                    
         kartlar_box = ui.column().classes('w-full')
         hareket_box = ui.column().classes('w-full')
     _refresh()

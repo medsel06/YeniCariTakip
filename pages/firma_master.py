@@ -152,7 +152,7 @@ def firma_master_page():
             ).props('outlined dense clearable').classes('w-64')
             lbl_toplam = ui.label(f'Toplam Firma: {len(all_rows)}').classes('text-caption text-grey-7')
             ui.space()
-            ui.button('Yeni Firma', icon='add', color='primary', on_click=_open_add).props('dense')
+            ui.button('Yeni', icon='add_business', color='primary', on_click=_open_add).props('dense')
 
         columns = [
             {'name': 'ad', 'label': 'Firma', 'field': 'ad', 'align': 'left', 'sortable': True},

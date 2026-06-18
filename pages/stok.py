@@ -225,7 +225,7 @@ def stok_page():
             ).props('outlined dense clearable').classes('w-64')
             ui.space()
             ui.button('PDF', icon='picture_as_pdf', color='primary', on_click=_pdf_stok_listesi).props('dense')
-            ui.button('Yeni Ürün', icon='add', color='primary', on_click=open_add_dialog)
+            ui.button('Ekle', icon='inventory_2', color='primary', on_click=open_add_dialog).props('dense')
 
         table_ref = ui.table(
             columns=columns, rows=all_rows, row_key='kod',
