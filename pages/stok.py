@@ -25,7 +25,7 @@ def stok_page():
          'sortable': True},
         {'name': 'stok', 'label': 'Net Stok', 'field': 'stok', 'align': 'right', 'sortable': True},
         {'name': 'birim', 'label': 'Birim', 'field': 'birim', 'align': 'center', 'sortable': True},
-        {'name': 'actions', 'label': 'İşlemler', 'field': 'actions', 'align': 'center', 'sortable': False},
+        {'name': 'actions', 'label': 'İşlemler', 'field': 'actions', 'align': 'left', 'sortable': False},
     ]
 
     def load_data():
@@ -250,15 +250,21 @@ def stok_page():
 
         table_ref.add_slot('body-cell-actions', r'''
             <q-td :props="props">
-                <q-btn flat round dense icon="drive_file_rename_outline" color="primary" size="sm"
-                    @click.stop="$parent.$emit('edit', props.row)">
-                    <q-tooltip>Düzenle</q-tooltip>
-                </q-btn>
-                <q-btn v-if="(!props.row.alis || props.row.alis === 0) && (!props.row.satis || props.row.satis === 0) && (!props.row.uretim_girdi || props.row.uretim_girdi === 0) && (!props.row.uretim_cikti || props.row.uretim_cikti === 0)"
-                    flat round dense icon="delete_outline" color="negative" size="sm"
-                    @click.stop="$parent.$emit('remove', props.row)">
-                    <q-tooltip>Sil (boş stok)</q-tooltip>
-                </q-btn>
+                <div class="row no-wrap items-center" style="gap:2px;">
+                    <span style="display:inline-flex;width:30px;justify-content:center;">
+                        <q-btn flat round dense icon="drive_file_rename_outline" color="primary" size="sm"
+                            @click.stop="$parent.$emit('edit', props.row)">
+                            <q-tooltip>Düzenle</q-tooltip>
+                        </q-btn>
+                    </span>
+                    <span style="display:inline-flex;width:30px;justify-content:center;">
+                        <q-btn v-if="(!props.row.alis || props.row.alis === 0) && (!props.row.satis || props.row.satis === 0) && (!props.row.uretim_girdi || props.row.uretim_girdi === 0) && (!props.row.uretim_cikti || props.row.uretim_cikti === 0)"
+                            flat round dense icon="delete_outline" color="negative" size="sm"
+                            @click.stop="$parent.$emit('remove', props.row)">
+                            <q-tooltip>Sil (boş stok)</q-tooltip>
+                        </q-btn>
+                    </span>
+                </div>
             </q-td>
         ''')
 

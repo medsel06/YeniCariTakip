@@ -172,7 +172,7 @@ def odeme_takibi_page():
                 {'name': 'tutar', 'label': 'Tutar', 'field': 'tutar', 'align': 'right', 'sortable': True},
                 {'name': 'kalan', 'label': 'Kalan', 'field': 'kalan', 'align': 'right'},
                 {'name': 'durum', 'label': 'Durum', 'field': 'durum', 'align': 'center'},
-                {'name': 'actions', 'label': 'İşlem', 'field': 'actions', 'align': 'center'},
+                {'name': 'actions', 'label': 'İşlem', 'field': 'actions', 'align': 'left'},
             ]
             disp = []
             for r in data:
@@ -270,16 +270,24 @@ def odeme_takibi_page():
                 </q-td>''')
             tbl.add_slot('body-cell-actions', r'''
                 <q-td :props="props">
-                    <q-btn v-if="props.row._src==='MANUEL' && props.row._durumraw!=='ODENDI'" flat round dense icon="account_balance_wallet" color="positive" size="sm"
-                        @click="$parent.$emit('ode', props.row)"><q-tooltip>Öde/Tahsil</q-tooltip></q-btn>
-                    <q-btn v-if="props.row._src==='MANUEL'" flat round dense icon="edit" color="primary" size="sm"
-                        @click="$parent.$emit('edit', props.row)" />
-                    <q-btn v-if="props.row._src==='MANUEL'" flat round dense icon="delete" color="negative" size="sm"
-                        @click="$parent.$emit('sil', props.row)" />
-                    <q-btn v-if="props.row._src==='CARI' && props.row._durumraw!=='ODENDI'" flat round dense icon="account_balance_wallet" color="positive" size="sm"
-                        @click="$parent.$emit('cari_ode', props.row)"><q-tooltip>Tahsilat / Ödeme yap</q-tooltip></q-btn>
-                    <q-btn v-if="props.row._src==='CEK'" flat round dense icon="open_in_new" color="primary" size="sm"
-                        @click="$parent.$emit('goto_cek', props.row)"><q-tooltip>Çek Sayfası</q-tooltip></q-btn>
+                    <div class="row no-wrap items-center" style="gap:2px;">
+                        <span style="display:inline-flex;width:30px;justify-content:center;">
+                            <q-btn v-if="props.row._src==='MANUEL' && props.row._durumraw!=='ODENDI'" flat round dense icon="account_balance_wallet" color="positive" size="sm"
+                                @click="$parent.$emit('ode', props.row)"><q-tooltip>Öde/Tahsil</q-tooltip></q-btn>
+                            <q-btn v-else-if="props.row._src==='CARI' && props.row._durumraw!=='ODENDI'" flat round dense icon="account_balance_wallet" color="positive" size="sm"
+                                @click="$parent.$emit('cari_ode', props.row)"><q-tooltip>Tahsilat / Ödeme yap</q-tooltip></q-btn>
+                            <q-btn v-else-if="props.row._src==='CEK'" flat round dense icon="open_in_new" color="primary" size="sm"
+                                @click="$parent.$emit('goto_cek', props.row)"><q-tooltip>Çek Sayfası</q-tooltip></q-btn>
+                        </span>
+                        <span style="display:inline-flex;width:30px;justify-content:center;">
+                            <q-btn v-if="props.row._src==='MANUEL'" flat round dense icon="edit" color="primary" size="sm"
+                                @click="$parent.$emit('edit', props.row)" />
+                        </span>
+                        <span style="display:inline-flex;width:30px;justify-content:center;">
+                            <q-btn v-if="props.row._src==='MANUEL'" flat round dense icon="delete" color="negative" size="sm"
+                                @click="$parent.$emit('sil', props.row)" />
+                        </span>
+                    </div>
                 </q-td>''')
             tbl.on('ode', lambda e: _ode_dialog(e.args))
             tbl.on('edit', lambda e: _edit_manuel(e.args))
