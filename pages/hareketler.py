@@ -28,8 +28,10 @@ def hareketler_page():
     .hrk-table td:last-child { border-right: none; }
     .hrk-table th { border-right: 1px solid rgba(255,255,255,0.15); text-align: center !important; }
     .hrk-table th:last-child { border-right: none; }
-    /* Rakam sutunlari: orijinal font + tabular figures (hizali) + biraz kucuk */
-    .hrk-table .num-mono { font-variant-numeric: tabular-nums; font-size: 12px; }
+    /* Tum tablo govdesi 12px (tarih + tutar + diger hucreler ayni boyut) */
+    .hrk-table tbody td { font-size: 12px; }
+    /* Rakam sutunlari: orijinal font + tabular figures (hizali) */
+    .hrk-table .num-mono { font-variant-numeric: tabular-nums; }
     ''')
 
     table_ref = None
