@@ -28,10 +28,8 @@ def hareketler_page():
     .hrk-table td:last-child { border-right: none; }
     .hrk-table th { border-right: 1px solid rgba(255,255,255,0.15); text-align: center !important; }
     .hrk-table th:last-child { border-right: none; }
-    /* Tum tablo govdesi 12px (tarih + tutar + diger hucreler ayni boyut) */
-    .hrk-table tbody td { font-size: 12px; }
-    /* Rakam sutunlari: orijinal font + tabular figures (hizali) */
-    .hrk-table .num-mono { font-variant-numeric: tabular-nums; }
+    /* Rakam sutunlari: orijinal font + tabular figures (hizali) + biraz kucuk */
+    .hrk-table .num-mono { font-variant-numeric: tabular-nums; font-size: 12px; }
     ''')
 
     table_ref = None
@@ -646,7 +644,7 @@ def hareketler_page():
 
     _tarih_slot = r'''
         <q-td :props="props" :class="%s">
-            <span v-if="props.value">{{ props.value.split('-').reverse().join('.') }}</span>
+            <span v-if="props.value" style="font-weight:700;font-size:11px;color:#334155;">{{ props.value.split('-').reverse().join('.') }}</span>
             <span v-else style="color:#7f1d1d;font-weight:700;">⚠ TARİH YOK</span>
         </q-td>
     ''' % _rcls
