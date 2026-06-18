@@ -515,11 +515,21 @@ tr:hover .tarihsiz-cell { background: #fecaca !important; }
   background: #ffffff !important;
 }
 .alse-drawer .q-drawer__content {
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;        /* drawer'in kendisi kaymaz; sadece icteki menu kayar */
   height: 100% !important;
   max-height: 100% !important;
-  padding-bottom: 32px !important;
+  padding-bottom: 0 !important;
+}
+/* Brand: ust sabit baslik (kaymaz, ortulmez) */
+.alse-drawer .alse-drawer-brand { flex: 0 0 auto !important; }
+/* Menu: ortada kayan bolge */
+.alse-drawer .alse-nav-scroll {
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  min-height: 0 !important;
 }
 .alse-drawer-brand {
   height: 70px;
@@ -951,14 +961,14 @@ def create_layout(active_path='/', page_title=''):
                             ui.label(text).classes('nav-label ' + ('active-label' if is_active else 'inactive-label'))
         else:
             # Modern mode: Flat navigation categories
-            with ui.element('div').classes('alse-drawer-brand desktop-only-header q-px-md').style('position: sticky; top: 0; z-index: 20; background: #ffffff; display: flex; align-items: center; justify-content: center; height: 58px; border-bottom: 1px solid #e2e8f0; margin-bottom: 12px;'):
+            with ui.element('div').classes('alse-drawer-brand desktop-only-header q-px-md').style('background: #ffffff; display: flex; align-items: center; justify-content: center; height: 58px; border-bottom: 1px solid #e2e8f0;'):
                 ui.html(
                     f'<div style="font-size: 20px; font-weight: 800; color: #2563eb; letter-spacing: 1.5px; font-family: \'Plus Jakarta Sans\', sans-serif;">'
                     f'{_firma_p1}<span style="font-weight: 800; color: #0f172a;"> {_firma_p2}</span>'
                     f'</div>'
                 )
 
-            with ui.column().classes('w-full gap-1 q-px-sm'):
+            with ui.column().classes('w-full gap-1 q-px-sm alse-nav-scroll').style('padding-top: 8px; padding-bottom: 16px;'):
                 for group_title, group_icon, items in menu_groups:
                     # Category heading
                     ui.label(group_title.upper()).style('font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-top: 8px; margin-bottom: 2px; padding-left: 8px;')
@@ -975,10 +985,9 @@ def create_layout(active_path='/', page_title=''):
                             ui.icon(icon, size='18px').classes('nav-item-icon')
                             ui.label(text).classes('nav-item-label').style('font-size: 13px; font-weight: 600;')
             
-            # User profile and actions at the bottom of the drawer
-            ui.space()
+            # User profile and actions at the bottom of the drawer (sabit alt)
             auth_user = app.storage.user.get('auth_user', {})
-            with ui.column().classes('w-full q-pa-md').style('border-top: 1px solid #e2e8f0; background: #ffffff; margin-top: auto;'):
+            with ui.column().classes('w-full q-pa-md').style('flex: 0 0 auto; border-top: 1px solid #e2e8f0; background: #ffffff;'):
                 with ui.row().classes('items-center justify-between no-wrap w-full'):
                     with ui.row().classes('items-center gap-2 no-wrap'):
                         initial = (auth_user.get('full_name') or auth_user.get('username') or 'U')[0].upper()
