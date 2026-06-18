@@ -807,10 +807,10 @@ def create_layout(active_path='/', page_title=''):
         _header_firma = _cs.get('firma_adi', '') or 'CARİ TAKİP'
     except Exception:
         pass
-    # Firma adini iki parcaya bol (ilk kelime kalin, gerisi ince)
-    _firma_parts = _header_firma.strip().split(' ', 1)
-    _firma_p1 = _firma_parts[0]
-    _firma_p2 = _firma_parts[1] if len(_firma_parts) > 1 else ''
+    # Firma adini ilk iki kelimeyle sinirla (1. kelime kalin, 2. kelime ince; gerisi atilir)
+    _firma_words = _header_firma.strip().split()
+    _firma_p1 = _firma_words[0] if _firma_words else 'CARİ TAKİP'
+    _firma_p2 = _firma_words[1] if len(_firma_words) > 1 else ''
 
     with ui.header().classes('items-center alse-header alse-root').style('padding: 0; min-height: 68px;'):
         # Logo alani - sidebar genisliginde sabit, firma adina gore dinamik (mobilde gizli)
