@@ -499,7 +499,7 @@ def kasa_page():
                 _open_pdf(pdf_bytes, 'kasa_hizli_rapor.pdf')
 
             ui.button('PDF', icon='picture_as_pdf', color='primary', on_click=_download_pdf).props('dense')
-            ui.button('Yeni', icon='account_balance_wallet', color='primary', on_click=open_add_dialog).props('dense')
+            ui.button('YENİ', icon='account_balance_wallet', color='primary', on_click=open_add_dialog).props('dense no-caps')
 
         # Table
         table_ref = ui.table(

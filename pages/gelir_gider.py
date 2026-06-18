@@ -519,7 +519,7 @@ def gelir_gider_page():
                         notify_err(f'PDF hatası: {e}')
 
                 ui.button('PDF', icon='picture_as_pdf', color='primary', on_click=_pdf_gelir_gider).props('dense')
-                ui.button('Yeni', icon='swap_vert', color='primary', on_click=lambda: open_dialog()).props('dense')
+                ui.button('YENİ', icon='swap_vert', color='primary', on_click=lambda: open_dialog()).props('dense no-caps')
 
         # Table
         table_ref = ui.table(

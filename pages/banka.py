@@ -257,8 +257,8 @@ def banka_page():
                     .classes('h-10 px-4 border border-slate-300 text-slate-700 hover:bg-slate-50 font-medium rounded-lg transition-all')
                 
                 # Yeni Butonu (Birincil - Koyu Slate)
-                ui.button('Yeni', icon='account_balance', on_click=lambda: _form()) \
-                    .props('unelevated') \
+                ui.button('YENİ', icon='account_balance', on_click=lambda: _form()) \
+                    .props('unelevated no-caps') \
                     .classes('h-10 px-4 bg-slate-900 text-white hover:bg-slate-800 font-medium rounded-lg shadow-sm transition-all')
                     
         kartlar_box = ui.column().classes('w-full')

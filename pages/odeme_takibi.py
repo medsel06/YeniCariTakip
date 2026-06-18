@@ -525,7 +525,7 @@ def odeme_takibi_page():
                 ui.button('İpucu', icon='help_outline', on_click=_ipucu_dialog).props('flat dense no-caps size=sm color=primary')
                 ui.button('Toplu Ödeme', icon='checklist',
                           on_click=lambda: (mode.update(secim=True), _refresh())).props('outline dense no-caps size=sm color=deep-purple')
-                ui.button('Yeni Plan', icon='event', on_click=lambda: _form(), color='primary').props('unelevated dense')
+                ui.button('YENİ PLAN', icon='event', on_click=lambda: _form(), color='primary').props('unelevated dense no-caps')
 
         # --- Filtre cubugu: bagli segmentler + tek pill donem + ozet (sagda) ---
         with ui.row().classes('w-full items-center gap-3 q-row-mobile-wrap odeme-filtre'):

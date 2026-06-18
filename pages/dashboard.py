@@ -9,6 +9,39 @@ from services.kasa_service import get_kasa_bakiye
 from services.gelir_gider_service import get_gelir_gider_ozet
 from services.personel_service import get_personel_dashboard_ozet
 from services.fx_service import get_usd_eur_rates
+from services.odeme_takibi_service import list_odeme_takibi, get_vadeli_cari, get_cek_vadeleri
+
+
+def _odeme_yaklasanlar(limit=5, gun=7):
+    """Vadesi yaklasan (bugunden itibaren <= `gun` gun) acik odeme/tahsilat kayitlari.
+    Gecmis vadeli acik kayitlar da dahil (en acil ustte). Vadeye gore artan sirali."""
+    from datetime import timedelta
+    bugun = datetime.now().date()
+    son = (bugun + timedelta(days=gun)).isoformat()
+    bugun_s = bugun.isoformat()
+    rows = []
+    for r in list_odeme_takibi():
+        rows.append({'tip': r['tip'], 'firma_ad': r.get('firma_ad', '') or '',
+                     'kalan': float(r['tutar'] or 0) - float(r['odenen'] or 0),
+                     'vade_tarih': r.get('vade_tarih', '') or '', 'durum': r['durum']})
+    for r in get_vadeli_cari():
+        rows.append({'tip': r['tip'], 'firma_ad': r.get('firma_ad', '') or '',
+                     'kalan': float(r.get('kalan', 0) or 0),
+                     'vade_tarih': r.get('vade_tarih', '') or '', 'durum': r.get('durum', 'ACIK')})
+    for r in get_cek_vadeleri():
+        rows.append({'tip': r['tip'], 'firma_ad': r.get('firma_ad', '') or '',
+                     'kalan': float(r.get('kalan', 0) or 0),
+                     'vade_tarih': r.get('vade_tarih', '') or '', 'durum': r.get('durum', 'ACIK')})
+    out = [r for r in rows
+           if r['durum'] != 'ODENDI' and r['kalan'] > 0.01 and r['vade_tarih'] and r['vade_tarih'] <= son]
+    out.sort(key=lambda r: r['vade_tarih'])
+    for r in out:
+        try:
+            d = (datetime.strptime(r['vade_tarih'][:10], '%Y-%m-%d').date() - bugun).days
+        except Exception:
+            d = None
+        r['_gun'] = d
+    return out[:limit]
 
 
 def _load_dashboard_summary(yil=None, ay=None):
@@ -208,7 +241,7 @@ def dashboard_page():
                                 ui.label(f'{fmt_para(value)} TL').classes('text-weight-bold').style('font-size: 13px; line-height: 15px')
         else:
             # --- NEW MODERN CARDS & COMPARISON ---
-            with ui.element('div').classes('w-full gap-4 q-mb-md primary-kpis-grid'):
+            with ui.element('div').classes('w-full gap-4 q-mt-md q-mb-md primary-kpis-grid'):
                 # Net Kar / Zarar Card
                 card_class = 'gradient-card-profit' if is_profit else 'gradient-card-loss'
                 with ui.card().classes(f'q-pa-md {card_class} justify-between').style('height: 128px; border-radius: 12px;'):
@@ -458,51 +491,41 @@ def dashboard_page():
         else:
             # --- MODERN SIDE-BY-SIDE GRID LAYOUT ---
             with ui.row().classes('w-full items-start no-wrap gap-4 q-row-mobile-wrap q-mt-md'):
-                # Sol: Risk Limiti Uyarıları (flex-2)
+                # Sol: Yaklaşan Ödeme / Tahsilat (7 gün) (flex-2)
+                yaklasan = _odeme_yaklasanlar(5, 7)
                 with ui.card().classes('modern-card q-pa-md').style('flex: 2; border-radius: 16px; min-width: 0;'):
                     with ui.row().classes('w-full justify-between items-center no-wrap q-mb-md'):
                         with ui.row().classes('items-center gap-2'):
-                            ui.icon('warning', color='warning').style('font-size: 20px; color: #f59e0b !important;')
-                            ui.label('Risk Limiti Uyarıları').classes('text-subtitle1 text-weight-bold text-slate-800').style('font-size: 15px;')
-                        if risk_uyari:
-                            with ui.row().classes('items-center q-px-sm q-py-xs').style('background: #ffedd5; color: #c2410c; border-radius: 20px; font-size: 11px; font-weight: 600;'):
-                                ui.label(f'{len(risk_uyari)} Riskli')
-                    if not risk_uyari:
-                        ui.label('Tüm firmalar risk limitleri dahilinde güvenli.').classes('text-caption text-grey-6 q-pa-sm')
+                            ui.icon('event', color='primary').style('font-size: 20px; color: #2563eb !important;')
+                            ui.label('Yaklaşan Ödeme / Tahsilat').classes('text-subtitle1 text-weight-bold text-slate-800').style('font-size: 15px;')
+                            ui.label('7 gün').style('font-size: 11px; color: #64748b;')
+                        if yaklasan:
+                            with ui.row().classes('items-center q-px-sm q-py-xs').style('background: #eff6ff; color: #2563eb; border-radius: 20px; font-size: 11px; font-weight: 600;'):
+                                ui.label(f'{len(yaklasan)} kayıt')
+                    if not yaklasan:
+                        ui.label('Önümüzdeki 7 günde vadesi gelen açık kayıt yok.').classes('text-caption text-grey-6 q-pa-sm')
                     else:
-                        risk_columns = [
-                            {'name': 'kod', 'label': 'Firma Kodu', 'field': 'kod', 'align': 'left', 'sortable': True},
-                            {'name': 'firma', 'label': 'Firma Adı', 'field': 'firma', 'align': 'left', 'sortable': True},
-                            {'name': 'bakiye', 'label': 'Toplam Bakiye', 'field': 'bakiye', 'align': 'right', 'sortable': True},
-                            {'name': 'risk_limiti', 'label': 'Risk Limiti', 'field': 'risk_limiti', 'align': 'right'},
-                            {'name': 'kalan_limit', 'label': 'Kalan Limit', 'field': 'kalan_limit', 'align': 'right', 'sortable': True},
-                        ]
-                        rt = ui.table(
-                            columns=risk_columns, rows=risk_rows, row_key='kod',
-                            pagination={'rowsPerPage': 10},
-                        ).classes('w-full dash-table').props('flat dense')
-                        rt.add_slot('body-cell-bakiye', r'''
-                            <q-td :props="props" class="text-right">
-                                <span :style="Number(props.value) < 0 ? 'color:#ef4444;font-weight:600;' : 'color:#10b981;font-weight:600;'">
-                                    {{ Number(props.value).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) }} TL
-                                </span>
-                            </q-td>
-                        ''')
-                        rt.add_slot('body-cell-risk_limiti', r'''
-                            <q-td :props="props" class="text-right">
-                                {{ Number(props.value).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) }} TL
-                            </q-td>
-                        ''')
-                        rt.add_slot('body-cell-kalan_limit', r'''
-                            <q-td :props="props" class="text-right">
-                                <span v-if="Number(props.value) < 0" style="color:#ef4444;font-weight:700;background:#fee2e2;padding:2px 8px;border-radius:12px;">
-                                    {{ Number(props.value).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) }} TL (Aşım)
-                                </span>
-                                <span v-else style="color:#475569;font-weight:600;">
-                                    {{ Number(props.value).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) }} TL
-                                </span>
-                            </q-td>
-                        ''')
+                        with ui.column().classes('w-full gap-2'):
+                            for item in yaklasan:
+                                borc = item['tip'] == 'BORC'
+                                renk = '#ef4444' if borc else '#10b981'
+                                gun = item.get('_gun')
+                                if gun is None:
+                                    gun_lbl = ''
+                                elif gun < 0:
+                                    gun_lbl = f'{abs(gun)} gün geçti'
+                                elif gun == 0:
+                                    gun_lbl = 'Bugün'
+                                else:
+                                    gun_lbl = f'{gun} gün kaldı'
+                                vade_disp = (item.get('vade_tarih') or '')[:10]
+                                if vade_disp:
+                                    vade_disp = '.'.join(reversed(vade_disp.split('-')))
+                                with ui.row().classes('w-full justify-between items-center q-pa-sm').style(f'border-left: 4px solid {renk}; border-radius: 8px; background: #f8fafc; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;'):
+                                    with ui.column().classes('gap-0'):
+                                        ui.label(f"{'Borç' if borc else 'Alacak'} • {item.get('firma_ad') or '—'}").classes('text-weight-bold text-slate-800').style('font-size: 12px; line-height: 1.25;')
+                                        ui.label(f'{vade_disp} • {gun_lbl}').classes('text-grey-5').style('font-size: 10px; margin-top: 2px;')
+                                    ui.label(f"{fmt_para(item['kalan'])} TL").classes('text-weight-bold').style(f'font-size: 12px; color: {renk};')
 
                 # Sağ: Vade Uyarıları (flex-1, Compact Liste)
                 with ui.card().classes('modern-card q-pa-md').style('flex: 1; border-radius: 16px; min-width: 0;'):
