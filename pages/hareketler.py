@@ -303,31 +303,89 @@ def hareketler_page():
 
                 inp_aciklama = ui.input('Açıklama').props('outlined dense label-color=cyan-8').classes('w-full')
 
-                # --- Vade (opsiyonel): bos=pesin. Dolu ise Odeme Takibi'nde "vadesi yaklasan"
-                # olarak gorunur. Cariye etkisi YOK (tutar tek kez yazilir). ---
-                inp_vade = ui.input('Vade Tarihi (opsiyonel — boş = peşin)').props(
-                    'outlined dense label-color=cyan-8 clearable').classes('w-full')
-                with inp_vade.add_slot('append'):
-                    icon_vd = ui.icon('event').classes('cursor-pointer')
-                    with ui.menu() as menu_vd:
-                        ui.date(on_change=lambda e: (inp_vade.set_value(e.value), menu_vd.close()))
-                    icon_vd.on('click', menu_vd.open)
+                # --- Ödeme türü: Vadeli (cariye borc/alacak) veya Peşin (ayni anda kasa/banka hareketi) ---
+                # Kasa/Banka secenekleri (peSin icin): '' = nakit kasa, digerleri banka hesabi id
+                pesin_hesap_opts = {'': 'Kasa (Nakit)'}
+                pesin_banka_ad_by_id = {}
+                for _b in list_banka_hesaplari(sadece_aktif=True):
+                    _ad = (_b.get('ad') or '').strip()
+                    if _ad:
+                        pesin_hesap_opts[str(_b['id'])] = _ad
+                        pesin_banka_ad_by_id[str(_b['id'])] = _ad
 
-                def _set_vade_gun(gun):
-                    from datetime import datetime as _dt, timedelta as _td
-                    base = inp_tarih.value or date.today().isoformat()
-                    try:
-                        b = _dt.strptime(str(base)[:10], '%Y-%m-%d').date()
-                    except ValueError:
-                        b = date.today()
-                    inp_vade.set_value((b + _td(days=gun)).isoformat())
+                inp_odeme_mod = ui.radio(
+                    {'vadeli': 'Vadeli', 'pesin': 'Peşin (şimdi öde / tahsil et)'}, value='vadeli'
+                ).props('inline dense color=cyan-8').classes('w-full q-mb-xs')
 
-                with ui.row().classes('w-full gap-1 items-center q-mb-xs'):
-                    ui.label('Hızlı vade:').classes('text-caption text-grey-7')
-                    ui.button('Peşin', on_click=lambda: inp_vade.set_value('')).props('dense flat no-caps size=sm color=grey-7')
-                    ui.button('+7 gün', on_click=lambda: _set_vade_gun(7)).props('dense flat no-caps size=sm')
-                    ui.button('+15 gün', on_click=lambda: _set_vade_gun(15)).props('dense flat no-caps size=sm')
-                    ui.button('+30 gün', on_click=lambda: _set_vade_gun(30)).props('dense flat no-caps size=sm')
+                # Vadeli alani: vade tarihi + hizli vade butonlari
+                with ui.column().classes('w-full gap-0') as vadeli_box:
+                    inp_vade = ui.input('Vade Tarihi (opsiyonel — boş = peşin)').props(
+                        'outlined dense label-color=cyan-8 clearable').classes('w-full')
+                    with inp_vade.add_slot('append'):
+                        icon_vd = ui.icon('event').classes('cursor-pointer')
+                        with ui.menu() as menu_vd:
+                            ui.date(on_change=lambda e: (inp_vade.set_value(e.value), menu_vd.close()))
+                        icon_vd.on('click', menu_vd.open)
+
+                    def _set_vade_gun(gun):
+                        from datetime import datetime as _dt, timedelta as _td
+                        base = inp_tarih.value or date.today().isoformat()
+                        try:
+                            b = _dt.strptime(str(base)[:10], '%Y-%m-%d').date()
+                        except ValueError:
+                            b = date.today()
+                        inp_vade.set_value((b + _td(days=gun)).isoformat())
+
+                    with ui.row().classes('w-full gap-1 items-center q-mb-xs'):
+                        ui.label('Hızlı vade:').classes('text-caption text-grey-7')
+                        ui.button('Peşin', on_click=lambda: inp_vade.set_value('')).props('dense flat no-caps size=sm color=grey-7')
+                        ui.button('+7 gün', on_click=lambda: _set_vade_gun(7)).props('dense flat no-caps size=sm')
+                        ui.button('+15 gün', on_click=lambda: _set_vade_gun(15)).props('dense flat no-caps size=sm')
+                        ui.button('+30 gün', on_click=lambda: _set_vade_gun(30)).props('dense flat no-caps size=sm')
+
+                # Pesin alani: kasa/banka secimi + odeme sekli + tutar (otomatik dolu, kismi icin degisebilir)
+                with ui.column().classes('w-full gap-2') as pesin_box:
+                    with ui.row().classes('w-full gap-2'):
+                        inp_pesin_hesap = ui.select(
+                            options=pesin_hesap_opts, value='', label='Kasa / Banka'
+                        ).props('outlined dense label-color=cyan-8').classes('col')
+                        inp_pesin_odeme = ui.select(
+                            options=['NAKIT', 'HAVALE', 'EFT', 'KK', 'CEK', 'DIGER'],
+                            value='NAKIT', label='Ödeme Şekli',
+                        ).props('outlined dense label-color=cyan-8').classes('col')
+                    inp_pesin_tutar = ui.number(
+                        'Ödenecek / Tahsil edilecek Tutar (TL)', value=0, format='%.2f'
+                    ).props('outlined dense label-color=cyan-8 type=text').classes('w-full')
+
+                # Banka secilince odeme seklini otomatik HAVALE yap (nakit kalmasin)
+                inp_pesin_hesap.on_value_change(
+                    lambda e: (inp_pesin_odeme.set_value('HAVALE')
+                               if (e.value and inp_pesin_odeme.value == 'NAKIT') else None))
+
+                # Pesin tutar: kullanici elle degistirene kadar Fatura Toplam ile senkron
+                _pesin_state = {'manuel': False, 'sync': False}
+
+                def _on_pesin_tutar(_):
+                    if not _pesin_state['sync']:
+                        _pesin_state['manuel'] = True
+                inp_pesin_tutar.on_value_change(_on_pesin_tutar)
+
+                def _sync_pesin_tutar(kdvli_toplam):
+                    if _pesin_state['manuel']:
+                        return
+                    _pesin_state['sync'] = True
+                    inp_pesin_tutar.value = round(float(kdvli_toplam or 0), 2)
+                    _pesin_state['sync'] = False
+
+                def _update_odeme_mod():
+                    is_pesin = inp_odeme_mod.value == 'pesin'
+                    vadeli_box.set_visibility(not is_pesin)
+                    pesin_box.set_visibility(is_pesin)
+                    if is_pesin:
+                        _pesin_state['manuel'] = False
+                        recalc()
+                inp_odeme_mod.on_value_change(lambda _: _update_odeme_mod())
+                pesin_box.set_visibility(False)
 
                 # Hesaplama alani
                 ui.separator()
@@ -350,6 +408,7 @@ def hareketler_page():
                     lbl_kdv_tutar.set_text(f'KDV: {fmt_tr(kdv)} TL')
                     lbl_tevkifat.set_text(f'Tevkifat: {fmt_tr(tevk_tutar)} TL')
                     lbl_kdvli.set_text(f'Fatura Toplam: {fmt_tr(kdvli_toplam)} TL')
+                    _sync_pesin_tutar(kdvli_toplam)
 
                 inp_miktar.on_value_change(lambda _: recalc())
                 inp_birim_fiyat.on_value_change(lambda _: recalc())
@@ -371,6 +430,10 @@ def hareketler_page():
                 inp_aciklama.value = edit_row.get('aciklama', '')
                 inp_belge.value = edit_row.get('belge_no', '')
                 inp_vade.value = edit_row.get('vade_tarih', '') or ''
+                # Duzenlemede pesin odeme akisi yok — sadece vade alani gorunur
+                inp_odeme_mod.set_visibility(False)
+                pesin_box.set_visibility(False)
+                vadeli_box.set_visibility(True)
                 recalc()
                 check_risk()
 
@@ -419,6 +482,15 @@ def hareketler_page():
                         m, bf, inp_kdv.value, inp_tevkifat.value
                     )
 
+                    # Pesin modu yalnizca yeni kayitta gecerli
+                    is_pesin = (not is_edit) and inp_odeme_mod.value == 'pesin'
+                    pesin_tutar = 0.0
+                    if is_pesin:
+                        pesin_tutar = float(inp_pesin_tutar.value or 0)
+                        if pesin_tutar <= 0:
+                            notify_err('Peşin tutar 0\'dan büyük olmalı')
+                            return
+
                     data = {
                         'tarih': inp_tarih.value,
                         'firma_kod': firma_kod,
@@ -437,7 +509,8 @@ def hareketler_page():
                         'tevkifatsiz_kdv': odenecek_kdv,
                         'aciklama': inp_aciklama.value.strip() if inp_aciklama.value else '',
                         'belge_no': inp_belge.value.strip() if inp_belge.value else '',
-                        'vade_tarih': (inp_vade.value or '').strip(),
+                        # Pesin secildiyse vade yok (ayni anda odendi/tahsil edildi)
+                        'vade_tarih': '' if is_pesin else (inp_vade.value or '').strip(),
                     }
 
                     try:
@@ -446,7 +519,28 @@ def hareketler_page():
                             notify_ok('Hareket güncellendi')
                         else:
                             add_hareket(data)
-                            notify_ok('Hareket eklendi')
+                            if is_pesin:
+                                # Ayni anda kasa/banka hareketi: ALIS->Odeme(GIDER), SATIS->Tahsilat(GELIR)
+                                _is_alis = (inp_tur.value == 'ALIS')
+                                _hesap_id = inp_pesin_hesap.value or ''
+                                kasa_data = {
+                                    'tarih': inp_tarih.value,
+                                    'firma_kod': firma_kod,
+                                    'firma_ad': firma_ad,
+                                    'tur': 'GIDER' if _is_alis else 'GELIR',
+                                    'tutar': pesin_tutar,
+                                    'odeme_sekli': inp_pesin_odeme.value or 'NAKIT',
+                                    'banka_hesap_id': int(_hesap_id) if _hesap_id else None,
+                                    'banka': pesin_banka_ad_by_id.get(_hesap_id, ''),
+                                    'kategori': 'Tedarikçi Ödemesi' if _is_alis else 'Satış Tahsilatı',
+                                    'aciklama': (f"{'Alış peşin ödeme' if _is_alis else 'Satış peşin tahsilat'}"
+                                                 f" — {urun_ad}".strip(' —')),
+                                }
+                                add_kasa(kasa_data)
+                                notify_ok('Hareket eklendi + ' +
+                                          ('ödeme yapıldı' if _is_alis else 'tahsilat yapıldı'))
+                            else:
+                                notify_ok('Hareket eklendi')
                         dlg.close()
                         load_data()
                     except Exception as e:
