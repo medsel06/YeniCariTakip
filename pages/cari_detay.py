@@ -1,7 +1,7 @@
 """ALSE Plastik Hammadde - Cari Detay Sayfası"""
 from datetime import date, datetime
 from nicegui import ui
-from layout import create_layout, fmt_para, PARA_SLOT, TARIH_SLOT, notify_ok, notify_err, normalize_search, donem_secici, _get_min_year
+from layout import create_layout, fmt_para, PARA_SLOT, TARIH_SLOT, notify_ok, notify_err, normalize_search, donem_secici, _get_min_year, segment_group
 from services.cari_service import (
     get_firma, get_cari_ekstre, get_firma_kasa, get_firma_cekler,
 )
@@ -112,37 +112,36 @@ def cari_detay_page(firma_kod: str):
     _now = datetime.now()
     donem_state = {'yil': None, 'ay': None}
 
+    def _tip_of(aciklama):
+        """Aciklama prefix'inden tur tureti (ekran + PDF filtresi ayni kurali kullanir)."""
+        ac = (
+            str(aciklama or '').lower()
+            .replace('ı', 'i').replace('ş', 's').replace('ö', 'o')
+            .replace('ü', 'u').replace('ç', 'c').replace('ğ', 'g')
+        )
+        if ac.startswith('alis'):
+            return 'ALIS'
+        elif ac.startswith('satis'):
+            return 'SATIS'
+        elif ac.startswith('tahsilat'):
+            return 'TAHSILAT'
+        elif ac.startswith('odeme'):
+            return 'ODEME'
+        elif ac.startswith('gider'):
+            return 'GIDER'
+        elif ac.startswith('gelir'):
+            return 'GELIR'
+        elif 'cek' in ac or 'ciro' in ac:
+            return 'CEK'
+        elif 'devir' in ac:
+            return 'DEVIR'
+        return ''
+
     def _load_ekstre():
         src = get_cari_ekstre(firma_kod, yil=donem_state['yil'], ay=donem_state['ay'])
         src = list(reversed(src))
         for row in src:
-            ac = (
-                str(row.get('aciklama', '')).lower()
-                .replace('ı', 'i')
-                .replace('ş', 's')
-                .replace('ö', 'o')
-                .replace('ü', 'u')
-                .replace('ç', 'c')
-                .replace('ğ', 'g')
-            )
-            if ac.startswith('alis'):
-                row['tip'] = 'ALIS'
-            elif ac.startswith('satis'):
-                row['tip'] = 'SATIS'
-            elif ac.startswith('tahsilat'):
-                row['tip'] = 'TAHSILAT'
-            elif ac.startswith('odeme'):
-                row['tip'] = 'ODEME'
-            elif ac.startswith('gider'):
-                row['tip'] = 'GIDER'
-            elif ac.startswith('gelir'):
-                row['tip'] = 'GELIR'
-            elif 'cek' in ac or 'ciro' in ac:
-                row['tip'] = 'CEK'
-            elif 'devir' in ac:
-                row['tip'] = 'DEVIR'
-            else:
-                row['tip'] = ''
+            row['tip'] = _tip_of(row.get('aciklama', ''))
         return src
 
     ekstre_src = _load_ekstre()
@@ -153,6 +152,9 @@ def cari_detay_page(firma_kod: str):
 
     son_bakiye = (ekstre_src[0]['bakiye'] if ekstre_src else 0)
 
+    # Ekstre gorunum durumu: arama (q) + tur filtresi (tip). Birlikte uygulanir.
+    ekstre_view = {'q': '', 'tip': None}
+
     with ui.column().classes('w-full q-pa-xs gap-1'):
         with ui.card().classes('w-full q-pa-none cari-top-card'):
             with ui.row().classes('w-full items-center gap-1 q-px-xs q-py-xs cari-topbar').style('flex-wrap: nowrap; overflow: hidden;'):
@@ -162,6 +164,18 @@ def cari_detay_page(firma_kod: str):
                     bakiye_color = '#16a34a' if son_bakiye > 0 else '#dc2626' if son_bakiye < 0 else '#64748b'
                     bakiye_desc = 'Alacak' if son_bakiye > 0 else 'Borç' if son_bakiye < 0 else ''
                     ui.label(f'{fmt_para(son_bakiye)} TL ({bakiye_desc})').style(f'font-size:13px;font-weight:600;color:{bakiye_color};')
+
+                    # Tur filtresi (sadece Ekstre sekmesi icin) — bakiye yaninda, boslukla
+                    def _on_tur(key):
+                        ekstre_view['tip'] = None if key in (None, 'ALL') else key
+                        _refresh_ekstre()
+                    tur_filtre_box = ui.row().classes('items-center no-wrap q-ml-lg')
+                    with tur_filtre_box:
+                        segment_group(
+                            [('ALL', 'Tümü', '#475569'), ('ALIS', 'Alış', '#1d4ed8'),
+                             ('SATIS', 'Satış', '#0f766e'), ('TAHSILAT', 'Tahsilat', '#16a34a'),
+                             ('ODEME', 'Ödeme', '#ea580c'), ('CEK', 'Çek', '#7c3aed')],
+                            _on_tur, active='ALL')
 
                 with ui.row().classes('items-center justify-center').style('min-width:0; flex:1;'):
                     with ui.tabs().classes('q-px-xs q-py-1 rounded-borders bg-blue-1 text-primary cari-top-tabs').style('max-width: 320px;').props('dense no-caps inline-label') as tabs:
@@ -174,6 +188,20 @@ def cari_detay_page(firma_kod: str):
                     ekstre_meta = get_cari_ekstre(
                         firma_kod, yil=donem_state['yil'], ay=donem_state['ay'], with_meta=True
                     )
+                    # Aktif tur filtresi varsa PDF de o filtreye gore (sadece bu sayfada)
+                    t = ekstre_view['tip']
+                    if t:
+                        ekstre_meta = dict(ekstre_meta)
+                        ekstre_meta['satirlar'] = [
+                            s for s in ekstre_meta.get('satirlar', [])
+                            if _tip_of(s.get('aciklama', '')) == t
+                        ]
+                        # Filtreli ekstrede yuruyen bakiye/devir anlamsiz — sifirla, basliga turu ekle
+                        ekstre_meta['devir'] = 0
+                        _tur_ad = {'ALIS': 'Alış', 'SATIS': 'Satış', 'TAHSILAT': 'Tahsilat',
+                                   'ODEME': 'Ödeme', 'CEK': 'Çek'}.get(t, t)
+                        _dl = (ekstre_meta.get('donem_label') or '').strip()
+                        ekstre_meta['donem_label'] = (f'{_dl} — {_tur_ad}' if _dl else _tur_ad)
                     _open_pdf(
                         generate_cari_ekstre_pdf(firma['ad'], ekstre_meta),
                         f"cari_ekstre_{firma_kod}.pdf"
@@ -316,6 +344,21 @@ def cari_detay_page(firma_kod: str):
                 ekstre_table.pagination = {'rowsPerPage': 50, 'sortBy': 'tarih', 'descending': True}
                 ekstre_table.update()
 
+                def _refresh_ekstre():
+                    # Arama + tur filtresini birlikte uygula
+                    rows = ekstre_rows
+                    if ekstre_view['tip']:
+                        rows = [r for r in rows if r.get('tip') == ekstre_view['tip']]
+                    rows = _filter(rows, ekstre_view['q'], ['aciklama'])
+                    ekstre_table.rows = rows
+                    # Tur filtresi aktifken yuruyen "Bakiye" yaniltici olur — kolonu gizle
+                    has_filter = bool(ekstre_view['tip'])
+                    ekstre_table.columns = (
+                        [c for c in ekstre_columns if c['name'] != 'bakiye']
+                        if has_filter else ekstre_columns
+                    )
+                    ekstre_table.update()
+
                 def _ekstre_donem_change(yil, ay):
                     nonlocal ekstre_src, ekstre_rows, son_bakiye
                     donem_state['yil'] = yil
@@ -323,13 +366,12 @@ def cari_detay_page(firma_kod: str):
                     ekstre_src = _load_ekstre()
                     ekstre_rows = _with_ids(ekstre_src)
                     son_bakiye = ekstre_src[0]['bakiye'] if ekstre_src else 0
-                    ekstre_table.rows = ekstre_rows
-                    ekstre_table.update()
+                    _refresh_ekstre()
 
                 with ui.row().classes('w-full items-center gap-1 q-mt-xs'):
                     ui.input(
                         placeholder='Ara',
-                        on_change=lambda e: (setattr(ekstre_table, 'rows', _filter(ekstre_rows, e.value, ['aciklama'])), ekstre_table.update()),
+                        on_change=lambda e: (ekstre_view.update(q=e.value), _refresh_ekstre()),
                     ).props('outlined dense clearable').classes('w-44')
                     # 3-modlu donem secici: Aylik / Yillik / Tumu (Rabia bildirimi: yil'da 'Tumu' yoktu)
                     # default_current_month=False -> ilk acilis Tumu modunda
@@ -498,6 +540,10 @@ def cari_detay_page(firma_kod: str):
                         </q-chip>
                     </q-td>
                 ''')
+
+        # Tur filtresi yalnizca Ekstre sekmesinde anlamli — diger sekmelerde gizle
+        tabs.on_value_change(
+            lambda e: tur_filtre_box.set_visibility(str(e.value) == 'Ekstre'))
 
 
 
