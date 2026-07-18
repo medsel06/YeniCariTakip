@@ -245,22 +245,26 @@ def hareketler_page():
         is_edit = edit_row is not None
         title = 'İşlem Düzenle' if is_edit else 'Yeni İşlem'
 
-        with ui.dialog() as dlg, ui.card().classes('alse-dialog').style('width: 90vw; max-width: 800px'):
+        with ui.dialog() as dlg, ui.card().classes('alse-dialog').style(
+                'width: 90vw; max-width: 800px; max-height: 92vh; display: flex; flex-direction: column;'):
             with ui.element('div').classes('alse-dialog-header'):
                 ui.icon('drive_file_rename_outline' if is_edit else 'add_circle_outline')
                 ui.label(title).classes('dialog-title')
 
-            with ui.column().classes('w-full q-mt-sm gap-sm').style('background:#f3f4f6;padding:16px;border-radius:8px;'):
-                # Tarih
-                inp_tarih = ui.input('Tarih', value=date.today().isoformat()).props('outlined dense label-color=cyan-8').classes('w-full')
-                with inp_tarih.add_slot('append'):
-                    icon_t = ui.icon('event').classes('cursor-pointer')
-                    with ui.menu() as menu_t:
-                        dp = ui.date(on_change=lambda e: (inp_tarih.set_value(e.value), menu_t.close()))
-                    icon_t.on('click', menu_t.open)
+            # Icerik alani kendi icinde kayar; buton satiri her zaman altta sabit kalir
+            with ui.column().classes('w-full q-mt-sm gap-sm').style(
+                    'background:#f3f4f6;padding:16px;border-radius:8px;'
+                    'overflow-y:auto;flex:1 1 auto;min-height:0;'):
+                # Tarih + Irsaliye/Fatura No yan yana (Tur/KDV/Tevkifat satiri ile ayni genislik)
+                with ui.row().classes('w-full gap-md'):
+                    inp_tarih = ui.input('Tarih', value=date.today().isoformat()).props('outlined dense label-color=cyan-8').classes('col')
+                    with inp_tarih.add_slot('append'):
+                        icon_t = ui.icon('event').classes('cursor-pointer')
+                        with ui.menu() as menu_t:
+                            dp = ui.date(on_change=lambda e: (inp_tarih.set_value(e.value), menu_t.close()))
+                        icon_t.on('click', menu_t.open)
 
-                # Irsaliye / Fatura No
-                inp_belge = ui.input('İrsaliye/Fatura No').classes('w-full').props('outlined dense label-color=cyan-8')
+                    inp_belge = ui.input('İrsaliye/Fatura No').classes('col').props('outlined dense label-color=cyan-8')
 
                 with ui.row().classes('w-full gap-md'):
                     # Tur
@@ -529,7 +533,11 @@ def hareketler_page():
                 add_kalem_row(ilk=True)
                 recalc()
 
-            with ui.row().classes('w-full justify-end q-mt-md'):
+            # NOT: layout.py .alse-dialog kurali tum div cocuklara flex:1+overflow:auto verir;
+            # buton satirinin kendi kaydirma cubugu olmamasi icin inline ile eziyoruz.
+            with ui.row().classes('w-full justify-end q-mt-md items-center').style(
+                    'flex:0 0 auto;overflow:visible;padding-top:10px;'
+                    'border-top:1px solid #e5e7eb;'):
                 ui.button('İptal', on_click=dlg.close).props('flat color=grey')
 
                 def save():
