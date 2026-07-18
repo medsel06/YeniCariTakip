@@ -42,6 +42,11 @@ def hareketler_page():
     .hrk-table .num-mono { font-variant-numeric: tabular-nums; font-size: 12px; }
     /* Satırların tıklanabilir olduğunu belirten pointer */
     .hrk-table tbody tr { cursor: pointer; }
+    /* Coklu kalem akordeonu: acik grup vurgusu — ana satir + kalemler tek blok gibi */
+    .hrk-table tbody tr.hrk-grup-acik td { background: #e0f2fe !important; }
+    .hrk-table tbody tr.hrk-kalem-tr td { background: #f0f9ff !important; }
+    .hrk-table tbody tr.hrk-grup-acik td:first-child,
+    .hrk-table tbody tr.hrk-kalem-tr td:first-child { box-shadow: inset 3px 0 0 #0284c7; }
     /* Detay modal bilgi satirlari: cerceveli, zebra desen */
     .modal-info { border: 1px solid #e8edf2; border-radius: 10px; overflow: hidden; }
     .modal-info .info-row { border-bottom: 1px solid #eef2f7; }
@@ -76,6 +81,39 @@ def hareketler_page():
     search_text = {'value': ''}
     tur_filter = {'value': None}
 
+    def _grupla(rows):
+        """Ayni grup_id'li STOK satirlarini tek gorunum satirinda birlestir (kalemler ile).
+        Toplamlar gruba gore toplanir; tek kalemli/kasa satirlari aynen kalir."""
+        out = []
+        gmap = {}
+        for r in rows:
+            gid = (r.get('grup_id') or '') if r.get('source') == 'STOK' else ''
+            if not gid:
+                out.append(r)
+                continue
+            kalem = {
+                'urun_ad': r.get('urun_ad', ''),
+                'miktar': r.get('miktar'),
+                'birim_fiyat': r.get('birim_fiyat'),
+                'kdvli_toplam': r.get('kdvli_toplam', 0),
+            }
+            if gid in gmap:
+                p = gmap[gid]
+                p['kalemler'].append(kalem)
+                p['miktar'] = None
+                p['birim_fiyat'] = None
+                p['toplam'] = (p['toplam'] or 0) + (r.get('toplam') or 0)
+                p['kdv_tutar'] = (p['kdv_tutar'] or 0) + (r.get('kdv_tutar') or 0)
+                p['kdvli_toplam'] = (p['kdvli_toplam'] or 0) + (r.get('kdvli_toplam') or 0)
+                p['tevkifat_tutar'] = (p['tevkifat_tutar'] or 0) + (r.get('tevkifat_tutar') or 0)
+                p['urun_ad'] = f"{len(p['kalemler'])} kalem: {p['kalemler'][0]['urun_ad']} +{len(p['kalemler']) - 1}"
+                continue
+            p = dict(r)
+            p['kalemler'] = [kalem]
+            gmap[gid] = p
+            out.append(p)
+        return out
+
     def apply_filters():
         rows = all_rows
         q = search_text['value']
@@ -84,6 +122,8 @@ def hareketler_page():
             rows = [r for r in rows if
                     qn in normalize_search(r.get('firma_ad', '')) or
                     qn in normalize_search(r.get('urun_ad', '')) or
+                    any(qn in normalize_search(k.get('urun_ad', ''))
+                        for k in (r.get('kalemler') or [])) or
                     qn in normalize_search(r.get('tur', ''))]
         if tur_filter['value']:
             rows = [r for r in rows if r.get('tur') == tur_filter['value']]
@@ -93,7 +133,7 @@ def hareketler_page():
 
     def load_data():
         nonlocal all_rows
-        all_rows = get_hareketler(yil=None, ay=None)
+        all_rows = _grupla(get_hareketler(yil=None, ay=None))
         apply_filters()
 
     def hesapla(miktar, birim_fiyat, kdv_orani, tevkifat_str='0'):
@@ -939,16 +979,26 @@ def hareketler_page():
                 
                 # Stok İşlemleri Detayı
                 if source == 'STOK':
-                    info_row('Ürün Adı', row.get('urun_ad'))
-                    
-                    # Miktar + Birim
-                    birim = row.get('birim') or 'KG'
-                    miktar = row.get('miktar', 0)
-                    info_row('Miktar', f"{fmt_miktar(miktar)} {birim}", is_mono=True)
-                    
-                    # Birim Fiyat
-                    bf = row.get('birim_fiyat', 0)
-                    info_row('Birim Fiyat', f"{fmt_para(bf)} TL", is_mono=True)
+                    kalemler = row.get('kalemler') or []
+                    if len(kalemler) > 1:
+                        # Coklu kalemli islem: her kalem ayri satir
+                        for i, k in enumerate(kalemler, 1):
+                            info_row(f'{i}. Kalem',
+                                     f"{k.get('urun_ad', '')} — {fmt_miktar(k.get('miktar') or 0)}"
+                                     f" x {fmt_para(k.get('birim_fiyat') or 0)}"
+                                     f" = {fmt_para(k.get('kdvli_toplam') or 0)} TL",
+                                     is_mono=True)
+                    else:
+                        info_row('Ürün Adı', row.get('urun_ad'))
+
+                        # Miktar + Birim
+                        birim = row.get('birim') or 'KG'
+                        miktar = row.get('miktar', 0)
+                        info_row('Miktar', f"{fmt_miktar(miktar)} {birim}", is_mono=True)
+
+                        # Birim Fiyat
+                        bf = row.get('birim_fiyat', 0)
+                        info_row('Birim Fiyat', f"{fmt_para(bf)} TL", is_mono=True)
                     
                     # Toplam (Matrah)
                     toplam = row.get('toplam', 0)
@@ -1033,109 +1083,137 @@ def hareketler_page():
                             
         dlg.open()
 
-    # --- Slot template'leri ---
+    # --- Body slot ---
     # Satir arka plan rengi: tarih bos ise kirmizi (tarihsiz uyarisi),
     # aksi halde tur'e gore cok hafif tint
     _rcls = "(!props.row.tarih)?'hrk-tarihsiz':props.row.tur==='ALIS'?'hrk-alis':props.row.tur==='SATIS'?'hrk-satis':props.row.tur==='TAHSILAT'?'hrk-tahsilat':props.row.tur==='ODEME'?'hrk-odeme':''"
 
-    _tarih_slot = r'''
-        <q-td :props="props" :class="%s">
-            <span v-if="props.value" style="font-weight:700;font-size:11px;color:#334155;">{{ props.value.split('-').reverse().join('.') }}</span>
-            <span v-else style="color:#7f1d1d;font-weight:700;">⚠ TARİH YOK</span>
-        </q-td>
-    ''' % _rcls
-
-    tur_slot = r'''
-        <q-td :props="props" :class="%s">
-            <span style="display:inline-block;padding:2px 10px;border-radius:999px;font-weight:700;font-size:11px;letter-spacing:0.2px;"
-                :style="props.value === 'ALIS' ? 'background:#e0e7ff;color:#4338ca;' :
-                        props.value === 'SATIS' ? 'background:#dcfce7;color:#15803d;' :
-                        props.value === 'TAHSILAT' ? 'background:#cffafe;color:#0e7490;' :
-                        props.value === 'ODEME' ? 'background:#ffe4e6;color:#be123c;' : 'background:#f1f5f9;color:#475569;'">
-                {{ props.value === 'ALIS' ? 'Alış' :
-                   props.value === 'SATIS' ? 'Satış' :
-                   props.value === 'TAHSILAT' ? 'Tahsilat' :
-                   props.value === 'ODEME' ? 'Ödeme' : props.value }}
-            </span>
-        </q-td>
-    ''' % _rcls
-
-    _para_slot = r'''
-        <q-td :props="props" :class="%s">
-            <span class="num-mono">{{ props.value != null && props.value !== 0
-                ? (props.value < 0 ? '-' : '') + Math.abs(props.value).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' TL'
-                : '' }}</span>
-        </q-td>
-    ''' % _rcls
-
-    miktar_slot = r'''
-        <q-td :props="props" :class="%s">
-            <span class="num-mono">{{ props.value != null && props.value !== 0 ? props.value.toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) : '' }}</span>
-        </q-td>
-    ''' % _rcls
-
-    _default_slot = r'''
-        <q-td :props="props" :class="%s">
-            {{ props.value }}
-        </q-td>
-    ''' % _rcls
-
-    # Daraltilmis sutun: ellipsis + sadece metin sigmazsa (esik karakter sayisi) tooltip
-    def _ellipsis_slot(max_w, thr):
-        return (r'''
-        <q-td :props="props" :class="''' + _rcls + r'''">
-            <div style="max-width:''' + str(max_w) + r'''px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                {{ props.value }}
-                <q-tooltip v-if="props.value && String(props.value).length > ''' + str(thr) + r'''"
-                    anchor="top middle" self="bottom middle"
-                    style="font-size:12.5px;max-width:360px;white-space:normal;background:#1e293b;">
-                    {{ props.value }}
-                </q-tooltip>
-            </div>
-        </q-td>''')
-
-    _urun_slot = _ellipsis_slot(150, 18)
-    _aciklama_slot = _ellipsis_slot(200, 26)
-    _firma_slot = _ellipsis_slot(170, 22)
-
-    actions_slot = r'''
-        <q-td :props="props" :class="%s">
-            <template v-if="props.row.source === 'STOK' || !props.row.source">
-                <q-btn flat round dense icon="drive_file_rename_outline" color="primary" size="sm"
-                    @click.stop="$parent.$emit('edit', props.row)">
-                    <q-tooltip>Düzenle</q-tooltip>
-                </q-btn>
-                <q-btn flat round dense icon="delete_outline" color="negative" size="sm"
-                    @click.stop="$parent.$emit('delete', props.row)">
-                    <q-tooltip>Sil</q-tooltip>
-                </q-btn>
+    # Tek 'body' slot: hucre icerikleri + coklu kalemli islemler icin akordeon satiri.
+    # Coklu kalemli satira tiklayinca kalemler acilir; digerlerinde detay modali acilir.
+    body_slot = (r'''
+    <q-tr :props="props"
+          :class="props.expand && props.row.kalemler && props.row.kalemler.length > 1 ? 'hrk-grup-acik' : ''"
+          @click="props.row.kalemler && props.row.kalemler.length > 1 ? props.expand = !props.expand : $parent.$emit('rowdetail', props.row)">
+        <q-td v-for="col in props.cols" :key="col.name" :props="props" :class="''' + _rcls + r'''">
+            <template v-if="col.name === 'tarih'">
+                <span v-if="props.row.tarih" style="font-weight:700;font-size:11px;color:#334155;">{{ props.row.tarih.split('-').reverse().join('.') }}</span>
+                <span v-else style="color:#7f1d1d;font-weight:700;">⚠ TARİH YOK</span>
             </template>
-            <template v-else>
-                <q-btn flat round dense icon="drive_file_rename_outline" color="primary" size="sm"
-                    @click.stop="$parent.$emit('edit_kasa', props.row)">
-                    <q-tooltip>{{ props.row.kasa_kaynak === 'gelir_gider' ? 'Gelir-Gider sayfasından düzenle' :
-                                  props.row.kasa_kaynak === 'cek' ? 'Çek sayfasından düzenle' :
-                                  'Düzenle' }}</q-tooltip>
-                </q-btn>
-                <q-btn flat round dense icon="delete_outline" color="negative" size="sm"
-                    @click.stop="$parent.$emit('delete_kasa', props.row)">
-                    <q-tooltip>Sil</q-tooltip>
-                </q-btn>
-                <q-chip dense
-                    :color="props.row.kasa_kaynak === 'gelir_gider' ? 'orange-3' :
-                            props.row.kasa_kaynak === 'cek' ? 'purple-3' : 'grey-3'"
-                    text-color="grey-9" size="sm" class="q-ml-xs"
-                    style="font-size:10px;height:18px;">
-                    {{ props.row.kasa_kaynak === 'gelir_gider' ? 'GG' :
-                       props.row.kasa_kaynak === 'cek' ? 'Çek' : 'Kasa' }}
-                </q-chip>
+            <template v-else-if="col.name === 'tur'">
+                <span style="display:inline-block;padding:2px 10px;border-radius:999px;font-weight:700;font-size:11px;letter-spacing:0.2px;"
+                    :style="props.row.tur === 'ALIS' ? 'background:#e0e7ff;color:#4338ca;' :
+                            props.row.tur === 'SATIS' ? 'background:#dcfce7;color:#15803d;' :
+                            props.row.tur === 'TAHSILAT' ? 'background:#cffafe;color:#0e7490;' :
+                            props.row.tur === 'ODEME' ? 'background:#ffe4e6;color:#be123c;' : 'background:#f1f5f9;color:#475569;'">
+                    {{ props.row.tur === 'ALIS' ? 'Alış' :
+                       props.row.tur === 'SATIS' ? 'Satış' :
+                       props.row.tur === 'TAHSILAT' ? 'Tahsilat' :
+                       props.row.tur === 'ODEME' ? 'Ödeme' : props.row.tur }}
+                </span>
             </template>
+            <template v-else-if="col.name === 'urun_ad'">
+                <div style="display:flex;align-items:center;">
+                    <q-icon v-if="props.row.kalemler && props.row.kalemler.length > 1"
+                            :name="props.expand ? 'expand_less' : 'expand_more'"
+                            size="16px" class="q-mr-xs text-primary" />
+                    <div style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                        {{ props.row.urun_ad }}
+                        <q-tooltip v-if="props.row.urun_ad && String(props.row.urun_ad).length > 18"
+                            anchor="top middle" self="bottom middle"
+                            style="font-size:12.5px;max-width:360px;white-space:normal;background:#1e293b;">
+                            {{ props.row.urun_ad }}
+                        </q-tooltip>
+                    </div>
+                </div>
+            </template>
+            <template v-else-if="col.name === 'firma_ad' || col.name === 'aciklama'">
+                <div :style="'max-width:' + (col.name === 'firma_ad' ? 170 : 200) + 'px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;'">
+                    {{ props.row[col.name] }}
+                    <q-tooltip v-if="props.row[col.name] && String(props.row[col.name]).length > (col.name === 'firma_ad' ? 22 : 26)"
+                        anchor="top middle" self="bottom middle"
+                        style="font-size:12.5px;max-width:360px;white-space:normal;background:#1e293b;">
+                        {{ props.row[col.name] }}
+                    </q-tooltip>
+                </div>
+            </template>
+            <template v-else-if="col.name === 'miktar'">
+                <span class="num-mono">{{ props.row.miktar != null && props.row.miktar !== 0 ? Number(props.row.miktar).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) : '' }}</span>
+            </template>
+            <template v-else-if="col.name === 'birim_fiyat' || col.name === 'toplam' || col.name === 'kdvli_toplam'">
+                <span class="num-mono">{{ props.row[col.name] != null && props.row[col.name] !== 0
+                    ? (props.row[col.name] < 0 ? '-' : '') + Math.abs(props.row[col.name]).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' TL'
+                    : '' }}</span>
+            </template>
+            <template v-else-if="col.name === 'tevkifat_orani'">
+                <q-badge v-if="props.row.tevkifat_orani && props.row.tevkifat_orani !== '0'" color="orange-8" text-color="white" dense>
+                    {{ props.row.tevkifat_orani }}
+                </q-badge>
+                <span v-else class="text-grey-5">-</span>
+            </template>
+            <template v-else-if="col.name === 'actions'">
+                <template v-if="props.row.source === 'STOK' || !props.row.source">
+                    <q-btn flat round dense icon="drive_file_rename_outline" color="primary" size="sm"
+                        @click.stop="$parent.$emit('edit', props.row)">
+                        <q-tooltip>Düzenle</q-tooltip>
+                    </q-btn>
+                    <q-btn flat round dense icon="delete_outline" color="negative" size="sm"
+                        @click.stop="$parent.$emit('delete', props.row)">
+                        <q-tooltip>Sil</q-tooltip>
+                    </q-btn>
+                </template>
+                <template v-else>
+                    <q-btn flat round dense icon="drive_file_rename_outline" color="primary" size="sm"
+                        @click.stop="$parent.$emit('edit_kasa', props.row)">
+                        <q-tooltip>{{ props.row.kasa_kaynak === 'gelir_gider' ? 'Gelir-Gider sayfasından düzenle' :
+                                      props.row.kasa_kaynak === 'cek' ? 'Çek sayfasından düzenle' :
+                                      'Düzenle' }}</q-tooltip>
+                    </q-btn>
+                    <q-btn flat round dense icon="delete_outline" color="negative" size="sm"
+                        @click.stop="$parent.$emit('delete_kasa', props.row)">
+                        <q-tooltip>Sil</q-tooltip>
+                    </q-btn>
+                    <q-chip dense
+                        :color="props.row.kasa_kaynak === 'gelir_gider' ? 'orange-3' :
+                                props.row.kasa_kaynak === 'cek' ? 'purple-3' : 'grey-3'"
+                        text-color="grey-9" size="sm" class="q-ml-xs"
+                        style="font-size:10px;height:18px;">
+                        {{ props.row.kasa_kaynak === 'gelir_gider' ? 'GG' :
+                           props.row.kasa_kaynak === 'cek' ? 'Çek' : 'Kasa' }}
+                    </q-chip>
+                </template>
+            </template>
+            <template v-else>{{ col.value }}</template>
         </q-td>
-    ''' % _rcls
+    </q-tr>
+    <template v-if="props.row.kalemler && props.row.kalemler.length > 1 && props.expand">
+        <q-tr v-for="(k, ki) in props.row.kalemler" :key="'kalem' + ki" :props="props" class="hrk-kalem-tr">
+            <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                <template v-if="col.name === 'urun_ad'">
+                    <span style="display:inline-flex;align-items:center;color:#334155;font-weight:600;font-size:12px;">
+                        <q-icon name="subdirectory_arrow_right" size="14px" class="q-mr-xs text-grey-6" />
+                        {{ k.urun_ad }}
+                    </span>
+                </template>
+                <template v-else-if="col.name === 'miktar'">
+                    <span class="num-mono" style="font-size:12px;color:#475569;">{{ k.miktar != null ? Number(k.miktar).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) : '' }}</span>
+                </template>
+                <template v-else-if="col.name === 'birim_fiyat'">
+                    <span class="num-mono" style="font-size:12px;color:#475569;">{{ k.birim_fiyat != null ? Number(k.birim_fiyat).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' TL' : '' }}</span>
+                </template>
+                <template v-else-if="col.name === 'toplam'">
+                    <span class="num-mono" style="font-size:12px;color:#475569;">{{ k.miktar != null && k.birim_fiyat != null ? (Number(k.miktar) * Number(k.birim_fiyat)).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' TL' : '' }}</span>
+                </template>
+                <template v-else-if="col.name === 'kdvli_toplam'">
+                    <span class="num-mono" style="font-size:12px;color:#0f766e;font-weight:700;">{{ k.kdvli_toplam != null ? Number(k.kdvli_toplam).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' TL' : '' }}</span>
+                </template>
+            </q-td>
+        </q-tr>
+    </template>
+    ''')
 
     # --- PAGE CONTENT ---
     with ui.column().classes('w-full q-pa-sm'):
-        all_rows = get_hareketler(yil=None, ay=None)
+        all_rows = _grupla(get_hareketler(yil=None, ay=None))
 
         def on_tur_change(new_tur):
             tur_filter['value'] = new_tur
@@ -1178,34 +1256,14 @@ def hareketler_page():
         ).classes('w-full hrk-table').style('--table-extra-rows: 3;')
         table_ref.props('flat bordered dense')
 
-        # Slot'lar
-        table_ref.add_slot('body-cell-tarih', _tarih_slot)
-        table_ref.add_slot('body-cell-tur', tur_slot)
-        table_ref.add_slot('body-cell-miktar', miktar_slot)
-        table_ref.add_slot('body-cell-birim_fiyat', _para_slot)
-        table_ref.add_slot('body-cell-toplam', _para_slot)
-        table_ref.add_slot('body-cell-kdvli_toplam', _para_slot)
-        table_ref.add_slot('body-cell-belge_no', _default_slot)
-        table_ref.add_slot('body-cell-urun_ad', _urun_slot)
-        table_ref.add_slot('body-cell-firma_ad', _firma_slot)
-        table_ref.add_slot('body-cell-aciklama', _aciklama_slot)
-        table_ref.add_slot('body-cell-birim', _default_slot)
-        table_ref.add_slot('body-cell-kdv_orani', _default_slot)
-        table_ref.add_slot('body-cell-tevkifat_orani', r'''
-            <q-td :props="props" :class="''' + _rcls + r'''">
-                <q-badge v-if="props.value && props.value !== '0'" color="orange-8" text-color="white" dense>
-                    {{ props.value }}
-                </q-badge>
-                <span v-else class="text-grey-5">-</span>
-            </q-td>
-        ''')
-        table_ref.add_slot('body-cell-actions', actions_slot)
+        # Slot: tek body (hucreler + akordeon kalem satiri)
+        table_ref.add_slot('body', body_slot)
 
         table_ref.on('edit', lambda e: do_edit(e.args))
         table_ref.on('delete', lambda e: do_delete(e.args))
         table_ref.on('edit_kasa', lambda e: do_edit_kasa(e.args))
         table_ref.on('delete_kasa', lambda e: do_delete_kasa(e.args))
-        table_ref.on('row-click', lambda e: _show_row_detail(e.args[1]))
+        table_ref.on('rowdetail', lambda e: _show_row_detail(e.args))
 
 
 

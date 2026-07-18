@@ -38,6 +38,11 @@ def cari_detay_page(firma_kod: str):
     .cari-ekstre-table .q-table__middle {
       max-height: calc(100vh - 280px) !important;
     }
+    /* Coklu kalem akordeonu: acik grup vurgusu — ana satir + kalemler tek blok gibi */
+    .cari-ekstre-table tbody tr.ekstre-grup-acik td { background: #e0f2fe !important; }
+    .cari-ekstre-table tbody tr.ekstre-kalem-tr td { background: #f0f9ff !important; }
+    .cari-ekstre-table tbody tr.ekstre-grup-acik td:first-child,
+    .cari-ekstre-table tbody tr.ekstre-kalem-tr td:first-child { box-shadow: inset 3px 0 0 #0284c7; }
     .cari-kasa-table .q-table__middle {
       max-height: calc(100vh - 280px) !important;
     }
@@ -390,7 +395,7 @@ def cari_detay_page(firma_kod: str):
                 # akordeon satiri (tiklayinca kalemler acilir)
                 ekstre_table.add_slot('body', r'''
                     <q-tr :props="props"
-                          :class="props.row.kalemler && props.row.kalemler.length > 1 ? 'cursor-pointer' : ''"
+                          :class="(props.row.kalemler && props.row.kalemler.length > 1 ? 'cursor-pointer ' : '') + (props.expand && props.row.kalemler && props.row.kalemler.length > 1 ? 'ekstre-grup-acik' : '')"
                           @click="props.row.kalemler && props.row.kalemler.length > 1 ? props.expand = !props.expand : null">
                         <q-td v-for="col in props.cols" :key="col.name" :props="props"
                               :class="col.name === 'tarih' && !props.row.tarih ? 'tarihsiz-cell' : ''">
@@ -449,22 +454,35 @@ def cari_detay_page(firma_kod: str):
                             <template v-else>{{ col.value }}</template>
                         </q-td>
                     </q-tr>
-                    <q-tr v-if="props.row.kalemler && props.row.kalemler.length > 1" v-show="props.expand" :props="props">
-                        <q-td colspan="100%" style="padding:0;background:#f8fafc;">
-                            <div style="padding:6px 12px 6px 44px;">
-                                <div v-for="(k, i) in props.row.kalemler" :key="i"
-                                     style="display:flex;align-items:center;gap:16px;padding:4px 0;border-bottom:1px dashed #e2e8f0;font-size:12px;">
-                                    <span style="flex:2;color:#334155;font-weight:600;">{{ k.urun_ad }}</span>
-                                    <span style="flex:1;text-align:right;color:#475569;">
-                                        {{ k.miktar != null ? Number(k.miktar).toLocaleString('tr-TR', {minimumFractionDigits:0, maximumFractionDigits:2}) : '' }}
-                                        <span style="color:#94a3b8;">{{ k.birim || 'KG' }}</span>
+                    <template v-if="props.row.kalemler && props.row.kalemler.length > 1 && props.expand">
+                        <q-tr v-for="(k, ki) in props.row.kalemler" :key="'kalem' + ki" :props="props" class="ekstre-kalem-tr">
+                            <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                                <template v-if="col.name === 'aciklama'">
+                                    <span style="display:inline-flex;align-items:center;color:#334155;font-weight:600;font-size:12px;">
+                                        <q-icon name="subdirectory_arrow_right" size="14px" class="q-mr-xs text-grey-6" />
+                                        {{ k.urun_ad }}
                                     </span>
-                                    <span style="flex:1;text-align:right;color:#475569;">{{ k.birim_fiyat != null ? Number(k.birim_fiyat).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' TL' : '' }}</span>
-                                    <span style="flex:1;text-align:right;color:#0f766e;font-weight:700;">{{ k.tutar != null ? Number(k.tutar).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' TL' : '' }}</span>
-                                </div>
-                            </div>
-                        </q-td>
-                    </q-tr>
+                                </template>
+                                <template v-else-if="col.name === 'miktar'">
+                                    <span v-if="k.miktar != null" class="text-grey-8" style="font-size:12px;">
+                                        {{ Number(k.miktar).toLocaleString('tr-TR', {minimumFractionDigits:0, maximumFractionDigits:2}) }}
+                                        <span class="text-grey-6 text-caption q-ml-xs">{{ k.birim || 'KG' }}</span>
+                                    </span>
+                                </template>
+                                <template v-else-if="col.name === 'birim_fiyat'">
+                                    <span v-if="k.birim_fiyat != null" class="text-grey-8" style="font-size:12px;">
+                                        {{ Number(k.birim_fiyat).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) }} TL
+                                    </span>
+                                </template>
+                                <template v-else-if="col.name === 'borc'">
+                                    <span v-if="props.row.borc" style="font-size:12px;color:#475569;">{{ Number(k.tutar || 0).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' TL' }}</span>
+                                </template>
+                                <template v-else-if="col.name === 'alacak'">
+                                    <span v-if="props.row.alacak" style="font-size:12px;color:#475569;">{{ Number(k.tutar || 0).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' TL' }}</span>
+                                </template>
+                            </q-td>
+                        </q-tr>
+                    </template>
                 ''')
 
             with ui.tab_panel(kasa_tab).classes('q-pa-none'):
