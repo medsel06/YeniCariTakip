@@ -275,7 +275,7 @@ def hareketler_page():
 
                     # KDV Oranı
                     inp_kdv = ui.select(
-                        options={0: '%0', 1: '%1', 8: '%8', 10: '%10', 18: '%18', 20: '%20'},
+                        options={0: '%0', 1: '%1', 10: '%10', 20: '%20'},
                         label='KDV Oranı', value=20
                     ).props('outlined dense label-color=cyan-8').classes('col')
 
@@ -363,10 +363,12 @@ def hareketler_page():
                             ).props('outlined dense label-color=cyan-8').classes('col')
                             ui.button(icon='add', on_click=lambda: open_mini_urun_dialog(k_urun)).props(
                                 'round dense flat color=primary').tooltip('Yeni Ürün Ekle')
-                            k_miktar = ui.number(label='Miktar', value=kayit.get('miktar', 0), format='%.2f').props(
-                                'outlined dense label-color=cyan-8 type=text').style('width:105px')
-                            k_bf = ui.number(label='Birim Fiyat', value=kayit.get('birim_fiyat', 0), format='%.2f').props(
-                                'outlined dense label-color=cyan-8 type=text').style('width:115px')
+                            # value=None -> alan bos acilir, '0,00' gri placeholder olarak gorunur
+                            # (tiklayinca bos, silmeden yazilabilir). Duzenlemede gercek deger dolar.
+                            k_miktar = ui.number(label='Miktar', value=kayit.get('miktar') or None, format='%.2f').props(
+                                'outlined dense label-color=cyan-8 type=text stack-label placeholder="0,00"').style('width:105px')
+                            k_bf = ui.number(label='Birim Fiyat', value=kayit.get('birim_fiyat') or None, format='%.2f').props(
+                                'outlined dense label-color=cyan-8 type=text stack-label placeholder="0,00"').style('width:115px')
                             k_lbl = ui.label('0,00').classes('num-mono text-right').style(
                                 'width:95px;font-size:12.5px;font-weight:600;color:#334155;')
                             ui.button(icon='close', on_click=lambda: remove_kalem(entry)).props(
