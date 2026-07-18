@@ -527,12 +527,25 @@ def hareketler_page():
                     _quick_add_confirm('Firmalar', yeni_ad, _yes, _no)
                 inp_firma.on_value_change(lambda: _on_firma_change())
 
-                # Enter = Tab (ust alanlar): tarih -> belge -> tur -> tevkifat -> firma
-                # .prevent -> Enter, select'in dropdown'unu ACMAZ; sadece ileri atlar
+                # Enter=Tab hizli akis: select odaga gelince liste ACILIR (ust secenek zaten secili).
+                # Enter ustu secip kapatir -> bir sonraki select acilir. Enter-Enter ile hizli gecis.
+                _sel_nav = {'active': False}
+                def _ac_select(sel):
+                    _sel_nav['active'] = True
+                    sel.run_method('focus')
+                    sel.run_method('showPopup')
                 inp_tarih.on('keydown.enter.prevent', lambda: inp_belge.run_method('focus'))
-                inp_belge.on('keydown.enter.prevent', lambda: inp_tur.run_method('focus'))
-                inp_tur.on('keydown.enter.prevent', lambda: inp_tevkifat.run_method('focus'))
-                inp_tevkifat.on('keydown.enter.prevent', lambda: inp_firma.run_method('focus'))
+                inp_belge.on('keydown.enter.prevent', lambda: _ac_select(inp_tur))
+                def _tur_hide():
+                    if _sel_nav['active']:
+                        _sel_nav['active'] = False
+                        _ac_select(inp_tevkifat)
+                inp_tur.on('popup-hide', _tur_hide)
+                def _tevk_hide():
+                    if _sel_nav['active']:
+                        _sel_nav['active'] = False
+                        inp_firma.run_method('focus')
+                inp_tevkifat.on('popup-hide', _tevk_hide)
 
                 ui.label('Ürün Kalemleri').classes('text-caption text-weight-bold').style(
                     'color:#0e7490;letter-spacing:0.3px;')
@@ -924,6 +937,8 @@ def hareketler_page():
                 ui.button('Kaydet', on_click=save, color=None).props('unelevated no-caps').style(
                     'background:#059669;color:#fff;font-weight:700;padding:7px 22px;border-radius:9px')
         dlg.open()
+        # Modal acilinca odak dogrudan Tarih'e
+        ui.timer(0.2, lambda: inp_tarih.run_method('focus'), once=True)
 
     def do_edit(row):
         open_hareket_dialog(edit_row=row)
