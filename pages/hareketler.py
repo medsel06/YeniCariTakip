@@ -128,8 +128,9 @@ def hareketler_page():
     .im-modal .im-kgt { color:#047857 !important; font-weight:800; }
     /* TUM select oklarini kaldir (zaten tiklayinca aciliyor) */
     .im-modal .q-select__dropdown-icon { display:none !important; }
-    /* Hizli ekleme onay popup: odaktaki buton belirgin */
-    .im-confirm-card button:focus-visible { outline:2px solid #059669; outline-offset:2px; }
+    /* Hizli ekleme onay popup: SECILI buton cok belirgin (JS 'imsel' sinifi) */
+    .im-confirm-card button.imsel { outline:3px solid #059669 !important; outline-offset:2px;
+        box-shadow:0 0 0 4px rgba(5,150,105,.20) !important; }
     .im-ktutar { text-align:right; font-weight:700; color:#0f766e; font-size:12.5px;
         font-variant-numeric:tabular-nums; padding-right:8px; }
 
@@ -480,10 +481,12 @@ def hareketler_page():
                         const btns = card.querySelectorAll('button');
                         if(btns.length < 2) return;
                         const noBtn = btns[0], yesBtn = btns[1];
-                        yesBtn.focus();
+                        const mark = (b) => { noBtn.classList.remove('imsel'); yesBtn.classList.remove('imsel');
+                                              b.classList.add('imsel'); b.focus(); };
+                        mark(yesBtn);
                         card.addEventListener('keydown', (e) => {
-                            if(e.key === 'ArrowLeft'){ noBtn.focus(); e.preventDefault(); }
-                            else if(e.key === 'ArrowRight'){ yesBtn.focus(); e.preventDefault(); }
+                            if(e.key === 'ArrowLeft'){ mark(noBtn); e.preventDefault(); }
+                            else if(e.key === 'ArrowRight'){ mark(yesBtn); e.preventDefault(); }
                         });
                     '''), once=True)
 
@@ -525,10 +528,11 @@ def hareketler_page():
                 inp_firma.on_value_change(lambda: _on_firma_change())
 
                 # Enter = Tab (ust alanlar): tarih -> belge -> tur -> tevkifat -> firma
-                inp_tarih.on('keydown.enter', lambda: inp_belge.run_method('focus'))
-                inp_belge.on('keydown.enter', lambda: inp_tur.run_method('focus'))
-                inp_tur.on('keydown.enter', lambda: inp_tevkifat.run_method('focus'))
-                inp_tevkifat.on('keydown.enter', lambda: inp_firma.run_method('focus'))
+                # .prevent -> Enter, select'in dropdown'unu ACMAZ; sadece ileri atlar
+                inp_tarih.on('keydown.enter.prevent', lambda: inp_belge.run_method('focus'))
+                inp_belge.on('keydown.enter.prevent', lambda: inp_tur.run_method('focus'))
+                inp_tur.on('keydown.enter.prevent', lambda: inp_tevkifat.run_method('focus'))
+                inp_tevkifat.on('keydown.enter.prevent', lambda: inp_firma.run_method('focus'))
 
                 ui.label('Ürün Kalemleri').classes('text-caption text-weight-bold').style(
                     'color:#0e7490;letter-spacing:0.3px;')
@@ -622,8 +626,8 @@ def hareketler_page():
                             _urun_busy['v'] = False
                         _quick_add_confirm('Stok', yeni_ad, _yes, _no)
                     k_urun.on_value_change(lambda: _on_urun_change())
-                    k_miktar.on('keydown.enter', lambda: k_bf.run_method('focus'))
-                    k_bf.on('keydown.enter', lambda: k_kdv.run_method('focus'))
+                    k_miktar.on('keydown.enter.prevent', lambda: k_bf.run_method('focus'))
+                    k_bf.on('keydown.enter.prevent', lambda: k_kdv.run_method('focus'))
                     kalemler_state.append(entry)
                     if not ilk:
                         recalc()
