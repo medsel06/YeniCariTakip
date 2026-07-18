@@ -171,8 +171,9 @@ def get_gelir_gider_rapor(baslangic=None, bitis=None, tur=None):
         where.append("tarih <= ?"); params.append(str(bitis)[:10])
     if tur in ('GELIR', 'GIDER'):
         where.append("tur = ?"); params.append(tur)
+    # Yeni tarih en ustte (azalan) — ekran listesiyle ayni
     sql = "SELECT * FROM gelir_gider WHERE " + " AND ".join(where) + \
-          " ORDER BY tarih, COALESCE(created_at, tarih || ' 00:00:00.000000'), id"
+          " ORDER BY tarih DESC, COALESCE(created_at, tarih || ' 00:00:00.000000') DESC, id DESC"
     with get_db() as conn:
         return [dict(r) for r in conn.execute(sql, params).fetchall()]
 

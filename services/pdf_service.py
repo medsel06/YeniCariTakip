@@ -626,6 +626,59 @@ def generate_gelir_gider_kategori_pdf(kategori_data, baslik, tur_filtre='HEPSI',
     return buf.getvalue()
 
 
+def generate_gelir_gider_liste_pdf(rows, baslik):
+    """Gelir/Gider duz liste PDF — metin sutunlari (Kategori/Cari/Aciklama) SARILIR (tasma yok),
+    Toplam saga yasli. rows: get_gelir_gider_rapor ciktisi (sirali)."""
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=PDF_TOP_MARGIN_MM * mm, bottomMargin=20 * mm,
+                            leftMargin=15 * mm, rightMargin=15 * mm)
+    styles = _styles()
+    cell = ParagraphStyle('gg_cell', fontName='ArialTR', fontSize=7.5, leading=9)
+    cell_r = ParagraphStyle('gg_cell_r', fontName='ArialTR', fontSize=7.5, leading=9, alignment=2)
+    cell_c = ParagraphStyle('gg_cell_c', fontName='ArialTR', fontSize=7.5, leading=9, alignment=1)
+    hstyle = ParagraphStyle('gg_head', fontName='ArialTRB', fontSize=8, leading=10, textColor=colors.white)
+    _durum = {'ODENDI': 'Ödendi', 'KISMI': 'Kısmi', 'ODENMEDI': 'Ödenmedi'}
+
+    def _esc(txt):
+        return str(txt or '').replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+
+    def P(txt, st=cell):
+        return Paragraph(_esc(_pretty_text(txt)), st)
+
+    data = [[Paragraph(h, hstyle) for h in
+             ['Tarih', 'Tür', 'Kategori', 'Cari', 'Açıklama', 'Toplam', 'Durum', 'Ödeme']]]
+    for r in rows:
+        data.append([
+            P(r.get('tarih', '') or '', cell_c),
+            P('Gelir' if r.get('tur') == 'GELIR' else 'Gider', cell_c),
+            P(r.get('kategori', '') or ''),
+            P(r.get('firma_ad', '') or ''),
+            P(r.get('aciklama', '') or ''),
+            Paragraph(_esc(_fmt(r.get('toplam', 0))), cell_r),
+            P(_durum.get(r.get('odeme_durumu', ''), r.get('odeme_durumu', '') or ''), cell_c),
+            P(r.get('odeme_sekli', '') or '', cell_c),
+        ])
+    usable = A4[0] - 30 * mm
+    cw = [usable * x for x in (0.11, 0.08, 0.13, 0.17, 0.23, 0.12, 0.08, 0.08)]
+    t = Table(data, colWidths=cw, repeatRows=1)
+    t.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#37474F')),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F5F5F5')]),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, -1), 2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+        ('LEFTPADDING', (0, 0), (-1, -1), 3),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+    ]))
+    elements = [Spacer(1, 2 * mm), t]
+    doc.build(elements,
+              onFirstPage=lambda c, d: _header_footer(c, d, baslik),
+              onLaterPages=lambda c, d: _header_footer(c, d, baslik))
+    buf.seek(0)
+    return buf.getvalue()
+
+
 def generate_hizli_mutabakat_pdf(firma_ad, ekstre_rows, cek_rows, kasa_rows):
     """Cari detay icin tek tus mutabakat PDF."""
     buf = io.BytesIO()

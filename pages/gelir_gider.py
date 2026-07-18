@@ -15,7 +15,7 @@ from services.banka_service import list_banka_hesaplari
 from services.kasa_service import add_kasa
 from services.cari_service import get_firma_list, add_firma, generate_firma_kod
 from services.pdf_service import (
-    generate_table_pdf, save_pdf_preview, generate_gelir_gider_kategori_pdf,
+    save_pdf_preview, generate_gelir_gider_kategori_pdf, generate_gelir_gider_liste_pdf,
 )
 
 
@@ -570,26 +570,6 @@ def gelir_gider_page(focus: int = None):
                     preview_url = save_pdf_preview(pdf_bytes, filename)
                     ui.run_javascript(f"window.open('{preview_url}', '_blank')")
 
-                def _pdf_normal(rows, baslik):
-                    """Duz liste PDF (rows: get_gelir_gider_rapor ciktisi)."""
-                    headers = ['Tarih', 'Tür', 'Kategori', 'Cari', 'Açıklama', 'Toplam', 'Durum', 'Ödeme']
-                    _durum = {'ODENDI': 'Ödendi', 'KISMI': 'Kısmi', 'ODENMEDI': 'Ödenmedi'}
-
-                    def _fp(v):
-                        return f"{float(v or 0):,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
-
-                    data_rows = [[
-                        r.get('tarih', '') or '',
-                        'Gelir' if r.get('tur') == 'GELIR' else 'Gider',
-                        r.get('kategori', '') or '',
-                        r.get('firma_ad', '') or '',
-                        r.get('aciklama', '') or '',
-                        _fp(r.get('toplam', 0)),
-                        _durum.get(r.get('odeme_durumu', ''), r.get('odeme_durumu', '') or ''),
-                        r.get('odeme_sekli', '') or '',
-                    ] for r in rows]
-                    return generate_table_pdf(baslik, headers, data_rows)
-
                 def _open_pdf_dialog():
                     import calendar
                     _t = date.today()
@@ -663,7 +643,7 @@ def gelir_gider_page(focus: int = None):
                                             tur_filtre=inp_tur.value, detay=chk_detay.value)
                                         fname = 'gelir_gider_kategori.pdf'
                                     else:
-                                        pdf = _pdf_normal(rows, f'Gelir / Gider Raporu — {_dl}')
+                                        pdf = generate_gelir_gider_liste_pdf(rows, f'Gelir / Gider Raporu — {_dl}')
                                         fname = 'gelir_gider_raporu.pdf'
                                     pdlg.close()
                                     _open_pdf(pdf, fname)
