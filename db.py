@@ -656,6 +656,11 @@ def _create_business_tables(conn):
     # okuyup FIFO ile kapanma durumunu canli turetir; cari bakiyeyi ETKILEMEZ (tek kayit).
     if not _col_exists(conn, 'hareketler', 'vade_tarih'):
         conn.execute("ALTER TABLE hareketler ADD COLUMN vade_tarih TEXT DEFAULT ''")
+    # Coklu kalem: ayni islemin kalemlerini baglayan grup kimligi ('' = tek kalemli islem).
+    # Stok/karlilik/KDV/FIFO satir bazli calismaya devam eder; grup sadece gosterimde birlestirilir.
+    if not _col_exists(conn, 'hareketler', 'grup_id'):
+        conn.execute("ALTER TABLE hareketler ADD COLUMN grup_id TEXT DEFAULT ''")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_hareketler_grup ON hareketler(grup_id)")
     # Soft-delete (Paket 8): firma/urun pasife alma
     if not _col_exists(conn, 'firmalar', 'aktif'):
         conn.execute("ALTER TABLE firmalar ADD COLUMN aktif INTEGER DEFAULT 1")

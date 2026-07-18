@@ -228,6 +228,7 @@ def get_hareketler(yil=None, ay=None):
             aciklama,
             belge_no,
             vade_tarih,
+            COALESCE(grup_id, '') AS grup_id,
             'STOK' AS source,
             NULL::INTEGER AS kasa_id,
             NULL::INTEGER AS gelir_gider_id,
@@ -260,6 +261,7 @@ def get_hareketler(yil=None, ay=None):
             aciklama,
             '' AS belge_no,
             '' AS vade_tarih,
+            '' AS grup_id,
             'KASA' AS source,
             id AS kasa_id,
             gelir_gider_id,
@@ -299,52 +301,124 @@ def get_hareket_by_id(id):
         return dict(r) if r else None
 
 
+def _insert_hareket(conn, data, created_at):
+    cur = conn.execute('''
+        INSERT INTO hareketler
+            (tarih, firma_kod, firma_ad, tur, urun_kod, urun_ad, miktar, birim_fiyat,
+             toplam, kdv_orani, kdv_tutar, kdvli_toplam,
+             tevkifat_orani, tevkifat_tutar, tevkifatsiz_kdv, aciklama, belge_no, vade_tarih,
+             grup_id, created_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        RETURNING id
+    ''', (
+        data['tarih'], data['firma_kod'], data['firma_ad'], data['tur'],
+        data['urun_kod'], data['urun_ad'], data['miktar'], data['birim_fiyat'],
+        data['toplam'], data.get('kdv_orani', 0), data.get('kdv_tutar', 0),
+        data.get('kdvli_toplam', data['toplam']),
+        data.get('tevkifat_orani', '0'), data.get('tevkifat_tutar', 0),
+        data.get('tevkifatsiz_kdv', 0), data.get('aciklama', ''),
+        data.get('belge_no', ''), data.get('vade_tarih', ''),
+        data.get('grup_id', ''),
+        created_at,
+    ))
+    hareket_id = cur.fetchone()['id']
+    _log_hareket(conn, hareket_id, 'EKLEME', json.dumps(data, ensure_ascii=False))
+    return hareket_id
+
+
+def _update_hareket_conn(conn, id, data):
+    old = conn.execute('SELECT * FROM hareketler WHERE id=?', (id,)).fetchone()
+    old_dict = dict(old) if old else {}
+    conn.execute('''
+        UPDATE hareketler SET tarih=?, firma_kod=?, firma_ad=?, tur=?, urun_kod=?, urun_ad=?,
+            miktar=?, birim_fiyat=?, toplam=?, kdv_orani=?, kdv_tutar=?, kdvli_toplam=?,
+            tevkifat_orani=?, tevkifat_tutar=?, tevkifatsiz_kdv=?, aciklama=?, belge_no=?, vade_tarih=?,
+            grup_id=?
+        WHERE id=?
+    ''', (
+        data['tarih'], data['firma_kod'], data['firma_ad'], data['tur'],
+        data['urun_kod'], data['urun_ad'], data['miktar'], data['birim_fiyat'],
+        data['toplam'], data.get('kdv_orani', 0), data.get('kdv_tutar', 0),
+        data.get('kdvli_toplam', data['toplam']),
+        data.get('tevkifat_orani', '0'), data.get('tevkifat_tutar', 0),
+        data.get('tevkifatsiz_kdv', 0), data.get('aciklama', ''),
+        data.get('belge_no', ''), data.get('vade_tarih', ''),
+        # grup_id verilmediyse mevcut degeri koru (v3 API gibi eski cagiranlar bozulmasin)
+        data.get('grup_id', old_dict.get('grup_id', '') or ''),
+        id
+    ))
+    detay = json.dumps({'eski': old_dict, 'yeni': data}, ensure_ascii=False, default=str)
+    _log_hareket(conn, id, 'DUZENLEME', detay)
+
+
 def add_hareket(data):
     with get_db() as conn:
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
-        cur = conn.execute('''
-            INSERT INTO hareketler
-                (tarih, firma_kod, firma_ad, tur, urun_kod, urun_ad, miktar, birim_fiyat,
-                 toplam, kdv_orani, kdv_tutar, kdvli_toplam,
-                 tevkifat_orani, tevkifat_tutar, tevkifatsiz_kdv, aciklama, belge_no, vade_tarih, created_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-            RETURNING id
-        ''', (
-            data['tarih'], data['firma_kod'], data['firma_ad'], data['tur'],
-            data['urun_kod'], data['urun_ad'], data['miktar'], data['birim_fiyat'],
-            data['toplam'], data.get('kdv_orani', 0), data.get('kdv_tutar', 0),
-            data.get('kdvli_toplam', data['toplam']),
-            data.get('tevkifat_orani', '0'), data.get('tevkifat_tutar', 0),
-            data.get('tevkifatsiz_kdv', 0), data.get('aciklama', ''),
-            data.get('belge_no', ''), data.get('vade_tarih', ''),
-            now,
-        ))
-        hareket_id = cur.fetchone()['id']
-        _log_hareket(conn, hareket_id, 'EKLEME', json.dumps(data, ensure_ascii=False))
-        return hareket_id
+        return _insert_hareket(conn, data, now)
 
 
 def update_hareket(id, data):
     with get_db() as conn:
-        old = conn.execute('SELECT * FROM hareketler WHERE id=?', (id,)).fetchone()
-        old_dict = dict(old) if old else {}
-        conn.execute('''
-            UPDATE hareketler SET tarih=?, firma_kod=?, firma_ad=?, tur=?, urun_kod=?, urun_ad=?,
-                miktar=?, birim_fiyat=?, toplam=?, kdv_orani=?, kdv_tutar=?, kdvli_toplam=?,
-                tevkifat_orani=?, tevkifat_tutar=?, tevkifatsiz_kdv=?, aciklama=?, belge_no=?, vade_tarih=?
-            WHERE id=?
-        ''', (
-            data['tarih'], data['firma_kod'], data['firma_ad'], data['tur'],
-            data['urun_kod'], data['urun_ad'], data['miktar'], data['birim_fiyat'],
-            data['toplam'], data.get('kdv_orani', 0), data.get('kdv_tutar', 0),
-            data.get('kdvli_toplam', data['toplam']),
-            data.get('tevkifat_orani', '0'), data.get('tevkifat_tutar', 0),
-            data.get('tevkifatsiz_kdv', 0), data.get('aciklama', ''),
-            data.get('belge_no', ''), data.get('vade_tarih', ''),
-            id
-        ))
-        detay = json.dumps({'eski': old_dict, 'yeni': data}, ensure_ascii=False, default=str)
-        _log_hareket(conn, id, 'DUZENLEME', detay)
+        _update_hareket_conn(conn, id, data)
+
+
+def get_hareket_grup(grup_id):
+    """Ayni islemin (grup) tum kalem satirlari."""
+    if not grup_id:
+        return []
+    with get_db() as conn:
+        rows = conn.execute(
+            'SELECT * FROM hareketler WHERE grup_id=? ORDER BY id', (grup_id,)
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def save_hareket_grup(kalemler, silinen_idler=None):
+    """Coklu kalemli islemi tek transaction'da kaydeder/gunceller.
+
+    kalemler: hareket data dict listesi; 'id' dolu olan UPDATE, olmayan INSERT edilir.
+    silinen_idler: duzenlemede cikarilan kalemlerin hareket id'leri (silinir).
+    Birden fazla kalem varsa hepsine ortak grup_id atanir (mevcut yoksa uretilir);
+    tek kalemli islem grup_id='' ile eski davranista kalir.
+    Donus: grup_id ('' = tek kalem).
+    """
+    import uuid
+    kalemler = [k for k in kalemler if k]
+    grup_id = ''
+    for k in kalemler:
+        if k.get('grup_id'):
+            grup_id = k['grup_id']
+            break
+    if len(kalemler) > 1 and not grup_id:
+        grup_id = uuid.uuid4().hex
+    if len(kalemler) <= 1:
+        grup_id = ''
+    with get_db() as conn:
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+        for hid in (silinen_idler or []):
+            old = conn.execute('SELECT * FROM hareketler WHERE id=?', (hid,)).fetchone()
+            conn.execute('DELETE FROM hareketler WHERE id=?', (hid,))
+            _log_hareket(conn, hid, 'SILME',
+                         json.dumps(dict(old) if old else {}, ensure_ascii=False, default=str))
+        for k in kalemler:
+            k = dict(k)
+            k['grup_id'] = grup_id
+            hid = k.pop('id', None)
+            if hid:
+                _update_hareket_conn(conn, hid, k)
+            else:
+                # Ayni created_at: grup kalemleri ekstre siralamasinda birlikte dursun
+                _insert_hareket(conn, k, k.pop('created_at', None) or now)
+    return grup_id
+
+
+def delete_hareket_grup(grup_id):
+    """Grubun tum kalemlerini tek transaction'da siler."""
+    with get_db() as conn:
+        rows = conn.execute('SELECT * FROM hareketler WHERE grup_id=?', (grup_id,)).fetchall()
+        for r in rows:
+            conn.execute('DELETE FROM hareketler WHERE id=?', (r['id'],))
+            _log_hareket(conn, r['id'], 'SILME', json.dumps(dict(r), ensure_ascii=False, default=str))
 
 
 def delete_hareket(id):

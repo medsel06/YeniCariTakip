@@ -7,7 +7,8 @@ from layout import (
     fmt_para, fmt_miktar
 )
 from services.kasa_service import (
-    get_hareketler, add_hareket, update_hareket, delete_hareket,
+    get_hareketler, delete_hareket,
+    get_hareket_grup, save_hareket_grup, delete_hareket_grup,
     get_kasa_by_id, add_kasa, update_kasa, delete_kasa, get_kasa_silme_etkisi,
     get_kasa_kategoriler,
 )
@@ -289,17 +290,52 @@ def hareketler_page():
                 inp_firma.on_value_change(lambda _: check_risk())
                 inp_tur.on_value_change(lambda _: check_risk())
 
-                # Ürün secimi + Yeni ürün ekleme butonu
-                with ui.row().classes('w-full items-center gap-1'):
-                    inp_urun = ui.select(
-                        options=urun_options, label='Ürün', with_input=True
-                    ).props('outlined dense label-color=cyan-8').classes('col')
-                    ui.button(icon='add', on_click=lambda: open_mini_urun_dialog(inp_urun)).props(
-                        'round dense flat color=primary').tooltip('Yeni Ürün Ekle')
+                # --- Urun kalemleri (coklu): her kalem ayri hareket satiri olur, grup_id ile baglanir ---
+                kalemler_state = []   # {'row','urun','miktar','bf','lbl','hareket_id','created_at'}
+                silinen_idler = []    # duzenlemede cikarilan kalemlerin hareket id'leri
 
-                with ui.row().classes('w-full gap-md'):
-                    inp_miktar = ui.number(label='Miktar', value=0, format='%.2f').props('outlined dense label-color=cyan-8 type=text').classes('col')
-                    inp_birim_fiyat = ui.number(label='Birim Fiyat', value=0, format='%.2f').props('outlined dense label-color=cyan-8 type=text').classes('col')
+                ui.label('Ürün Kalemleri').classes('text-caption text-weight-bold').style(
+                    'color:#0e7490;letter-spacing:0.3px;')
+                kalemler_box = ui.column().classes('w-full gap-1')
+
+                def remove_kalem(entry):
+                    if len(kalemler_state) <= 1:
+                        notify_err('En az bir kalem olmalı')
+                        return
+                    if entry.get('hareket_id'):
+                        silinen_idler.append(entry['hareket_id'])
+                    kalemler_state.remove(entry)
+                    entry['row'].delete()
+                    recalc()
+
+                def add_kalem_row(kayit=None, ilk=False):
+                    kayit = kayit or {}
+                    entry = {'hareket_id': kayit.get('id'), 'created_at': kayit.get('created_at', '')}
+                    with kalemler_box:
+                        with ui.row().classes('w-full items-center gap-1 no-wrap') as krow:
+                            k_urun = ui.select(
+                                options=urun_options, label='Ürün', with_input=True,
+                                value=kayit.get('urun_kod') or None
+                            ).props('outlined dense label-color=cyan-8').classes('col')
+                            ui.button(icon='add', on_click=lambda: open_mini_urun_dialog(k_urun)).props(
+                                'round dense flat color=primary').tooltip('Yeni Ürün Ekle')
+                            k_miktar = ui.number(label='Miktar', value=kayit.get('miktar', 0), format='%.2f').props(
+                                'outlined dense label-color=cyan-8 type=text').style('width:105px')
+                            k_bf = ui.number(label='Birim Fiyat', value=kayit.get('birim_fiyat', 0), format='%.2f').props(
+                                'outlined dense label-color=cyan-8 type=text').style('width:115px')
+                            k_lbl = ui.label('0,00').classes('num-mono text-right').style(
+                                'width:95px;font-size:12.5px;font-weight:600;color:#334155;')
+                            ui.button(icon='close', on_click=lambda: remove_kalem(entry)).props(
+                                'round dense flat color=grey size=sm').tooltip('Kalemi çıkar')
+                    entry.update({'row': krow, 'urun': k_urun, 'miktar': k_miktar, 'bf': k_bf, 'lbl': k_lbl})
+                    k_miktar.on_value_change(lambda _: recalc())
+                    k_bf.on_value_change(lambda _: recalc())
+                    kalemler_state.append(entry)
+                    if not ilk:
+                        recalc()
+
+                ui.button('Kalem Ekle', icon='add', on_click=lambda: add_kalem_row()).props(
+                    'dense flat no-caps color=primary size=sm')
 
                 inp_aciklama = ui.input('Açıklama').props('outlined dense label-color=cyan-8').classes('w-full')
 
@@ -401,30 +437,34 @@ def hareketler_page():
                     return s
 
                 def recalc():
-                    matrah, kdv, tevk_tutar, odenecek_kdv, kdvli_toplam = hesapla(
-                        inp_miktar.value, inp_birim_fiyat.value, inp_kdv.value, inp_tevkifat.value
-                    )
-                    lbl_toplam.set_text(f'Matrah: {fmt_tr(matrah)} TL')
-                    lbl_kdv_tutar.set_text(f'KDV: {fmt_tr(kdv)} TL')
-                    lbl_tevkifat.set_text(f'Tevkifat: {fmt_tr(tevk_tutar)} TL')
-                    lbl_kdvli.set_text(f'Fatura Toplam: {fmt_tr(kdvli_toplam)} TL')
-                    _sync_pesin_tutar(kdvli_toplam)
+                    t_matrah = t_kdv = t_tevk = t_kdvli = 0.0
+                    for k in kalemler_state:
+                        matrah, kdv, tevk_tutar, odenecek_kdv, kdvli_toplam = hesapla(
+                            k['miktar'].value, k['bf'].value, inp_kdv.value, inp_tevkifat.value
+                        )
+                        k['lbl'].set_text(fmt_tr(matrah))
+                        t_matrah += matrah
+                        t_kdv += kdv
+                        t_tevk += tevk_tutar
+                        t_kdvli += kdvli_toplam
+                    lbl_toplam.set_text(f'Matrah: {fmt_tr(t_matrah)} TL')
+                    lbl_kdv_tutar.set_text(f'KDV: {fmt_tr(t_kdv)} TL')
+                    lbl_tevkifat.set_text(f'Tevkifat: {fmt_tr(t_tevk)} TL')
+                    lbl_kdvli.set_text(f'Fatura Toplam: {fmt_tr(t_kdvli)} TL')
+                    _sync_pesin_tutar(t_kdvli)
 
-                inp_miktar.on_value_change(lambda _: recalc())
-                inp_birim_fiyat.on_value_change(lambda _: recalc())
                 inp_kdv.on_value_change(lambda _: recalc())
                 inp_tevkifat.on_value_change(lambda _: recalc())
 
                 ui.separator()
 
             # Duzenleme modunda mevcut degerleri doldur
+            mevcut_grup_id = ''
+            grup_created_at = ''
             if is_edit:
                 inp_tarih.value = edit_row.get('tarih', '')
                 inp_tur.value = edit_row.get('tur', 'ALIS')
                 inp_firma.value = edit_row.get('firma_kod', '')
-                inp_urun.value = edit_row.get('urun_kod', '')
-                inp_miktar.value = edit_row.get('miktar', 0)
-                inp_birim_fiyat.value = edit_row.get('birim_fiyat', 0)
                 inp_kdv.value = int(edit_row.get('kdv_orani', 20))
                 inp_tevkifat.value = edit_row.get('tevkifat_orani', '0') or '0'
                 inp_aciklama.value = edit_row.get('aciklama', '')
@@ -434,8 +474,20 @@ def hareketler_page():
                 inp_odeme_mod.set_visibility(False)
                 pesin_box.set_visibility(False)
                 vadeli_box.set_visibility(True)
+                # Grup uyesi ise tum kalemleri yukle, degilse tek kalem
+                mevcut_grup_id = edit_row.get('grup_id') or ''
+                grup_rows = get_hareket_grup(mevcut_grup_id) if mevcut_grup_id else []
+                if grup_rows:
+                    grup_created_at = grup_rows[0].get('created_at', '') or ''
+                    for r in grup_rows:
+                        add_kalem_row(r, ilk=True)
+                else:
+                    add_kalem_row(edit_row, ilk=True)
                 recalc()
                 check_risk()
+            else:
+                add_kalem_row(ilk=True)
+                recalc()
 
             with ui.row().classes('w-full justify-end q-mt-md'):
                 ui.button('İptal', on_click=dlg.close).props('flat color=grey')
@@ -447,17 +499,16 @@ def hareketler_page():
                     if not inp_firma.value:
                         notify_err('Firma seçmelisiniz')
                         return
-                    if not inp_urun.value:
-                        notify_err('Ürün seçmelisiniz')
-                        return
-                    m = float(inp_miktar.value or 0)
-                    bf = float(inp_birim_fiyat.value or 0)
-                    if m <= 0:
-                        notify_err('Miktar 0\'dan büyük olmalı')
-                        return
-                    if bf <= 0:
-                        notify_err('Birim fiyat 0\'dan büyük olmalı')
-                        return
+                    for i, k in enumerate(kalemler_state, 1):
+                        if not k['urun'].value:
+                            notify_err(f'{i}. kalemde ürün seçmelisiniz')
+                            return
+                        if float(k['miktar'].value or 0) <= 0:
+                            notify_err(f'{i}. kalemde miktar 0\'dan büyük olmalı')
+                            return
+                        if float(k['bf'].value or 0) <= 0:
+                            notify_err(f'{i}. kalemde birim fiyat 0\'dan büyük olmalı')
+                            return
 
                     firma_kod = inp_firma.value
                     firma_ad = firma_options.get(firma_kod, '')
@@ -469,18 +520,11 @@ def hareketler_page():
                                 firma_ad = f['ad']
                                 break
 
-                    urun_kod = inp_urun.value
-                    urun_ad = urun_options.get(urun_kod, '')
-                    if not urun_ad:
-                        fresh_urunler = get_urun_list()
-                        for u in fresh_urunler:
-                            if u['kod'] == urun_kod:
-                                urun_ad = u['ad']
-                                break
-
-                    matrah, kdv, tevk_tutar, odenecek_kdv, kdvli_toplam = hesapla(
-                        m, bf, inp_kdv.value, inp_tevkifat.value
-                    )
+                    # Urun adlari (mini dialogla yeni eklenenler icin taze liste)
+                    urun_ad_by_kod = dict(urun_options)
+                    if any(k['urun'].value not in urun_ad_by_kod for k in kalemler_state):
+                        for u in get_urun_list():
+                            urun_ad_by_kod.setdefault(u['kod'], u['ad'])
 
                     # Pesin modu yalnizca yeni kayitta gecerli
                     is_pesin = (not is_edit) and inp_odeme_mod.value == 'pesin'
@@ -491,38 +535,60 @@ def hareketler_page():
                             notify_err('Peşin tutar 0\'dan büyük olmalı')
                             return
 
-                    data = {
+                    ortak = {
                         'tarih': inp_tarih.value,
                         'firma_kod': firma_kod,
                         'firma_ad': firma_ad,
                         'tur': inp_tur.value,
-                        'urun_kod': urun_kod,
-                        'urun_ad': urun_ad,
-                        'miktar': m,
-                        'birim_fiyat': bf,
-                        'toplam': matrah,
                         'kdv_orani': float(inp_kdv.value or 0),
-                        'kdv_tutar': kdv,
-                        'kdvli_toplam': kdvli_toplam,
                         'tevkifat_orani': inp_tevkifat.value or '0',
-                        'tevkifat_tutar': tevk_tutar,
-                        'tevkifatsiz_kdv': odenecek_kdv,
                         'aciklama': inp_aciklama.value.strip() if inp_aciklama.value else '',
                         'belge_no': inp_belge.value.strip() if inp_belge.value else '',
                         # Pesin secildiyse vade yok (ayni anda odendi/tahsil edildi)
                         'vade_tarih': '' if is_pesin else (inp_vade.value or '').strip(),
                     }
 
+                    kalemler_data = []
+                    for k in kalemler_state:
+                        m = float(k['miktar'].value or 0)
+                        bf = float(k['bf'].value or 0)
+                        matrah, kdv, tevk_tutar, odenecek_kdv, kdvli_toplam = hesapla(
+                            m, bf, inp_kdv.value, inp_tevkifat.value
+                        )
+                        data = dict(ortak)
+                        data.update({
+                            'urun_kod': k['urun'].value,
+                            'urun_ad': urun_ad_by_kod.get(k['urun'].value, ''),
+                            'miktar': m,
+                            'birim_fiyat': bf,
+                            'toplam': matrah,
+                            'kdv_tutar': kdv,
+                            'kdvli_toplam': kdvli_toplam,
+                            'tevkifat_tutar': tevk_tutar,
+                            'tevkifatsiz_kdv': odenecek_kdv,
+                            'grup_id': mevcut_grup_id,
+                        })
+                        if k.get('hareket_id'):
+                            data['id'] = k['hareket_id']
+                        elif grup_created_at:
+                            # Grup duzenlemede eklenen yeni kalem, grubun zaman damgasini alir
+                            data['created_at'] = grup_created_at
+                        kalemler_data.append(data)
+
                     try:
                         if is_edit:
-                            update_hareket(edit_row['id'], data)
-                            notify_ok('Hareket güncellendi')
+                            save_hareket_grup(kalemler_data, silinen_idler)
+                            notify_ok('İşlem güncellendi')
                         else:
-                            add_hareket(data)
+                            save_hareket_grup(kalemler_data)
                             if is_pesin:
                                 # Ayni anda kasa/banka hareketi: ALIS->Odeme(GIDER), SATIS->Tahsilat(GELIR)
                                 _is_alis = (inp_tur.value == 'ALIS')
                                 _hesap_id = inp_pesin_hesap.value or ''
+                                if len(kalemler_data) == 1:
+                                    _desc = kalemler_data[0]['urun_ad']
+                                else:
+                                    _desc = f"{len(kalemler_data)} kalem"
                                 kasa_data = {
                                     'tarih': inp_tarih.value,
                                     'firma_kod': firma_kod,
@@ -534,13 +600,13 @@ def hareketler_page():
                                     'banka': pesin_banka_ad_by_id.get(_hesap_id, ''),
                                     'kategori': 'Tedarikçi Ödemesi' if _is_alis else 'Satış Tahsilatı',
                                     'aciklama': (f"{'Alış peşin ödeme' if _is_alis else 'Satış peşin tahsilat'}"
-                                                 f" — {urun_ad}".strip(' —')),
+                                                 f" — {_desc}".strip(' —')),
                                 }
                                 add_kasa(kasa_data)
-                                notify_ok('Hareket eklendi + ' +
+                                notify_ok('İşlem eklendi + ' +
                                           ('ödeme yapıldı' if _is_alis else 'tahsilat yapıldı'))
                             else:
-                                notify_ok('Hareket eklendi')
+                                notify_ok('İşlem eklendi')
                         dlg.close()
                         load_data()
                     except Exception as e:
@@ -552,10 +618,26 @@ def hareketler_page():
     def do_edit(row):
         open_hareket_dialog(edit_row=row)
 
-    def do_delete(row_id):
+    def do_delete(row):
+        grup_id = row.get('grup_id') or ''
+        grup_rows = get_hareket_grup(grup_id) if grup_id else []
+        if len(grup_rows) > 1:
+            def grup_confirmed():
+                try:
+                    delete_hareket_grup(grup_id)
+                    notify_ok(f'İşlem silindi ({len(grup_rows)} kalem)')
+                    load_data()
+                except Exception as e:
+                    notify_err(f'Hata: {e}')
+            confirm_dialog(
+                f'Bu satır {len(grup_rows)} kalemli bir işlemin parçası. '
+                f'İşlemin tamamı ({len(grup_rows)} kalem) silinecek. Emin misiniz?',
+                grup_confirmed)
+            return
+
         def confirmed():
             try:
-                delete_hareket(row_id)
+                delete_hareket(row['id'])
                 notify_ok('Hareket silindi')
                 load_data()
             except Exception as e:
@@ -938,8 +1020,8 @@ def hareketler_page():
                         ui.button('Düzenle', icon='edit', 
                                   on_click=lambda: (dlg.close(), do_edit(row))) \
                             .props('unelevated no-caps color=primary dense')
-                        ui.button('Sil', icon='delete', 
-                                  on_click=lambda: (dlg.close(), do_delete(row.get('id')))) \
+                        ui.button('Sil', icon='delete',
+                                  on_click=lambda: (dlg.close(), do_delete(row))) \
                             .props('unelevated no-caps color=negative dense')
                     else: # KASA
                         ui.button('Düzenle', icon='edit', 
@@ -1120,7 +1202,7 @@ def hareketler_page():
         table_ref.add_slot('body-cell-actions', actions_slot)
 
         table_ref.on('edit', lambda e: do_edit(e.args))
-        table_ref.on('delete', lambda e: do_delete(e.args['id']))
+        table_ref.on('delete', lambda e: do_delete(e.args))
         table_ref.on('edit_kasa', lambda e: do_edit_kasa(e.args))
         table_ref.on('delete_kasa', lambda e: do_delete_kasa(e.args))
         table_ref.on('row-click', lambda e: _show_row_detail(e.args[1]))
