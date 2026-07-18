@@ -86,6 +86,10 @@ def _pretty_text(value):
         'ALACAK': 'Alacak',
         'BORC': 'Borç',
         'BORÇ': 'Borç',
+        # Odeme sekli kodlari -> dogru Turkce (noktasiz I duzeltilir)
+        'NAKIT': 'NAKİT',
+        'CEK': 'ÇEK',
+        'DIGER': 'DİĞER',
     }
     return mapping.get(key, text)
 
