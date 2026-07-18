@@ -148,11 +148,10 @@ def _header_footer(canvas, doc, title, show_title=True):
             )
         except Exception:
             pass
-    # Sol ust: firma adi (her zaman)
+    # Ust orta: firma adi ORTALI (logo solda, tarih sagda kalir)
     center_x = A4[0] / 2
-    logo_end_x = (52 * mm) if has_logo else (15 * mm)
     canvas.setFont('ArialTRB', 11)
-    canvas.drawString(logo_end_x, A4[1] - 15 * mm, firma_adi[:50])
+    canvas.drawCentredString(center_x, A4[1] - 15 * mm, firma_adi[:50])
     # Baslik ortada
     if show_title:
         canvas.setFont('ArialTR', 8)
