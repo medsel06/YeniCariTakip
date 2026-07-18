@@ -76,6 +76,39 @@ def dashboard_page():
     if not create_layout(active_path='/', page_title='Bilgi Ekranı'):
         return
 
+    # --- Yenilikler duyurusu (her kullaniciya bir kez; "Anladim" ile kapanir) ---
+    _whatsnew_v = 'v2026-07-islem-modal'
+    if app.storage.user.get('whatsnew_seen') != _whatsnew_v:
+        with ui.dialog() as _wn_dlg, ui.card().classes('q-pa-none').style(
+                'max-width:450px;border-radius:16px;overflow:hidden'):
+            with ui.element('div').style(
+                    'background:linear-gradient(120deg,#0f766e,#059669);padding:18px 22px;color:#fff'):
+                ui.label('🎉 Yenilikler').style('font-size:18px;font-weight:800')
+                ui.label('“Yeni İşlem” ekranı baştan tasarlandı').style('font-size:12.5px;opacity:.92')
+            with ui.column().classes('gap-4').style('padding:18px 22px'):
+                def _madde(ikon, baslik, aciklama):
+                    with ui.row().classes('items-start no-wrap gap-3'):
+                        ui.icon(ikon).style('color:#059669;font-size:22px;margin-top:2px')
+                        with ui.column().classes('gap-0'):
+                            ui.label(baslik).style('font-weight:700;font-size:13.5px;color:#0f172a')
+                            ui.label(aciklama).style('font-size:12.5px;color:#475569;line-height:1.5')
+                _madde('receipt_long', 'Yeni İşlem modalı',
+                       'Daha kompakt, sade ve hızlı bir işlem giriş ekranı — her şey tek bakışta.')
+                _madde('keyboard', 'Klavye ile hızlı giriş',
+                       'Enter tuşuyla alandan alana geçin: tarih → tür → firma → ürün → miktar... '
+                       'Mouse’a gerek yok. Listede olmayan firma/ürünü yazıp Enter’layınca '
+                       'hızlıca ekleyebilirsiniz (Evet/Hayır onayıyla).')
+                _madde('playlist_add', 'Çoklu ürün kalemi',
+                       'Tek işlemde birden fazla ürün girebilirsiniz. Her kalemin kendi miktarı, '
+                       'birim fiyatı ve KDV oranı olur; matrah, KDV ve genel toplam otomatik hesaplanır. '
+                       'Cari ekstrede işlem tek satır görünür, tıklayınca kalemler açılır.')
+            with ui.row().classes('w-full justify-end').style('padding:0 22px 18px'):
+                def _wn_kapat():
+                    app.storage.user['whatsnew_seen'] = _whatsnew_v
+                    _wn_dlg.close()
+                ui.button('Anladım', on_click=_wn_kapat).props('unelevated color=positive no-caps')
+        _wn_dlg.open()
+
     # Add modern font and premium CSS styles specifically for the dashboard page
     ui.add_head_html('''
         <link rel="preconnect" href="https://fonts.googleapis.com">
