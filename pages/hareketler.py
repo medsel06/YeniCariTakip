@@ -54,6 +54,112 @@ def hareketler_page():
     .modal-info .info-row:nth-child(odd) { background: #ffffff; }
     .modal-info .info-row:nth-child(even) { background: #f8fafc; }
     .modal-info .info-row:hover { background: #eef4fb; }
+
+    /* ================= Yeni Islem modali — Compact (D4) =================
+       Dogru teknik (arastirma): kalem hucreleri 'borderless' PROP ile cercevesiz
+       (:before hack YOK); kompakt yukseklik NiceGUI #4393 recetesi ile. */
+    .im-modal { font-size:12.5px; border-radius:14px; }
+    /* Baslik: acik yesil bar, SABIT (alse-dialog "cocuklar kaysin" kuralini ez) */
+    .im-modal .im-head { background:#f0fdf9; border-bottom:1px solid #d5efe6;
+        padding:11px 18px; display:flex; align-items:center; gap:9px;
+        width:100%; align-self:stretch; box-sizing:border-box;
+        flex:0 0 auto !important; overflow:hidden !important; }
+    .im-modal .im-head .im-ic { color:#059669; font-size:20px; }
+    .im-modal .im-head .im-title { font-size:15px; font-weight:700; color:#0f172a; }
+    .im-modal .im-head .im-sub { font-size:11px; font-weight:500; color:#7c9a92; }
+    /* Govde: beyaz, dar dis bosluk, sikici satir araligi */
+    .im-modal .im-body { background:#ffffff !important; padding:10px 16px !important; gap:6px !important; }
+    .im-modal .im-body > .row, .im-modal .im-body > .nicegui-row { gap:8px !important; }
+    /* Alan sarmalayici: etiket kutunun USTUNDE (D4 yapisi) */
+    .im-modal .im-field { display:flex; flex-direction:column; gap:2px; min-width:0;
+        background:transparent !important; padding:0 !important; }
+    .im-modal .im-flabel { font-size:10px; font-weight:700; text-transform:uppercase;
+        color:#64748b; letter-spacing:.03em; line-height:1.2; padding-left:1px; }
+    /* Kutu cizgileri bir tik daha ince/acik (D4) */
+    .im-modal .q-field--outlined .q-field__control:before { border-color:#dbe3ea !important; }
+
+    /* --- KOMPAKT yukseklik recetesi (NiceGUI #4393): tum alanlar 34px --- */
+    .im-modal .q-field--dense .q-field__control,
+    .im-modal .q-field--dense .q-field__append,
+    .im-modal .q-field--dense .q-field__control--addon { height:34px !important; min-height:34px !important; }
+    .im-modal .q-field--dense .q-field__control-container { display:flex; align-items:center; }
+    .im-modal .q-field--dense .q-field__native, .im-modal .q-field--dense .q-field__input {
+        font-size:12.5px; min-height:32px; }
+    /* Etiketler: gri, kucuk, UPPERCASE (cyan yerine); odakta yesil */
+    .im-modal .q-field__label { color:#64748b !important; text-transform:uppercase;
+        font-size:10px; letter-spacing:.03em; }
+    .im-modal .q-field--focused .q-field__label { color:#059669 !important; }
+    .im-modal .q-field--focused .q-field__control:after { border-color:#059669 !important; }
+
+    /* --- Kalem tablosu: hizali sutunlar + basliklar + sabit 3-satir --- */
+    .im-ktable { border:1px solid #e2e8f0; border-radius:9px; overflow:hidden; flex:0 0 auto; }
+    .im-kthead { display:grid; grid-template-columns:1fr 66px 80px 48px 82px 82px 92px 26px;
+        background:#f1f5f9; font-size:10px; font-weight:700; letter-spacing:.03em;
+        text-transform:uppercase; color:#64748b; }
+    .im-kthead > * { padding:5px 8px; }
+    .im-kthead > *:nth-child(2), .im-kthead > *:nth-child(3),
+    .im-kthead > *:nth-child(5), .im-kthead > *:nth-child(6),
+    .im-kthead > *:nth-child(7) { text-align:right; }
+    .im-kthead > *:nth-child(4) { text-align:center; }
+    /* scrollbar-gutter:stable -> cubuk yeri HEP ayrilir, icerigi itmez; baslikta ayni bosluk */
+    .im-kthead { padding-right:8px; }
+    .im-kbody { min-height:99px; max-height:99px; overflow-y:auto; scrollbar-gutter:stable;
+        scrollbar-width:thin; scrollbar-color:#dbe1e8 transparent; }
+    .im-kbody::-webkit-scrollbar { width:8px; }
+    .im-kbody::-webkit-scrollbar-thumb { background:#dbe1e8; border-radius:4px; }
+    .im-kbody::-webkit-scrollbar-track { background:transparent; }
+    /* Satir grid'i basligin grid'iyle ayni hizada baslasin: yatay padding 0 */
+    .im-krow { display:grid; grid-template-columns:1fr 66px 80px 48px 82px 82px 92px 26px; gap:0;
+        align-items:center; border-top:1px solid #eef2f6; padding:1px 0; }
+    .im-krow:first-child { border-top:none; }
+    .im-krow .q-field { width:100%; }
+    /* Kalem alanlari: ULTRA-kompakt 30px (borderless prop cerceveyi zaten kaldirir) */
+    .im-modal .im-krow .q-field--dense .q-field__control,
+    .im-modal .im-krow .q-field--dense .q-field__append { height:30px !important; min-height:30px !important; }
+    /* Hucre ic boslugu = baslik hucresiyle AYNI (8px) -> sutunlar hizali */
+    .im-modal .im-krow .q-field__control { padding-left:8px !important; padding-right:8px !important; }
+    .im-modal .im-krow .q-field__native, .im-modal .im-krow .q-field__input { text-align:right; padding:0 !important; }
+    .im-modal .im-krow .q-select .q-field__native,
+    .im-modal .im-krow .q-select input { text-align:left !important; }
+    .im-modal .im-krow .q-field--focused .q-field__control { background:#f0fdf9 !important; }
+    /* KDV hucresi: deger ortalanir (ok kaldirildi, basligin altinda durur) */
+    .im-modal .im-krow .im-kkdv .q-field__native { text-align:center !important; justify-content:center; }
+    /* Genel toplam vurgusu */
+    .im-modal .im-kgt { color:#047857 !important; font-weight:800; }
+    /* TUM select oklarini kaldir (zaten tiklayinca aciliyor) */
+    .im-modal .q-select__dropdown-icon { display:none !important; }
+    /* Hizli ekleme onay popup: odaktaki buton belirgin */
+    .im-confirm-card button:focus-visible { outline:2px solid #059669; outline-offset:2px; }
+    .im-ktutar { text-align:right; font-weight:700; color:#0f766e; font-size:12.5px;
+        font-variant-numeric:tabular-nums; padding-right:8px; }
+
+    /* --- Toplam cubugu (acik) --- */
+    .im-totbar { display:grid; grid-template-columns:repeat(4,1fr);
+        background:#f8fafc; border:1px solid #e2e8f0; border-radius:9px; overflow:hidden; flex:0 0 auto; }
+    .im-tot { padding:7px 12px; border-right:1px solid #e8edf3; }
+    .im-tot:last-child { border-right:none; background:#ecfdf5; }
+    .im-tot .tk { font-size:9.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:#8a97a6; }
+    .im-tot:last-child .tk { color:#059669; }
+    .im-tot .tv { font-size:14.5px; font-weight:800; color:#0f172a; font-variant-numeric:tabular-nums; }
+    .im-tot:last-child .tv { color:#047857; }
+
+    /* --- Odeme: toggle + alanlar YAN YANA (dikey uzama yok) --- */
+    .im-odeme { display:flex; align-items:flex-end; gap:12px; flex-wrap:nowrap; }
+    .im-odeme .im-octx { display:flex; gap:8px; flex:1; min-width:0; align-items:flex-end; }
+    .im-vqbtns { display:flex; gap:5px; align-items:center; padding-bottom:3px; }
+
+    /* Vadeli/Pesin: yesil KUTU toggle (D4 pill) */
+    .im-modal .q-radio--checked .q-radio__inner { color:#059669 !important; }
+    .im-modal .im-odeme .q-option-group { display:flex; gap:8px; }
+    .im-modal .im-odeme .q-radio { border:1px solid #dbe1e8; border-radius:8px; padding:2px 10px; margin:0; }
+    .im-modal .im-odeme .q-radio--checked { background:#e7f6ef; border-color:#059669; }
+    .im-modal .im-odeme .q-radio__label { font-weight:600; font-size:12px; }
+    .im-modal .im-odeme .q-radio__inner { font-size:22px; }  /* radio dairesini kucult */
+
+    /* Firma + : yesil kare badge */
+    .im-modal .im-addbadge { background:#e6f5f2 !important; color:#0f766e !important;
+        width:34px; min-width:34px; height:34px; border-radius:8px; }
+    .im-modal .im-addbadge:hover { background:#0f766e !important; color:#fff !important; }
     ''')
 
     table_ref = None
@@ -245,53 +351,45 @@ def hareketler_page():
         is_edit = edit_row is not None
         title = 'İşlem Düzenle' if is_edit else 'Yeni İşlem'
 
-        with ui.dialog() as dlg, ui.card().classes('alse-dialog').style(
-                'width: 90vw; max-width: 800px; max-height: 92vh; display: flex; flex-direction: column;'):
-            with ui.element('div').classes('alse-dialog-header'):
-                ui.icon('drive_file_rename_outline' if is_edit else 'add_circle_outline')
-                ui.label(title).classes('dialog-title')
+        with ui.dialog() as dlg, ui.card().classes('alse-dialog im-modal').style(
+                'width: 92vw; max-width: 720px; max-height: 92vh; display: flex; flex-direction: column; padding:0;'):
+            with ui.element('div').classes('im-head'):
+                ui.icon('receipt_long' if not is_edit else 'drive_file_rename_outline').classes('im-ic')
+                ui.label(title).classes('im-title')
 
             # Icerik alani kendi icinde kayar; buton satiri her zaman altta sabit kalir
-            with ui.column().classes('w-full q-mt-sm gap-sm').style(
-                    'background:#f3f4f6;padding:16px;border-radius:8px;'
+            with ui.column().classes('w-full im-body gap-1').style(
                     'overflow-y:auto;flex:1 1 auto;min-height:0;'):
-                # Tarih + Irsaliye/Fatura No yan yana (Tur/KDV/Tevkifat satiri ile ayni genislik)
-                with ui.row().classes('w-full gap-md'):
-                    inp_tarih = ui.input('Tarih', value=date.today().isoformat()).props('outlined dense label-color=cyan-8').classes('col')
-                    with inp_tarih.add_slot('append'):
-                        icon_t = ui.icon('event').classes('cursor-pointer')
-                        with ui.menu() as menu_t:
-                            dp = ui.date(on_change=lambda e: (inp_tarih.set_value(e.value), menu_t.close()))
-                        icon_t.on('click', menu_t.open)
+                # D4 gibi: Tarih + Fatura No + Tur + Tevkifat DORDU tek satirda (etiket kutu USTUNDE); altinda Firma
+                with ui.row().classes('w-full gap-sm no-wrap'):
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('TARİH').classes('im-flabel')
+                        # native type=date: TR tarayicida gg.aa.yyyy + native takvim; deger yine YYYY-MM-DD
+                        inp_tarih = ui.input(value=date.today().isoformat()).props('outlined dense type=date').classes('w-full')
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('İRSALİYE / FATURA NO').classes('im-flabel')
+                        inp_belge = ui.input().props('outlined dense').classes('w-full')
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('TÜR').classes('im-flabel')
+                        inp_tur = ui.select(
+                            options={'ALIS': 'Alış', 'SATIS': 'Satış'}, value='ALIS'
+                        ).props('outlined dense').classes('w-full')
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('TEVKİFAT').classes('im-flabel')
+                        inp_tevkifat = ui.select(
+                            options={'0': 'Yok', '2/10': '2/10', '5/10': '5/10', '7/10': '7/10', '9/10': '9/10'},
+                            value='0'
+                        ).props('outlined dense').classes('w-full')
 
-                    inp_belge = ui.input('İrsaliye/Fatura No').classes('col').props('outlined dense label-color=cyan-8')
-
-                with ui.row().classes('w-full gap-md'):
-                    # Tur
-                    inp_tur = ui.select(
-                        options={'ALIS': 'Alış', 'SATIS': 'Satış'},
-                        label='Tür', value='ALIS'
-                    ).props('outlined dense label-color=cyan-8').classes('col')
-
-                    # KDV Oranı
-                    inp_kdv = ui.select(
-                        options={0: '%0', 1: '%1', 10: '%10', 20: '%20'},
-                        label='KDV Oranı', value=20
-                    ).props('outlined dense label-color=cyan-8').classes('col')
-
-                    # Tevkifat Oranı
-                    inp_tevkifat = ui.select(
-                        options={'0': 'Yok', '2/10': '2/10', '5/10': '5/10', '7/10': '7/10', '9/10': '9/10'},
-                        label='Tevkifat', value='0'
-                    ).props('outlined dense label-color=cyan-8').classes('col')
-
-                # Firma secimi + Yeni firma ekleme butonu
-                with ui.row().classes('w-full items-center gap-1'):
+                # Firma (etiket kutu USTUNDE, + kutu ICINDE) — ust satirla ayni sag kenar
+                with ui.element('div').classes('im-field w-full'):
+                    ui.label('FİRMA').classes('im-flabel')
                     inp_firma = ui.select(
-                        options=firma_options, label='Firma', with_input=True
-                    ).props('outlined dense label-color=cyan-8').classes('col')
-                    ui.button(icon='add', on_click=lambda: open_mini_firma_dialog(inp_firma)).props(
-                        'round dense flat color=primary').tooltip('Yeni Firma Ekle')
+                        options=firma_options, with_input=True, new_value_mode='add-unique'
+                    ).props('outlined dense').classes('w-full')
+                    with inp_firma.add_slot('append'):
+                        ui.icon('add', size='20px').classes('cursor-pointer').style('color:#059669').on(
+                            'click', lambda: open_mini_firma_dialog(inp_firma))
 
                 # Risk limiti uyari alani
                 risk_container = ui.element('div').classes('w-full')
@@ -338,9 +436,109 @@ def hareketler_page():
                 kalemler_state = []   # {'row','urun','miktar','bf','lbl','hareket_id','created_at'}
                 silinen_idler = []    # duzenlemede cikarilan kalemlerin hareket id'leri
 
+                # --- TR sayi bicimleme: miktar duz (binlik nokta, gereksizse ondalik yok);
+                #     birim fiyat / tutar 12.000,35 (binlik nokta + virgul ondalik) ---
+                def _num_parse(s):
+                    if s is None:
+                        return 0.0
+                    s = str(s).strip().replace(' ', '').replace('₺', '').replace('TL', '')
+                    if not s:
+                        return 0.0
+                    if ',' in s:  # TR giris: nokta binlik, virgul ondalik
+                        s = s.replace('.', '').replace(',', '.')
+                    try:
+                        return float(s)
+                    except ValueError:
+                        return 0.0
+
+                def _tr_num(v, dec):
+                    s = f"{abs(float(v or 0)):,.{dec}f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+                    return ('-' if float(v or 0) < 0 else '') + s
+
+                def _fmt_miktar(v):
+                    v = float(v or 0)
+                    return _tr_num(v, 0) if v == int(v) else _tr_num(v, 2)
+
+                def _fmt_para(v):
+                    return _tr_num(v, 2)
+
+                # --- Klavye hizli akis: Enter=Tab; liste disi firma/urun icin Evet/Hayir onay ---
+                def _quick_add_confirm(yer, value, on_yes, on_no):
+                    with ui.dialog() as cdlg, ui.card().classes('q-pa-md im-confirm-card').style('min-width:360px;border-radius:12px'):
+                        ui.label(f'"{value}"').classes('text-subtitle2 text-weight-bold').style('color:#0f766e')
+                        ui.label(f'{yer} listesinde yok — eklensin mi?').classes('text-body2')
+                        ui.label('Enter = Evet   ·   ← ile Hayır').classes('text-caption text-grey-6 q-mb-sm')
+                        with ui.row().classes('w-full justify-end gap-2'):
+                            ui.button('Hayır', on_click=lambda: (cdlg.close(), on_no())).props('flat color=grey')
+                            ui.button('Evet', on_click=lambda: (cdlg.close(), on_yes())).props('unelevated color=positive')
+                    cdlg.open()
+                    # JS: native Evet butonuna odaklan (run_method('focus') q-btn'de calismaz) + ok tuslari.
+                    # 120ms gecikme -> popup'i acan Enter, Evet'i otomatik tetiklemez.
+                    ui.timer(0.12, lambda: ui.run_javascript('''
+                        const card = [...document.querySelectorAll('.im-confirm-card')].pop();
+                        if(!card) return;
+                        const btns = card.querySelectorAll('button');
+                        if(btns.length < 2) return;
+                        const noBtn = btns[0], yesBtn = btns[1];
+                        yesBtn.focus();
+                        card.addEventListener('keydown', (e) => {
+                            if(e.key === 'ArrowLeft'){ noBtn.focus(); e.preventDefault(); }
+                            else if(e.key === 'ArrowRight'){ yesBtn.focus(); e.preventDefault(); }
+                        });
+                    '''), once=True)
+
+                def _focus_ilk_urun():
+                    if kalemler_state:
+                        kalemler_state[0]['urun'].run_method('focus')
+
+                firma_kods0 = set(firma_options)   # gercek firma kodlari (yeni yazilanlar haric)
+                urun_kods0 = set(urun_options)     # gercek urun kodlari
+                _firma_busy = {'v': False}
+                def _on_firma_change():
+                    if _firma_busy['v']:
+                        return
+                    v = inp_firma.value
+                    if not v:
+                        return
+                    if v in firma_kods0:           # gercek firma secildi -> urune gec
+                        _focus_ilk_urun()
+                        return
+                    # liste disi yeni isim (new_value_mode ekledi) -> Evet/Hayir onay
+                    yeni_ad = firma_options.get(v, v)
+                    def _yes():
+                        _firma_busy['v'] = True
+                        kod = generate_firma_kod()
+                        add_firma({'kod': kod, 'ad': yeni_ad})
+                        firma_options.pop(v, None)
+                        firma_options[kod] = yeni_ad
+                        firma_kods0.add(kod)
+                        inp_firma.set_options(firma_options, value=kod)
+                        _firma_busy['v'] = False
+                        notify_ok('Firma eklendi')
+                        _focus_ilk_urun()
+                    def _no():
+                        _firma_busy['v'] = True
+                        firma_options.pop(v, None)
+                        inp_firma.set_options(firma_options, value=None)
+                        _firma_busy['v'] = False
+                    _quick_add_confirm('Firmalar', yeni_ad, _yes, _no)
+                inp_firma.on_value_change(lambda: _on_firma_change())
+
+                # Enter = Tab (ust alanlar): tarih -> belge -> tur -> tevkifat -> firma
+                inp_tarih.on('keydown.enter', lambda: inp_belge.run_method('focus'))
+                inp_belge.on('keydown.enter', lambda: inp_tur.run_method('focus'))
+                inp_tur.on('keydown.enter', lambda: inp_tevkifat.run_method('focus'))
+                inp_tevkifat.on('keydown.enter', lambda: inp_firma.run_method('focus'))
+
                 ui.label('Ürün Kalemleri').classes('text-caption text-weight-bold').style(
                     'color:#0e7490;letter-spacing:0.3px;')
-                kalemler_box = ui.column().classes('w-full gap-1')
+                # Basliklı tablo + sabit 3-satir kaydirma alani (im-kbody). KDV her kalemde ayri sutun.
+                with ui.element('div').classes('im-ktable w-full'):
+                    with ui.element('div').classes('im-kthead'):
+                        # Turkce buyuk harf elle yazilir (CSS uppercase 'i'->'I' bozuyor)
+                        for _h in ('ÜRÜN', 'MİKTAR', 'B.FİYAT', 'KDV', 'MATRAH', 'KDV TUT.', 'GENEL TOPLAM', ''):
+                            ui.label(_h)
+                    kalemler_box = ui.element('div').classes('im-kbody')
 
                 def remove_kalem(entry):
                     if len(kalemler_state) <= 1:
@@ -355,33 +553,83 @@ def hareketler_page():
                 def add_kalem_row(kayit=None, ilk=False):
                     kayit = kayit or {}
                     entry = {'hareket_id': kayit.get('id'), 'created_at': kayit.get('created_at', '')}
+                    _kdv0 = kayit.get('kdv_orani')
+                    _kdv0 = int(_kdv0) if _kdv0 is not None else 20
+                    if _kdv0 not in (0, 1, 10, 20):
+                        _kdv0 = 20
                     with kalemler_box:
-                        with ui.row().classes('w-full items-center gap-1 no-wrap') as krow:
+                        with ui.element('div').classes('im-krow') as krow:
                             k_urun = ui.select(
-                                options=urun_options, label='Ürün', with_input=True,
+                                options=urun_options, with_input=True, new_value_mode='add-unique',
                                 value=kayit.get('urun_kod') or None
-                            ).props('outlined dense label-color=cyan-8').classes('col')
-                            ui.button(icon='add', on_click=lambda: open_mini_urun_dialog(k_urun)).props(
-                                'round dense flat color=primary').tooltip('Yeni Ürün Ekle')
-                            # value=None -> alan bos acilir, '0,00' gri placeholder olarak gorunur
-                            # (tiklayinca bos, silmeden yazilabilir). Duzenlemede gercek deger dolar.
-                            k_miktar = ui.number(label='Miktar', value=kayit.get('miktar') or None, format='%.2f').props(
-                                'outlined dense label-color=cyan-8 type=text stack-label placeholder="0,00"').style('width:105px')
-                            k_bf = ui.number(label='Birim Fiyat', value=kayit.get('birim_fiyat') or None, format='%.2f').props(
-                                'outlined dense label-color=cyan-8 type=text stack-label placeholder="0,00"').style('width:115px')
-                            k_lbl = ui.label('0,00').classes('num-mono text-right').style(
-                                'width:95px;font-size:12.5px;font-weight:600;color:#334155;')
+                            ).props('borderless dense')
+                            with k_urun.add_slot('append'):
+                                ui.icon('add', size='16px').classes('cursor-pointer').style('color:#059669').on(
+                                    'click', lambda _, s=k_urun: open_mini_urun_dialog(s))
+                            # ui.input + TR bicim: miktar duz sayi, birim fiyat 12.000,35 (blur'da bicimlenir)
+                            k_miktar = ui.input(
+                                value=(_fmt_miktar(kayit['miktar']) if kayit.get('miktar') else None)
+                            ).props('borderless dense placeholder="0" input-class=text-right')
+                            k_bf = ui.input(
+                                value=(_fmt_para(kayit['birim_fiyat']) if kayit.get('birim_fiyat') else None)
+                            ).props('borderless dense placeholder="0,00" input-class=text-right')
+                            k_kdv = ui.select(
+                                options={0: '0', 1: '1', 10: '10', 20: '20'}, value=_kdv0
+                            ).props('borderless dense').classes('im-kkdv')
+                            k_lbl = ui.label('0,00').classes('im-ktutar')          # matrah
+                            k_lbl_kdv = ui.label('0,00').classes('im-ktutar')      # kdv tutari
+                            k_lbl_gt = ui.label('0,00').classes('im-ktutar im-kgt')  # genel toplam
                             ui.button(icon='close', on_click=lambda: remove_kalem(entry)).props(
                                 'round dense flat color=grey size=sm').tooltip('Kalemi çıkar')
-                    entry.update({'row': krow, 'urun': k_urun, 'miktar': k_miktar, 'bf': k_bf, 'lbl': k_lbl})
+                    entry.update({'row': krow, 'urun': k_urun, 'miktar': k_miktar,
+                                  'bf': k_bf, 'kdv': k_kdv, 'lbl': k_lbl,
+                                  'lbl_kdv': k_lbl_kdv, 'lbl_gt': k_lbl_gt})
                     k_miktar.on_value_change(lambda _: recalc())
                     k_bf.on_value_change(lambda _: recalc())
+                    k_kdv.on_value_change(lambda _: recalc())
+                    k_miktar.on('blur', lambda _, el=k_miktar:
+                                el.set_value(_fmt_miktar(_num_parse(el.value))) if el.value not in (None, '') else None)
+                    k_bf.on('blur', lambda _, el=k_bf:
+                            el.set_value(_fmt_para(_num_parse(el.value))) if el.value not in (None, '') else None)
+
+                    # Enter = Tab (kalem ici): urun(secince)->miktar->b.fiyat->kdv; liste disi urun icin onay
+                    _urun_busy = {'v': False}
+                    def _on_urun_change():
+                        if _urun_busy['v']:
+                            return
+                        v = k_urun.value
+                        if not v:
+                            return
+                        if v in urun_kods0:        # gercek urun secildi -> miktara gec
+                            k_miktar.run_method('focus')
+                            return
+                        yeni_ad = urun_options.get(v, v)
+                        def _yes():
+                            _urun_busy['v'] = True
+                            kod = generate_urun_kod()
+                            add_urun({'kod': kod, 'ad': yeni_ad, 'kategori': '', 'birim': 'KG'})
+                            urun_options.pop(v, None)
+                            urun_options[kod] = yeni_ad
+                            urun_kods0.add(kod)
+                            k_urun.set_options(urun_options, value=kod)
+                            _urun_busy['v'] = False
+                            notify_ok('Ürün eklendi')
+                            k_miktar.run_method('focus')
+                        def _no():
+                            _urun_busy['v'] = True
+                            urun_options.pop(v, None)
+                            k_urun.set_options(urun_options, value=None)
+                            _urun_busy['v'] = False
+                        _quick_add_confirm('Stok', yeni_ad, _yes, _no)
+                    k_urun.on_value_change(lambda: _on_urun_change())
+                    k_miktar.on('keydown.enter', lambda: k_bf.run_method('focus'))
+                    k_bf.on('keydown.enter', lambda: k_kdv.run_method('focus'))
                     kalemler_state.append(entry)
                     if not ilk:
                         recalc()
 
                 ui.button('Kalem Ekle', icon='add', on_click=lambda: add_kalem_row()).props(
-                    'dense flat no-caps color=primary size=sm')
+                    'dense flat no-caps color=green-7 size=sm').style('font-size:11px;padding:2px 6px')
 
                 inp_aciklama = ui.input('Açıklama').props('outlined dense label-color=cyan-8').classes('w-full')
 
@@ -395,49 +643,51 @@ def hareketler_page():
                         pesin_hesap_opts[str(_b['id'])] = _ad
                         pesin_banka_ad_by_id[str(_b['id'])] = _ad
 
-                inp_odeme_mod = ui.radio(
-                    {'vadeli': 'Vadeli', 'pesin': 'Peşin (şimdi öde / tahsil et)'}, value='vadeli'
-                ).props('inline dense color=cyan-8').classes('w-full q-mb-xs')
+                # Odeme: toggle + baglamsal alanlar YAN YANA (dikey uzama/scroll yok)
+                with ui.element('div').classes('im-odeme w-full q-mt-xs'):
+                    inp_odeme_mod = ui.radio(
+                        {'vadeli': 'Vadeli', 'pesin': 'Peşin'}, value='vadeli'
+                    ).props('inline dense color=cyan-8')
 
-                # Vadeli alani: vade tarihi + hizli vade butonlari
-                with ui.column().classes('w-full gap-0') as vadeli_box:
-                    inp_vade = ui.input('Vade Tarihi (opsiyonel — boş = peşin)').props(
-                        'outlined dense label-color=cyan-8 clearable').classes('w-full')
-                    with inp_vade.add_slot('append'):
-                        icon_vd = ui.icon('event').classes('cursor-pointer')
-                        with ui.menu() as menu_vd:
-                            ui.date(on_change=lambda e: (inp_vade.set_value(e.value), menu_vd.close()))
-                        icon_vd.on('click', menu_vd.open)
+                    # Vadeli: vade tarihi (native takvim, etiket ustte) + hizli vade
+                    with ui.element('div').classes('im-octx') as vadeli_box:
+                        with ui.element('div').classes('im-field').style('flex:0 0 160px'):
+                            ui.label('VADE TARİHİ').classes('im-flabel')
+                            inp_vade = ui.input().props('outlined dense type=date clearable').classes('w-full')
 
-                    def _set_vade_gun(gun):
-                        from datetime import datetime as _dt, timedelta as _td
-                        base = inp_tarih.value or date.today().isoformat()
-                        try:
-                            b = _dt.strptime(str(base)[:10], '%Y-%m-%d').date()
-                        except ValueError:
-                            b = date.today()
-                        inp_vade.set_value((b + _td(days=gun)).isoformat())
+                        def _set_vade_gun(gun):
+                            from datetime import datetime as _dt, timedelta as _td
+                            base = inp_tarih.value or date.today().isoformat()
+                            try:
+                                b = _dt.strptime(str(base)[:10], '%Y-%m-%d').date()
+                            except ValueError:
+                                b = date.today()
+                            inp_vade.set_value((b + _td(days=gun)).isoformat())
 
-                    with ui.row().classes('w-full gap-1 items-center q-mb-xs'):
-                        ui.label('Hızlı vade:').classes('text-caption text-grey-7')
-                        ui.button('Peşin', on_click=lambda: inp_vade.set_value('')).props('dense flat no-caps size=sm color=grey-7')
-                        ui.button('+7 gün', on_click=lambda: _set_vade_gun(7)).props('dense flat no-caps size=sm')
-                        ui.button('+15 gün', on_click=lambda: _set_vade_gun(15)).props('dense flat no-caps size=sm')
-                        ui.button('+30 gün', on_click=lambda: _set_vade_gun(30)).props('dense flat no-caps size=sm')
+                        with ui.element('div').classes('im-vqbtns'):
+                            ui.button('+7g', on_click=lambda: _set_vade_gun(7)).props('dense flat no-caps size=sm')
+                            ui.button('+15g', on_click=lambda: _set_vade_gun(15)).props('dense flat no-caps size=sm')
+                            ui.button('+30g', on_click=lambda: _set_vade_gun(30)).props('dense flat no-caps size=sm')
 
-                # Pesin alani: kasa/banka secimi + odeme sekli + tutar (otomatik dolu, kismi icin degisebilir)
-                with ui.column().classes('w-full gap-2') as pesin_box:
-                    with ui.row().classes('w-full gap-2'):
-                        inp_pesin_hesap = ui.select(
-                            options=pesin_hesap_opts, value='', label='Kasa / Banka'
-                        ).props('outlined dense label-color=cyan-8').classes('col')
-                        inp_pesin_odeme = ui.select(
-                            options=['NAKIT', 'HAVALE', 'EFT', 'KK', 'CEK', 'DIGER'],
-                            value='NAKIT', label='Ödeme Şekli',
-                        ).props('outlined dense label-color=cyan-8').classes('col')
-                    inp_pesin_tutar = ui.number(
-                        'Ödenecek / Tahsil edilecek Tutar (TL)', value=0, format='%.2f'
-                    ).props('outlined dense label-color=cyan-8 type=text').classes('w-full')
+                    # Pesin: kasa/banka + odeme sekli + tutar (etiket USTTE, tutar TR bicim)
+                    with ui.element('div').classes('im-octx') as pesin_box:
+                        with ui.element('div').classes('im-field').style('flex:1;min-width:0'):
+                            ui.label('KASA / BANKA').classes('im-flabel')
+                            inp_pesin_hesap = ui.select(
+                                options=pesin_hesap_opts, value=''
+                            ).props('outlined dense').classes('w-full')
+                        with ui.element('div').classes('im-field').style('flex:1;min-width:0'):
+                            ui.label('ÖDEME ŞEKLİ').classes('im-flabel')
+                            inp_pesin_odeme = ui.select(
+                                options=['NAKIT', 'HAVALE', 'EFT', 'KK', 'CEK', 'DIGER'], value='NAKIT'
+                            ).props('outlined dense').classes('w-full')
+                        with ui.element('div').classes('im-field').style('flex:1;min-width:0'):
+                            ui.label('TUTAR').classes('im-flabel')
+                            inp_pesin_tutar = ui.input(value='').props(
+                                'outlined dense input-class=text-right placeholder="0,00"').classes('w-full')
+                            inp_pesin_tutar.on('blur', lambda _:
+                                inp_pesin_tutar.set_value(_fmt_para(_num_parse(inp_pesin_tutar.value)))
+                                if inp_pesin_tutar.value not in (None, '') else None)
 
                 # Banka secilince odeme seklini otomatik HAVALE yap (nakit kalmasin)
                 inp_pesin_hesap.on_value_change(
@@ -456,7 +706,7 @@ def hareketler_page():
                     if _pesin_state['manuel']:
                         return
                     _pesin_state['sync'] = True
-                    inp_pesin_tutar.value = round(float(kdvli_toplam or 0), 2)
+                    inp_pesin_tutar.value = _fmt_para(kdvli_toplam)
                     _pesin_state['sync'] = False
 
                 def _update_odeme_mod():
@@ -469,40 +719,44 @@ def hareketler_page():
                 inp_odeme_mod.on_value_change(lambda _: _update_odeme_mod())
                 pesin_box.set_visibility(False)
 
-                # Hesaplama alani
-                ui.separator()
-                with ui.row().classes('w-full gap-md items-center'):
-                    lbl_toplam = ui.label('Matrah: 0,00 TL').classes('text-subtitle2 col')
-                    lbl_kdv_tutar = ui.label('KDV: 0,00 TL').classes('text-subtitle2 col')
-                    lbl_tevkifat = ui.label('Tevkifat: 0,00 TL').classes('text-subtitle2 col text-orange-8')
-                    lbl_kdvli = ui.label('Fatura Toplam: 0,00 TL').classes('text-subtitle2 text-weight-bold col text-primary')
-
+                # Hesaplama alani — acik toplam cubugu
                 def fmt_tr(val):
                     s = f"{abs(val):,.2f}"
                     s = s.replace(',', 'X').replace('.', ',').replace('X', '.')
                     return s
 
+                def _tot_cell(baslik):
+                    with ui.element('div').classes('im-tot'):
+                        ui.label(baslik).classes('tk')
+                        return ui.label('0,00').classes('tv')
+
+                with ui.element('div').classes('im-totbar w-full'):
+                    lbl_toplam = _tot_cell('MATRAH')
+                    lbl_kdv_tutar = _tot_cell('KDV')
+                    lbl_tevkifat = _tot_cell('TEVKİFAT')
+                    lbl_kdvli = _tot_cell('FATURA TOPLAM')
+
                 def recalc():
                     t_matrah = t_kdv = t_tevk = t_kdvli = 0.0
                     for k in kalemler_state:
+                        # Her kalem kendi KDV oraniyla (miktar/bf TR string -> float)
                         matrah, kdv, tevk_tutar, odenecek_kdv, kdvli_toplam = hesapla(
-                            k['miktar'].value, k['bf'].value, inp_kdv.value, inp_tevkifat.value
+                            _num_parse(k['miktar'].value), _num_parse(k['bf'].value), k['kdv'].value, inp_tevkifat.value
                         )
                         k['lbl'].set_text(fmt_tr(matrah))
+                        k['lbl_kdv'].set_text(fmt_tr(kdv))
+                        k['lbl_gt'].set_text(fmt_tr(kdvli_toplam))
                         t_matrah += matrah
                         t_kdv += kdv
                         t_tevk += tevk_tutar
                         t_kdvli += kdvli_toplam
-                    lbl_toplam.set_text(f'Matrah: {fmt_tr(t_matrah)} TL')
-                    lbl_kdv_tutar.set_text(f'KDV: {fmt_tr(t_kdv)} TL')
-                    lbl_tevkifat.set_text(f'Tevkifat: {fmt_tr(t_tevk)} TL')
-                    lbl_kdvli.set_text(f'Fatura Toplam: {fmt_tr(t_kdvli)} TL')
+                    lbl_toplam.set_text(fmt_tr(t_matrah))
+                    lbl_kdv_tutar.set_text(fmt_tr(t_kdv))
+                    lbl_tevkifat.set_text(fmt_tr(t_tevk) if t_tevk else '')  # tevkifat yoksa bos
+                    lbl_kdvli.set_text(fmt_tr(t_kdvli) + ' ₺')
                     _sync_pesin_tutar(t_kdvli)
 
-                inp_kdv.on_value_change(lambda _: recalc())
                 inp_tevkifat.on_value_change(lambda _: recalc())
-
-                ui.separator()
 
             # Duzenleme modunda mevcut degerleri doldur
             mevcut_grup_id = ''
@@ -511,7 +765,6 @@ def hareketler_page():
                 inp_tarih.value = edit_row.get('tarih', '')
                 inp_tur.value = edit_row.get('tur', 'ALIS')
                 inp_firma.value = edit_row.get('firma_kod', '')
-                inp_kdv.value = int(edit_row.get('kdv_orani', 20))
                 inp_tevkifat.value = edit_row.get('tevkifat_orani', '0') or '0'
                 inp_aciklama.value = edit_row.get('aciklama', '')
                 inp_belge.value = edit_row.get('belge_no', '')
@@ -537,9 +790,9 @@ def hareketler_page():
 
             # NOT: layout.py .alse-dialog kurali tum div cocuklara flex:1+overflow:auto verir;
             # buton satirinin kendi kaydirma cubugu olmamasi icin inline ile eziyoruz.
-            with ui.row().classes('w-full justify-end q-mt-md items-center').style(
-                    'flex:0 0 auto;overflow:visible;padding-top:10px;'
-                    'border-top:1px solid #e5e7eb;'):
+            with ui.row().classes('w-full justify-end items-center').style(
+                    'flex:0 0 auto;overflow:visible;padding:11px 16px;'
+                    'border-top:1px solid #eef2f6;'):
                 ui.button('İptal', on_click=dlg.close).props('flat color=grey')
 
                 def save():
@@ -553,10 +806,10 @@ def hareketler_page():
                         if not k['urun'].value:
                             notify_err(f'{i}. kalemde ürün seçmelisiniz')
                             return
-                        if float(k['miktar'].value or 0) <= 0:
+                        if _num_parse(k['miktar'].value) <= 0:
                             notify_err(f'{i}. kalemde miktar 0\'dan büyük olmalı')
                             return
-                        if float(k['bf'].value or 0) <= 0:
+                        if _num_parse(k['bf'].value) <= 0:
                             notify_err(f'{i}. kalemde birim fiyat 0\'dan büyük olmalı')
                             return
 
@@ -580,7 +833,7 @@ def hareketler_page():
                     is_pesin = (not is_edit) and inp_odeme_mod.value == 'pesin'
                     pesin_tutar = 0.0
                     if is_pesin:
-                        pesin_tutar = float(inp_pesin_tutar.value or 0)
+                        pesin_tutar = _num_parse(inp_pesin_tutar.value)
                         if pesin_tutar <= 0:
                             notify_err('Peşin tutar 0\'dan büyük olmalı')
                             return
@@ -590,7 +843,7 @@ def hareketler_page():
                         'firma_kod': firma_kod,
                         'firma_ad': firma_ad,
                         'tur': inp_tur.value,
-                        'kdv_orani': float(inp_kdv.value or 0),
+                        # kdv_orani artik kalem bazinda (asagida her kaleme yazilir)
                         'tevkifat_orani': inp_tevkifat.value or '0',
                         'aciklama': inp_aciklama.value.strip() if inp_aciklama.value else '',
                         'belge_no': inp_belge.value.strip() if inp_belge.value else '',
@@ -600,10 +853,11 @@ def hareketler_page():
 
                     kalemler_data = []
                     for k in kalemler_state:
-                        m = float(k['miktar'].value or 0)
-                        bf = float(k['bf'].value or 0)
+                        m = _num_parse(k['miktar'].value)
+                        bf = _num_parse(k['bf'].value)
+                        kdv_orani = float(k['kdv'].value or 0)
                         matrah, kdv, tevk_tutar, odenecek_kdv, kdvli_toplam = hesapla(
-                            m, bf, inp_kdv.value, inp_tevkifat.value
+                            m, bf, kdv_orani, inp_tevkifat.value
                         )
                         data = dict(ortak)
                         data.update({
@@ -612,6 +866,7 @@ def hareketler_page():
                             'miktar': m,
                             'birim_fiyat': bf,
                             'toplam': matrah,
+                            'kdv_orani': kdv_orani,
                             'kdv_tutar': kdv,
                             'kdvli_toplam': kdvli_toplam,
                             'tevkifat_tutar': tevk_tutar,
@@ -662,7 +917,8 @@ def hareketler_page():
                     except Exception as e:
                         notify_err(f'Hata: {e}')
 
-                ui.button('Kaydet', color='primary', on_click=save).props('unelevated')
+                ui.button('Kaydet', on_click=save, color=None).props('unelevated no-caps').style(
+                    'background:#059669;color:#fff;font-weight:700;padding:7px 22px;border-radius:9px')
         dlg.open()
 
     def do_edit(row):
