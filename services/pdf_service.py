@@ -540,6 +540,92 @@ def generate_table_pdf(title, headers, rows):
     return buf.getvalue()
 
 
+def generate_gelir_gider_kategori_pdf(kategori_data, baslik, tur_filtre='HEPSI', detay=False):
+    """Kategori bazli Gelir/Gider raporu.
+    kategori_data: gelir_gider_service.kategori_ozet() ciktisi {'GIDER':[...], 'GELIR':[...]}
+    tur_filtre: 'HEPSI' / 'GIDER' / 'GELIR' — hangi bolumler basilsin
+    detay: True ise her kategorinin altinda kayitlar da dokulur."""
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=PDF_TOP_MARGIN_MM * mm, bottomMargin=20 * mm,
+                            leftMargin=15 * mm, rightMargin=15 * mm)
+    styles = _styles()
+    elements = [Spacer(1, 2 * mm)]
+    usable = A4[0] - 30 * mm
+
+    def _section(tur, kats):
+        if not kats:
+            return
+        tur_ad = 'GİDER' if tur == 'GIDER' else 'GELİR'
+        elements.append(Paragraph(f'{tur_ad} — Kategori Özeti', styles['TRSubtitle']))
+        genel = sum(k['toplam'] for k in kats) or 1.0
+        data = [['Kategori', 'Adet', 'Matrah', 'KDV', 'Toplam', '%']]
+        for k in kats:
+            data.append([_pretty_text(k['kategori']), str(k['adet']),
+                         _fmt(k['matrah']), _fmt(k['kdv']), _fmt(k['toplam']),
+                         f"%{k['toplam'] / genel * 100:.0f}"])
+        data.append(['TOPLAM', str(sum(k['adet'] for k in kats)),
+                     _fmt(sum(k['matrah'] for k in kats)), _fmt(sum(k['kdv'] for k in kats)),
+                     _fmt(sum(k['toplam'] for k in kats)), '%100'])
+        cw = [usable * 0.34, usable * 0.10, usable * 0.17, usable * 0.14, usable * 0.17, usable * 0.08]
+        t = Table(data, colWidths=cw, repeatRows=1)
+        t.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, 0), 'ArialTRB'),
+            ('FONTNAME', (0, 1), (-1, -1), 'ArialTR'),
+            ('FONTNAME', (0, -1), (-1, -1), 'ArialTRB'),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#37474F')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#ECEFF1')),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.white, colors.HexColor('#F5F5F5')]),
+            ('ALIGN', (1, 1), (-1, -1), 'RIGHT'),
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ]))
+        elements.append(t)
+        elements.append(Spacer(1, 4 * mm))
+
+        if detay:
+            for k in kats:
+                elements.append(Paragraph(
+                    f"{_pretty_text(k['kategori'])}  ({_fmt(k['toplam'])} TL — {k['adet']} kayıt)",
+                    styles['TRSmall']))
+                ddata = [['Tarih', 'Cari', 'Açıklama', 'Tutar']]
+                for r in k['kayitlar']:
+                    ddata.append([(r.get('tarih') or ''), _pretty_text(r.get('firma_ad', '')),
+                                  _pretty_text(r.get('aciklama', '')), _fmt(r.get('toplam', 0))])
+                dcw = [usable * 0.16, usable * 0.28, usable * 0.40, usable * 0.16]
+                dt = Table(ddata, colWidths=dcw, repeatRows=1)
+                dt.setStyle(TableStyle([
+                    ('FONTNAME', (0, 0), (-1, 0), 'ArialTRB'),
+                    ('FONTNAME', (0, 1), (-1, -1), 'ArialTR'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 7),
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#607D8B')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                    ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#CFD8DC')),
+                    ('ALIGN', (3, 1), (3, -1), 'RIGHT'),
+                    ('TOPPADDING', (0, 0), (-1, -1), 2),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                ]))
+                elements.append(dt)
+                elements.append(Spacer(1, 3 * mm))
+            elements.append(Spacer(1, 3 * mm))
+
+    if tur_filtre in ('HEPSI', 'GIDER'):
+        _section('GIDER', kategori_data.get('GIDER', []))
+    if tur_filtre in ('HEPSI', 'GELIR'):
+        _section('GELIR', kategori_data.get('GELIR', []))
+
+    if len(elements) <= 1:
+        elements.append(Paragraph('Seçilen kriterlerde kayıt bulunamadı.', styles['TRNormal']))
+
+    doc.build(elements,
+              onFirstPage=lambda c, d: _header_footer(c, d, baslik),
+              onLaterPages=lambda c, d: _header_footer(c, d, baslik))
+    buf.seek(0)
+    return buf.getvalue()
+
+
 def generate_hizli_mutabakat_pdf(firma_ad, ekstre_rows, cek_rows, kasa_rows):
     """Cari detay icin tek tus mutabakat PDF."""
     buf = io.BytesIO()

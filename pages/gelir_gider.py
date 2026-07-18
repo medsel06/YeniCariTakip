@@ -8,12 +8,15 @@ from layout import (
 from services.gelir_gider_service import (
     get_gelir_gider_list, get_gelir_gider_ozet,
     add_gelir_gider, update_gelir_gider, delete_gelir_gider,
+    get_gelir_gider_rapor, kategori_ozet,
     GELIR_KATEGORILER, GIDER_KATEGORILER, ONE_CIKAN_GIDER_KATEGORILER,
 )
 from services.banka_service import list_banka_hesaplari
 from services.kasa_service import add_kasa
 from services.cari_service import get_firma_list, add_firma, generate_firma_kod
-from services.pdf_service import generate_table_pdf, save_pdf_preview
+from services.pdf_service import (
+    generate_table_pdf, save_pdf_preview, generate_gelir_gider_kategori_pdf,
+)
 
 
 @ui.page('/gelir-gider')
@@ -567,37 +570,110 @@ def gelir_gider_page(focus: int = None):
                     preview_url = save_pdf_preview(pdf_bytes, filename)
                     ui.run_javascript(f"window.open('{preview_url}', '_blank')")
 
-                def _pdf_gelir_gider():
-                    try:
-                        rows_src = table_ref.rows if table_ref and table_ref.rows else all_rows
-                        headers = ['Tarih', 'Tür', 'Kategori', 'Cari', 'Açıklama', 'Toplam', 'Durum', 'Ödeme']
+                def _pdf_normal(rows, baslik):
+                    """Duz liste PDF (rows: get_gelir_gider_rapor ciktisi)."""
+                    headers = ['Tarih', 'Tür', 'Kategori', 'Cari', 'Açıklama', 'Toplam', 'Durum', 'Ödeme']
+                    _durum = {'ODENDI': 'Ödendi', 'KISMI': 'Kısmi', 'ODENMEDI': 'Ödenmedi'}
 
-                        def _durum_txt(d):
-                            return {'ODENDI': 'Ödendi', 'KISMI': 'Kısmi', 'ODENMEDI': 'Ödenmedi'}.get(d, d or '')
+                    def _fp(v):
+                        return f"{float(v or 0):,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
 
-                        def _tur_txt(t):
-                            return 'Gelir' if t == 'GELIR' else 'Gider'
+                    data_rows = [[
+                        r.get('tarih', '') or '',
+                        'Gelir' if r.get('tur') == 'GELIR' else 'Gider',
+                        r.get('kategori', '') or '',
+                        r.get('firma_ad', '') or '',
+                        r.get('aciklama', '') or '',
+                        _fp(r.get('toplam', 0)),
+                        _durum.get(r.get('odeme_durumu', ''), r.get('odeme_durumu', '') or ''),
+                        r.get('odeme_sekli', '') or '',
+                    ] for r in rows]
+                    return generate_table_pdf(baslik, headers, data_rows)
 
-                        data_rows = [
-                            [
-                                r.get('tarih', '') or '',
-                                _tur_txt(r.get('tur', '')),
-                                r.get('kategori', '') or '',
-                                r.get('firma_ad', '') or '',
-                                r.get('aciklama', '') or '',
-                                f"{float(r.get('toplam', 0) or 0):,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
-                                _durum_txt(r.get('odeme_durumu', '')),
-                                r.get('odeme_sekli', '') or '',
-                            ]
-                            for r in rows_src
-                        ]
-                        from datetime import datetime as _dt
-                        baslik = f"Gelir / Gider Raporu - {_dt.now().strftime('%d.%m.%Y')}"
-                        _open_pdf(generate_table_pdf(baslik, headers, data_rows), 'gelir_gider_raporu.pdf')
-                    except Exception as e:
-                        notify_err(f'PDF hatası: {e}')
+                def _open_pdf_dialog():
+                    import calendar
+                    _t = date.today()
 
-                ui.button('PDF', icon='picture_as_pdf', color='primary', on_click=_pdf_gelir_gider).props('dense')
+                    def _ay_araligi(y, m):
+                        return f'{y:04d}-{m:02d}-01', f'{y:04d}-{m:02d}-{calendar.monthrange(y, m)[1]:02d}'
+
+                    # Varsayilan tarih araligi = sayfadaki mevcut donem
+                    if state.get('ay'):
+                        _db, _de = _ay_araligi(state['yil'], state['ay'])
+                    elif state.get('yil'):
+                        _db, _de = f"{state['yil']}-01-01", f"{state['yil']}-12-31"
+                    else:
+                        _db, _de = '', ''
+
+                    with ui.dialog() as pdlg, ui.card().classes('alse-dialog').style('width:90vw;max-width:470px'):
+                        with ui.element('div').classes('alse-dialog-header'):
+                            ui.icon('picture_as_pdf')
+                            ui.label('PDF Raporu').classes('dialog-title')
+                        with ui.column().classes('w-full gap-3').style('padding:10px 4px'):
+                            with ui.row().classes('w-full gap-2 items-end no-wrap'):
+                                inp_bas = ui.input('Başlangıç', value=_db).props(
+                                    'outlined dense type=date label-color=cyan-8').classes('col')
+                                inp_bit = ui.input('Bitiş', value=_de).props(
+                                    'outlined dense type=date label-color=cyan-8').classes('col')
+                            with ui.row().classes('w-full gap-1 items-center'):
+                                ui.label('Hızlı:').classes('text-caption text-grey-7')
+
+                                def _pre(b, e):
+                                    inp_bas.set_value(b)
+                                    inp_bit.set_value(e)
+                                ui.button('Bugün', on_click=lambda: _pre(_t.isoformat(), _t.isoformat())).props('dense flat no-caps size=sm')
+                                ui.button('Bu Ay', on_click=lambda: _pre(*_ay_araligi(_t.year, _t.month))).props('dense flat no-caps size=sm')
+                                _pm = (_t.year, _t.month - 1) if _t.month > 1 else (_t.year - 1, 12)
+                                ui.button('Geçen Ay', on_click=lambda: _pre(*_ay_araligi(*_pm))).props('dense flat no-caps size=sm')
+                                ui.button('Bu Yıl', on_click=lambda: _pre(f'{_t.year}-01-01', f'{_t.year}-12-31')).props('dense flat no-caps size=sm')
+                                ui.button('Tümü', on_click=lambda: _pre('', '')).props('dense flat no-caps size=sm color=grey-7')
+
+                            ui.separator()
+                            with ui.row().classes('w-full items-center gap-2'):
+                                ui.label('Tür:').classes('text-caption text-grey-7')
+                                inp_tur = ui.radio({'HEPSI': 'Hepsi', 'GIDER': 'Gider', 'GELIR': 'Gelir'},
+                                                   value='HEPSI').props('inline dense color=cyan-8')
+                            with ui.column().classes('w-full gap-1'):
+                                ui.label('Rapor Tipi').classes('text-caption text-grey-7')
+                                inp_tip = ui.radio({'normal': 'Normal (düz liste)',
+                                                    'kategori': 'Kategori bazlı (gruplu + toplam)'},
+                                                   value='normal').props('dense color=cyan-8').classes('w-full')
+                            chk_detay = ui.checkbox('Kategori raporunda detay satırları da olsun', value=False)
+                            chk_detay.bind_visibility_from(inp_tip, 'value', backward=lambda v: v == 'kategori')
+
+                        with ui.row().classes('w-full justify-end q-mt-md gap-2'):
+                            ui.button('İptal', on_click=pdlg.close).props('flat color=grey')
+
+                            def _uret():
+                                try:
+                                    bas = (inp_bas.value or '').strip() or None
+                                    bit = (inp_bit.value or '').strip() or None
+                                    tur = None if inp_tur.value == 'HEPSI' else inp_tur.value
+                                    rows = get_gelir_gider_rapor(bas, bit, tur)
+                                    if not rows:
+                                        notify_err('Seçilen kriterlerde kayıt bulunamadı')
+                                        return
+                                    if bas and bit:
+                                        _dl = f"{bas[8:10]}.{bas[5:7]}.{bas[:4]} - {bit[8:10]}.{bit[5:7]}.{bit[:4]}"
+                                    else:
+                                        _dl = 'Tüm Zamanlar'
+                                    if inp_tip.value == 'kategori':
+                                        pdf = generate_gelir_gider_kategori_pdf(
+                                            kategori_ozet(rows), f'Kategori Raporu — {_dl}',
+                                            tur_filtre=inp_tur.value, detay=chk_detay.value)
+                                        fname = 'gelir_gider_kategori.pdf'
+                                    else:
+                                        pdf = _pdf_normal(rows, f'Gelir / Gider Raporu — {_dl}')
+                                        fname = 'gelir_gider_raporu.pdf'
+                                    pdlg.close()
+                                    _open_pdf(pdf, fname)
+                                except Exception as e:
+                                    notify_err(f'PDF hatası: {e}')
+
+                            ui.button('PDF Oluştur', color='primary', on_click=_uret).props('unelevated')
+                    pdlg.open()
+
+                ui.button('PDF', icon='picture_as_pdf', color='primary', on_click=_open_pdf_dialog).props('dense')
                 ui.button('YENİ', icon='swap_vert', color='primary', on_click=lambda: open_dialog()).props('dense no-caps')
 
         # Table

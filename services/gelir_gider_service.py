@@ -158,3 +158,48 @@ def delete_gelir_gider(rec_id):
         # Bagli kasa kayitlarini da sil (auto-olusturulanlar)
         conn.execute('DELETE FROM kasa WHERE gelir_gider_id=?', (rec_id,))
         conn.execute('DELETE FROM gelir_gider WHERE id=?', (rec_id,))
+
+
+def get_gelir_gider_rapor(baslangic=None, bitis=None, tur=None):
+    """Rapor icin tarih araligi + tur filtresiyle kayitlar.
+    baslangic/bitis: 'YYYY-MM-DD' (dahil) veya bos/None. tur: 'GELIR'/'GIDER' veya None (hepsi)."""
+    where = ["tarih IS NOT NULL AND tarih != ''"]
+    params = []
+    if baslangic:
+        where.append("tarih >= ?"); params.append(str(baslangic)[:10])
+    if bitis:
+        where.append("tarih <= ?"); params.append(str(bitis)[:10])
+    if tur in ('GELIR', 'GIDER'):
+        where.append("tur = ?"); params.append(tur)
+    sql = "SELECT * FROM gelir_gider WHERE " + " AND ".join(where) + \
+          " ORDER BY tarih, COALESCE(created_at, tarih || ' 00:00:00.000000'), id"
+    with get_db() as conn:
+        return [dict(r) for r in conn.execute(sql, params).fetchall()]
+
+
+def kategori_ozet(rows):
+    """Kayitlari tur -> kategori bazinda toplar. Donus:
+    {'GIDER': [{kategori, adet, matrah, kdv, toplam}, ...], 'GELIR': [...]}
+    Her tur listesi TOPLAMA gore buyukten kucuge sirali. Ayrica her satirda kayitlar da tutulur ('kayitlar')."""
+    from collections import OrderedDict
+    grp = {'GIDER': OrderedDict(), 'GELIR': OrderedDict()}
+    for r in rows:
+        tur = r.get('tur', '')
+        if tur not in grp:
+            continue
+        kat = (r.get('kategori') or '').strip() or '(Kategorisiz)'
+        g = grp[tur].get(kat)
+        if g is None:
+            g = {'kategori': kat, 'adet': 0, 'matrah': 0.0, 'kdv': 0.0, 'toplam': 0.0, 'kayitlar': []}
+            grp[tur][kat] = g
+        g['adet'] += 1
+        g['matrah'] += float(r.get('tutar', 0) or 0)
+        g['kdv'] += float(r.get('kdv_tutar', 0) or 0)
+        g['toplam'] += float(r.get('toplam', 0) or 0)
+        g['kayitlar'].append(r)
+    out = {}
+    for tur, kats in grp.items():
+        lst = list(kats.values())
+        lst.sort(key=lambda x: x['toplam'], reverse=True)   # tutara gore buyukten kucuge
+        out[tur] = lst
+    return out
