@@ -377,7 +377,6 @@ def cari_detay_page(firma_kod: str):
                     # default_current_month=False -> ilk acilis Tumu modunda
                     donem_secici(_ekstre_donem_change, include_all=True, mode_toggle=True, default_current_month=False)
 
-                ekstre_table.add_slot('body-cell-tarih', TARIH_SLOT)
                 ekstre_table.add_slot('header-cell-borc', '''
                     <q-th :props="props" class="text-center">Borç</q-th>
                 ''')
@@ -387,67 +386,85 @@ def cari_detay_page(firma_kod: str):
                 ekstre_table.add_slot('header-cell-bakiye', '''
                     <q-th :props="props" class="text-center">Bakiye</q-th>
                 ''')
-                ekstre_table.add_slot('body-cell-borc', '''
-                    <q-td :props="props" class="text-center">
-                        {{ props.value != null && props.value !== 0 ? (props.value < 0 ? '-' : '') + Math.abs(props.value).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' TL' : '' }}
-                    </q-td>
-                ''')
-                ekstre_table.add_slot('body-cell-alacak', '''
-                    <q-td :props="props" class="text-center">
-                        {{ props.value != null && props.value !== 0 ? (props.value < 0 ? '-' : '') + Math.abs(props.value).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' TL' : '' }}
-                    </q-td>
-                ''')
-                ekstre_table.add_slot('body-cell-bakiye', '''
-                    <q-td :props="props" class="text-center">
-                        <span :class="props.value > 0 ? 'text-positive text-weight-bold' : props.value < 0 ? 'text-negative text-weight-bold' : ''">
-                            {{ props.value != null && props.value !== 0 ? (props.value < 0 ? '-' : '') + Math.abs(props.value).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' TL' : '' }}
-                        </span>
-                    </q-td>
-                ''')
-                ekstre_table.add_slot('body-cell-tip', r'''
-                    <q-td :props="props">
-                        <q-badge dense text-color="white"
-                            :color="props.row.tip === 'ALIS' ? 'blue-7' :
-                                    props.row.tip === 'SATIS' ? 'teal-7' :
-                                    props.row.tip === 'TAHSILAT' ? 'green-7' :
-                                    props.row.tip === 'ODEME' ? 'orange-8' :
-                                    props.row.tip === 'GIDER' ? 'red-7' :
-                                    props.row.tip === 'GELIR' ? 'green-9' :
-                                    props.row.tip === 'CEK' ? 'deep-purple-6' :
-                                    props.row.tip === 'DEVIR' ? 'indigo-5' : 'grey-6'"
-                            class="q-mx-auto">
-                            {{ props.row.tip === 'ALIS' ? 'Alış' :
-                               props.row.tip === 'SATIS' ? 'Satış' :
-                               props.row.tip === 'TAHSILAT' ? 'Tahsilat' :
-                               props.row.tip === 'ODEME' ? 'Ödeme' :
-                               props.row.tip === 'GIDER' ? 'Gider' :
-                               props.row.tip === 'GELIR' ? 'Gelir' :
-                               props.row.tip === 'CEK' ? 'Çek' :
-                               props.row.tip === 'DEVIR' ? 'Devir' : '-' }}
-                        </q-badge>
-                    </q-td>
-                ''')
-                ekstre_table.add_slot('body-cell-miktar', r'''
-                    <q-td :props="props" class="text-right">
-                        <span v-if="props.row.miktar != null && props.row.miktar !== 0" class="text-grey-9">
-                            {{ Number(props.row.miktar).toLocaleString('tr-TR', {minimumFractionDigits:0, maximumFractionDigits:2}) }}
-                            <span class="text-grey-6 text-caption q-ml-xs">{{ props.row.birim || 'KG' }}</span>
-                        </span>
-                    </q-td>
-                ''')
-                ekstre_table.add_slot('body-cell-birim_fiyat', r'''
-                    <q-td :props="props" class="text-right">
-                        <span v-if="props.row.birim_fiyat != null && props.row.birim_fiyat !== 0" class="text-grey-9">
-                            {{ Number(props.row.birim_fiyat).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) }} TL
-                        </span>
-                    </q-td>
-                ''')
-                ekstre_table.add_slot('body-cell-aciklama', r'''
-                    <q-td :props="props">
-                        <span>
-                            {{ String(props.value || '').replace(/^\s*(Alış|Alis|Satış|Satis|Tahsilat|Ödeme|Odeme|Gider|Gelir)\s*:?\s*(\([^)]*\))?\s*:?\s*/i, '') }}
-                        </span>
-                    </q-td>
+                # Tek 'body' slot: hucre iceriklerinin yani sira coklu kalemli islemler icin
+                # akordeon satiri (tiklayinca kalemler acilir)
+                ekstre_table.add_slot('body', r'''
+                    <q-tr :props="props"
+                          :class="props.row.kalemler && props.row.kalemler.length > 1 ? 'cursor-pointer' : ''"
+                          @click="props.row.kalemler && props.row.kalemler.length > 1 ? props.expand = !props.expand : null">
+                        <q-td v-for="col in props.cols" :key="col.name" :props="props"
+                              :class="col.name === 'tarih' && !props.row.tarih ? 'tarihsiz-cell' : ''">
+                            <template v-if="col.name === 'tarih'">
+                                <span v-if="props.row.tarih" style="font-weight:700;font-size:11px;color:#334155;">{{ props.row.tarih.split('-').reverse().join('.') }}</span>
+                                <span v-else style="color:#b91c1c;font-weight:600;">⚠ TARİH YOK</span>
+                            </template>
+                            <template v-else-if="col.name === 'tip'">
+                                <q-badge dense text-color="white"
+                                    :color="props.row.tip === 'ALIS' ? 'blue-7' :
+                                            props.row.tip === 'SATIS' ? 'teal-7' :
+                                            props.row.tip === 'TAHSILAT' ? 'green-7' :
+                                            props.row.tip === 'ODEME' ? 'orange-8' :
+                                            props.row.tip === 'GIDER' ? 'red-7' :
+                                            props.row.tip === 'GELIR' ? 'green-9' :
+                                            props.row.tip === 'CEK' ? 'deep-purple-6' :
+                                            props.row.tip === 'DEVIR' ? 'indigo-5' : 'grey-6'"
+                                    class="q-mx-auto">
+                                    {{ props.row.tip === 'ALIS' ? 'Alış' :
+                                       props.row.tip === 'SATIS' ? 'Satış' :
+                                       props.row.tip === 'TAHSILAT' ? 'Tahsilat' :
+                                       props.row.tip === 'ODEME' ? 'Ödeme' :
+                                       props.row.tip === 'GIDER' ? 'Gider' :
+                                       props.row.tip === 'GELIR' ? 'Gelir' :
+                                       props.row.tip === 'CEK' ? 'Çek' :
+                                       props.row.tip === 'DEVIR' ? 'Devir' : '-' }}
+                                </q-badge>
+                            </template>
+                            <template v-else-if="col.name === 'aciklama'">
+                                <q-icon v-if="props.row.kalemler && props.row.kalemler.length > 1"
+                                        :name="props.expand ? 'expand_less' : 'expand_more'"
+                                        size="16px" class="q-mr-xs text-primary" />
+                                <span>
+                                    {{ String(props.row.aciklama || '').replace(/^\s*(Alış|Alis|Satış|Satis|Tahsilat|Ödeme|Odeme|Gider|Gelir)\s*:?\s*(\([^)]*\))?\s*:?\s*/i, '') }}
+                                </span>
+                            </template>
+                            <template v-else-if="col.name === 'miktar'">
+                                <span v-if="props.row.miktar != null && props.row.miktar !== 0" class="text-grey-9">
+                                    {{ Number(props.row.miktar).toLocaleString('tr-TR', {minimumFractionDigits:0, maximumFractionDigits:2}) }}
+                                    <span class="text-grey-6 text-caption q-ml-xs">{{ props.row.birim || 'KG' }}</span>
+                                </span>
+                            </template>
+                            <template v-else-if="col.name === 'birim_fiyat'">
+                                <span v-if="props.row.birim_fiyat != null && props.row.birim_fiyat !== 0" class="text-grey-9">
+                                    {{ Number(props.row.birim_fiyat).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) }} TL
+                                </span>
+                            </template>
+                            <template v-else-if="col.name === 'borc' || col.name === 'alacak'">
+                                {{ props.row[col.name] != null && props.row[col.name] !== 0 ? (props.row[col.name] < 0 ? '-' : '') + Math.abs(props.row[col.name]).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' TL' : '' }}
+                            </template>
+                            <template v-else-if="col.name === 'bakiye'">
+                                <span :class="props.row.bakiye > 0 ? 'text-positive text-weight-bold' : props.row.bakiye < 0 ? 'text-negative text-weight-bold' : ''">
+                                    {{ props.row.bakiye != null && props.row.bakiye !== 0 ? (props.row.bakiye < 0 ? '-' : '') + Math.abs(props.row.bakiye).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' TL' : '' }}
+                                </span>
+                            </template>
+                            <template v-else>{{ col.value }}</template>
+                        </q-td>
+                    </q-tr>
+                    <q-tr v-if="props.row.kalemler && props.row.kalemler.length > 1" v-show="props.expand" :props="props">
+                        <q-td colspan="100%" style="padding:0;background:#f8fafc;">
+                            <div style="padding:6px 12px 6px 44px;">
+                                <div v-for="(k, i) in props.row.kalemler" :key="i"
+                                     style="display:flex;align-items:center;gap:16px;padding:4px 0;border-bottom:1px dashed #e2e8f0;font-size:12px;">
+                                    <span style="flex:2;color:#334155;font-weight:600;">{{ k.urun_ad }}</span>
+                                    <span style="flex:1;text-align:right;color:#475569;">
+                                        {{ k.miktar != null ? Number(k.miktar).toLocaleString('tr-TR', {minimumFractionDigits:0, maximumFractionDigits:2}) : '' }}
+                                        <span style="color:#94a3b8;">{{ k.birim || 'KG' }}</span>
+                                    </span>
+                                    <span style="flex:1;text-align:right;color:#475569;">{{ k.birim_fiyat != null ? Number(k.birim_fiyat).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' TL' : '' }}</span>
+                                    <span style="flex:1;text-align:right;color:#0f766e;font-weight:700;">{{ k.tutar != null ? Number(k.tutar).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' TL' : '' }}</span>
+                                </div>
+                            </div>
+                        </q-td>
+                    </q-tr>
                 ''')
 
             with ui.tab_panel(kasa_tab).classes('q-pa-none'):

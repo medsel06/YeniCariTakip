@@ -413,6 +413,7 @@ def get_cari_ekstre(firma_kod, yil=None, ay=None, with_meta=False):
             'miktar': s.get('miktar'),
             'birim': s.get('birim') or '',
             'birim_fiyat': s.get('birim_fiyat'),
+            'kalemler': s.get('kalemler'),
         })
 
     if with_meta:
@@ -473,7 +474,8 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
             h.urun_ad AS aciklama, NULL AS belge_no,
             h.miktar AS miktar,
             COALESCE(NULLIF(u.birim, ''), 'KG') AS birim,
-            h.birim_fiyat AS birim_fiyat
+            h.birim_fiyat AS birim_fiyat,
+            COALESCE(h.grup_id, '') AS grup_id
         FROM hareketler h
         LEFT JOIN urunler u ON u.kod = h.urun_kod
         WHERE 1=1 {firma_clause.replace('firma_kod', 'h.firma_kod')}{date_flt.replace('tarih', 'h.tarih')}
@@ -487,7 +489,8 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
             CASE WHEN tur='GIDER' THEN toplam ELSE 0 END AS borc,
             CASE WHEN tur='GELIR' THEN toplam ELSE 0 END AS alacak,
             COALESCE(aciklama, kategori) AS aciklama, NULL AS belge_no,
-            NULL AS miktar, NULL AS birim, NULL AS birim_fiyat
+            NULL AS miktar, NULL AS birim, NULL AS birim_fiyat,
+            '' AS grup_id
         FROM gelir_gider
         WHERE firma_kod IS NOT NULL AND firma_kod != '' {firma_clause}{date_flt}
         """,
@@ -500,7 +503,8 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
             CASE WHEN tur='GELIR' THEN tutar ELSE 0 END AS borc,
             CASE WHEN tur='GIDER' THEN tutar ELSE 0 END AS alacak,
             aciklama, NULL AS belge_no,
-            NULL AS miktar, NULL AS birim, NULL AS birim_fiyat
+            NULL AS miktar, NULL AS birim, NULL AS birim_fiyat,
+            '' AS grup_id
         FROM kasa
         WHERE firma_kod IS NOT NULL AND firma_kod != '' AND cek_id IS NULL {firma_clause}{date_flt}
         """,
@@ -527,7 +531,8 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
               ELSE 0
             END AS alacak,
             cek_no AS aciklama, cek_no AS belge_no,
-            NULL AS miktar, NULL AS birim, NULL AS birim_fiyat
+            NULL AS miktar, NULL AS birim, NULL AS birim_fiyat,
+            '' AS grup_id
         FROM cekler
         WHERE firma_kod IS NOT NULL AND firma_kod != '' {firma_clause}
           AND COALESCE(NULLIF(kesim_tarih, ''), vade_tarih) IS NOT NULL
@@ -545,7 +550,8 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
             0 AS borc,
             tutar AS alacak,
             cek_no AS aciklama, cek_no AS belge_no,
-            NULL AS miktar, NULL AS birim, NULL AS birim_fiyat
+            NULL AS miktar, NULL AS birim, NULL AS birim_fiyat,
+            '' AS grup_id
         FROM cekler
         WHERE durum='CIRO_EDILDI'
           AND ciro_firma_kod IS NOT NULL AND ciro_firma_kod != ''
@@ -629,14 +635,13 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
             sql = f"SELECT * FROM ({period_sql}) ORDER BY tarih, sort_ts, ref_id"
             args = firma_args * 5
             satirlar = []
+            grup_index = {}  # grup_id -> birlesik satir (coklu kalemli islem tek satir gosterilir)
             devir = devir_map.get(firma_kod, 0.0)
-            kumul = devir
             for r in conn.execute(sql, args).fetchall():
-                kumul += float(r['alacak'] or 0) - float(r['borc'] or 0)
                 miktar_raw = r['miktar'] if 'miktar' in r.keys() else None
                 birim_raw = r['birim'] if 'birim' in r.keys() else None
                 bfiyat_raw = r['birim_fiyat'] if 'birim_fiyat' in r.keys() else None
-                satirlar.append({
+                satir = {
                     'tarih': r['tarih'],
                     'tip': r['tip'],
                     'kaynak': r['kaynak'],
@@ -644,11 +649,42 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
                     'aciklama': r['aciklama'],
                     'borc': float(r['borc'] or 0),
                     'alacak': float(r['alacak'] or 0),
-                    'bakiye': kumul,
                     'miktar': float(miktar_raw) if miktar_raw is not None else None,
                     'birim': birim_raw or '',
                     'birim_fiyat': float(bfiyat_raw) if bfiyat_raw is not None else None,
-                })
+                }
+                gid = (r['grup_id'] if 'grup_id' in r.keys() else '') or ''
+                if satir['kaynak'] == 'H' and gid:
+                    kalem = {
+                        'urun_ad': satir['aciklama'],
+                        'miktar': satir['miktar'],
+                        'birim': satir['birim'],
+                        'birim_fiyat': satir['birim_fiyat'],
+                        'tutar': satir['borc'] or satir['alacak'],
+                    }
+                    if gid in grup_index:
+                        hedef = grup_index[gid]
+                        hedef['borc'] += satir['borc']
+                        hedef['alacak'] += satir['alacak']
+                        hedef['kalemler'].append(kalem)
+                        continue
+                    satir['kalemler'] = [kalem]
+                    grup_index[gid] = satir
+                satirlar.append(satir)
+            # Coklu kalemli gruplarin ozet gorunumu; tek kalemli grup normal satir gibi kalir
+            for s in grup_index.values():
+                if len(s.get('kalemler', [])) > 1:
+                    s['aciklama'] = f"{len(s['kalemler'])} kalem: {s['kalemler'][0]['urun_ad']} +{len(s['kalemler']) - 1}"
+                    s['miktar'] = None
+                    s['birim'] = ''
+                    s['birim_fiyat'] = None
+                else:
+                    s.pop('kalemler', None)
+            # Yuruyen bakiye birlesmis satirlar uzerinden hesaplanir
+            kumul = devir
+            for s in satirlar:
+                kumul += s['alacak'] - s['borc']
+                s['bakiye'] = kumul
             return {
                 'donem_label': _donem_label(yil, ay),
                 'devir': devir,
