@@ -334,6 +334,68 @@ def get_vade_uyarilari():
     }
 
 
+def get_cek_portfoy():
+    """Aktif (kapanmamis) cek/senet portfoyu — aksiyon odakli:
+      - tahsil: ALINAN & durum in (PORTFOYDE, TAHSILE_VERILDI)  -> GIRECEK para
+      - odeme : VERILEN & durum == KESILDI                       -> CIKACAK para
+    Her satira _gun (vade - bugun) eklenir; vadesi yakina gore artan sirali.
+    Toplamlar ve aciliyet kovalari (geciken/bugun/7gun/ileri) tutar bazinda doner."""
+    from datetime import date as _date
+    bugun = _date.today()
+
+    def _prep(rows):
+        out = []
+        for r in rows:
+            d = dict(r)
+            vt = (d.get('vade_tarih') or '')[:10]
+            gun = None
+            if vt:
+                try:
+                    y, m, g = map(int, vt.split('-'))
+                    gun = (_date(y, m, g) - bugun).days
+                except Exception:
+                    gun = None
+            d['_gun'] = gun
+            out.append(d)
+        return out
+
+    def _bucket(rows):
+        b = {'geciken': 0.0, 'bugun': 0.0, 'yedi': 0.0, 'ileri': 0.0}
+        for r in rows:
+            t = float(r.get('tutar') or 0)
+            g = r.get('_gun')
+            if g is None or g > 7:
+                b['ileri'] += t
+            elif g < 0:
+                b['geciken'] += t
+            elif g == 0:
+                b['bugun'] += t
+            else:
+                b['yedi'] += t
+        return b
+
+    with get_db() as conn:
+        tahsil = conn.execute(
+            "SELECT * FROM cekler WHERE cek_turu='ALINAN' AND durum IN ('PORTFOYDE','TAHSILE_VERILDI') "
+            "ORDER BY vade_tarih ASC, id ASC"
+        ).fetchall()
+        odeme = conn.execute(
+            "SELECT * FROM cekler WHERE cek_turu='VERILEN' AND durum='KESILDI' "
+            "ORDER BY vade_tarih ASC, id ASC"
+        ).fetchall()
+    tahsil = _prep(tahsil)
+    odeme = _prep(odeme)
+    top_tahsil = sum(float(r.get('tutar') or 0) for r in tahsil)
+    top_odeme = sum(float(r.get('tutar') or 0) for r in odeme)
+    return {
+        'tahsil': tahsil, 'odeme': odeme,
+        'toplam_tahsil': top_tahsil, 'toplam_odeme': top_odeme,
+        'net': top_tahsil - top_odeme,
+        'tahsil_bucket': _bucket(tahsil), 'odeme_bucket': _bucket(odeme),
+        'bugun': bugun.isoformat(),
+    }
+
+
 def list_cekler_portfoyde():
     """Portföydeki çekleri döndürür (ciro için)"""
     with get_db() as conn:

@@ -33,6 +33,7 @@ import pages.login
 import pages.loglar
 import pages.mutabakat
 import pages.cek_takvim
+import pages.cek_portfoy
 import pages.tahsilat_oneri
 import pages.karlilik
 import pages.gelir_gider

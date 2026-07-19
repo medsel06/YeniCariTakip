@@ -24,6 +24,7 @@ MENU_GROUPS = [
         ('/uretim', 'precision_manufacturing', 'Üretim'),
     ]),
     ('Finans Analiz', 'bar_chart', [
+        ('/cek-portfoy', 'wallet', 'Çek Portföyü'),
         ('/cek-takvim', 'calendar_month', 'Çek Takvimi'),
         ('/mutabakat', 'fact_check', 'Mutabakat'),
         ('/tahsilat-oneri', 'bolt', 'Tahsilat Öneri'),
@@ -1035,6 +1036,7 @@ def create_layout(active_path='/', page_title=''):
             'Personel': 'Çalışan maaşları ve personel listesi',
             'Çek / Senet': 'Alınan ve verilen çek/senet portföyü',
             'Üretim': 'Üretim emirleri, reçeteler ve maliyet analizi',
+            'Çek Portföyü': 'Aktif çek/senet: girecek-çıkacak para ve yaklaşan vadeler',
             'Çek Takvimi': 'Aylık vadeli çeklerin takvim görünümü',
             'Mutabakat': 'Cari hesap bakiye mutabakat işlemleri',
             'Tahsilat Öneri': 'Vadesi gelen alacaklar için akıllı tahsilat önerileri',
