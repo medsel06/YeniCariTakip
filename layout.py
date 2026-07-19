@@ -954,8 +954,10 @@ def create_layout(active_path='/', page_title=''):
                 # Stok Hareketler'in altina ekle
                 idx = next((j for j, (p, _, _) in enumerate(dyn_items) if p == '/hareketler'), 1)
                 dyn_items.insert(idx + 1, ('/haftalik-bilanco', 'table_chart', 'Haftalık Bilanço'))
-            if group_title == 'Finans Analiz' and _is_hurda_tenant:
-                dyn_items = dyn_items + [('/sokum', 'recycling', 'Söküm Verimi')]
+            if group_title == 'Operasyon' and _is_hurda_tenant:
+                # Sokum Verimi'ni Uretim'in hemen altina ekle
+                uidx = next((j for j, (p, _, _) in enumerate(dyn_items) if p == '/uretim'), len(dyn_items) - 1)
+                dyn_items.insert(uidx + 1, ('/sokum', 'recycling', 'Söküm Verimi'))
             menu_groups.append((group_title, group_icon, dyn_items))
 
         if view_mode == 'classic':
@@ -976,22 +978,22 @@ def create_layout(active_path='/', page_title=''):
                     f'</div>'
                 )
 
-            with ui.column().classes('w-full gap-4 q-px-sm alse-nav-scroll').style('padding-top: 8px; padding-bottom: 16px;'):
+            with ui.column().classes('w-full q-px-sm alse-nav-scroll').style('padding-top: 8px; padding-bottom: 16px; gap: 2px;'):
+                # Akordeon: tum gruplar varsayilan KAPALI; tiklayinca acilir (group=navgrp -> tek acik)
                 for group_title, group_icon, items in menu_groups:
-                    # Category heading
-                    ui.label(group_title.upper()).style('font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-top: 8px; margin-bottom: 2px; padding-left: 8px;')
-                    
-                    for path, icon, text in items:
-                        is_active = active_path == path
-                        row_cls = 'w-full items-center no-wrap cursor-pointer'
-                        if is_active:
-                            row_cls += ' active-nav-modern'
-                        else:
-                            row_cls += ' inactive-nav-modern'
-                        
-                        with ui.row().classes(row_cls).style('height: 36px; display: flex; align-items: center; gap: 10px; padding: 0 12px;').on('click', lambda p=path: ui.navigate.to(p)):
-                            ui.icon(icon, size='18px').classes('nav-item-icon')
-                            ui.label(text).classes('nav-item-label').style('font-size: 13px; font-weight: 600;')
+                    with ui.expansion(group_title, icon=group_icon, value=False).classes(
+                            'alse-group w-full').props('group=navgrp dense'):
+                        for path, icon, text in items:
+                            is_active = active_path == path
+                            row_cls = 'w-full items-center no-wrap cursor-pointer'
+                            if is_active:
+                                row_cls += ' active-nav-modern'
+                            else:
+                                row_cls += ' inactive-nav-modern'
+
+                            with ui.row().classes(row_cls).style('height: 34px; display: flex; align-items: center; gap: 10px; padding: 0 12px;').on('click', lambda p=path: ui.navigate.to(p)):
+                                ui.icon(icon, size='18px').classes('nav-item-icon')
+                                ui.label(text).classes('nav-item-label').style('font-size: 13px; font-weight: 600;')
             
             # User profile and actions at the bottom of the drawer (sabit alt)
             auth_user = app.storage.user.get('auth_user', {})
