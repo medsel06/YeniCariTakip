@@ -943,6 +943,9 @@ def create_layout(active_path='/', page_title=''):
         except Exception:
             pass
 
+        # Sokum verimi hurda isi (Murat/Baysal) icin — firma adindan tespit
+        _is_hurda_tenant = ('murat' in _header_firma.casefold() or 'baysal' in _header_firma.casefold())
+
         # Dinamik menu olustur
         menu_groups = []
         for group_title, group_icon, items in MENU_GROUPS:
@@ -951,6 +954,8 @@ def create_layout(active_path='/', page_title=''):
                 # Stok Hareketler'in altina ekle
                 idx = next((j for j, (p, _, _) in enumerate(dyn_items) if p == '/hareketler'), 1)
                 dyn_items.insert(idx + 1, ('/haftalik-bilanco', 'table_chart', 'Haftalık Bilanço'))
+            if group_title == 'Finans Analiz' and _is_hurda_tenant:
+                dyn_items = dyn_items + [('/sokum', 'recycling', 'Söküm Verimi')]
             menu_groups.append((group_title, group_icon, dyn_items))
 
         if view_mode == 'classic':

@@ -67,7 +67,7 @@ def login_page():
 
                 inp_pass.on('keydown.enter', lambda _: _login())
 
-                ui.button('Giriş Yap', icon='login', on_click=_login, color=None).classes('w-full').style(
+                ui.button('GİRİŞ YAP', icon='login', on_click=_login, color=None).props('no-caps').classes('w-full').style(
                     'background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;font-weight:700;'
                     'height:44px;border-radius:12px;box-shadow:0 6px 18px rgba(124,58,237,.30)')
 
