@@ -148,12 +148,6 @@ def odeme_takibi_page():
     def _tablo(data):
         tablo_box.clear()
         with tablo_box:
-            if not data:
-                if mode['secim']:
-                    _secim_iptal_bar('Ödenmemiş kredi kartı harcaması yok. (İptal ile çıkın)')
-                else:
-                    ui.label('Kayıt yok. Vadeli alış/satış girince veya manuel plan ekleyince burada görünür.').classes('text-grey-7 q-pa-md')
-                return
             columns = [
                 {'name': 'vade_tarih', 'label': 'Vade', 'field': 'vade_tarih', 'align': 'left', 'sortable': True},
                 {'name': 'tip', 'label': 'Tip', 'field': 'tip', 'align': 'center'},
@@ -165,6 +159,24 @@ def odeme_takibi_page():
                 {'name': 'durum', 'label': 'Durum', 'field': 'durum', 'align': 'center'},
                 {'name': 'actions', 'label': 'İşlem', 'field': 'actions', 'align': 'left'},
             ]
+            if not data:
+                if mode['secim']:
+                    _secim_iptal_bar('Ödenmemiş kredi kartı harcaması yok. (İptal ile çıkın)')
+                # Bos olsa da tablo yapisi (basliklar) sabit dursun — dolu haldekiyle ayni gorunum
+                bos_tbl = ui.table(columns=columns, rows=[], row_key='_rid') \
+                    .classes('w-full odeme-tbl').props('flat bordered dense hide-bottom')
+                bos_tbl.add_slot('no-data', r'''
+                    <div class="full-width row flex-center q-pa-lg text-grey-6" style="gap:8px;">
+                        <q-icon name="inbox" size="20px" />
+                        <span style="font-size:12.5px;">Kayıt yok. Vadeli alış/satış girince veya manuel plan ekleyince burada görünür.</span>
+                    </div>
+                ''')
+                with ui.row().classes('w-full items-center justify-end no-wrap q-px-md') \
+                        .style('background:#eceff1;border-radius:0 0 6px 6px;gap:18px;height:34px'):
+                    ui.label('0 kayıt').classes('text-caption text-grey-7')
+                    ui.label(f"Toplam: {fmt_para(0)} TL").classes('text-caption text-weight-bold')
+                    ui.label(f"Kalan: {fmt_para(0)} TL").classes('text-caption text-weight-bold text-primary')
+                return
             disp = []
             for r in data:
                 src = r['_src']

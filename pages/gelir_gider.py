@@ -9,7 +9,7 @@ from services.gelir_gider_service import (
     get_gelir_gider_list, get_gelir_gider_ozet,
     add_gelir_gider, update_gelir_gider, delete_gelir_gider,
     get_gelir_gider_rapor, kategori_ozet,
-    kategori_normalize, kategori_ikon, get_kategori_kullanim,
+    kategori_normalize, kategori_ikon, get_kategori_kullanim, KATEGORI_IKON,
     GELIR_KATEGORILER, GIDER_KATEGORILER, ONE_CIKAN_GIDER_KATEGORILER,
 )
 from services.banka_service import list_banka_hesaplari
@@ -858,17 +858,14 @@ def gelir_gider_page(focus: int = None):
         ''')
 
         # Kategori - Nakliye/Ardiye one cikan
-        table_ref.add_slot('body-cell-kategori', r'''
+        # Kategori hucresi: dropdown ile ayni emoji-ikonlu gorunum (tum kategoriler ayni stil)
+        import json as _json
+        _kat_ikon_js = _json.dumps(KATEGORI_IKON, ensure_ascii=False)
+        table_ref.add_slot('body-cell-kategori', (r'''
             <q-td :props="props">
-                <q-chip v-if="props.value === 'Nakliye'" dense color="orange-7" text-color="white" size="sm" icon="local_shipping">
-                    Nakliye
-                </q-chip>
-                <q-chip v-else-if="props.value === 'Ardiye'" dense color="purple-6" text-color="white" size="sm" icon="warehouse">
-                    Ardiye
-                </q-chip>
-                <span v-else>{{ props.value }}</span>
+                <span>{{ props.value ? (((__IKONMAP__)[props.value] || '🏷️') + ' ' + props.value) : '' }}</span>
             </q-td>
-        ''')
+        ''').replace('__IKONMAP__', _kat_ikon_js))
 
         # Firma / Cari adi
         table_ref.add_slot('body-cell-firma_ad', r'''
