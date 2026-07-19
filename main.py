@@ -37,6 +37,7 @@ import pages.cek_portfoy
 import pages.tahsilat_oneri
 import pages.karlilik
 import pages.sokum
+import pages.landing
 import pages.gelir_gider
 import pages.personel
 import pages.haftalik_bilanco

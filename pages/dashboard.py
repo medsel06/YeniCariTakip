@@ -73,39 +73,53 @@ def _load_dashboard_summary(yil=None, ay=None):
 
 @ui.page('/')
 def dashboard_page():
+    # Giris yapmamis ziyaretci -> Kolay Muhasebe tanitim (landing) sayfasi
+    if not (app.storage.user.get('auth_user') and app.storage.user.get('tenant_schema')):
+        from pages.landing import render_landing
+        render_landing()
+        return
     if not create_layout(active_path='/', page_title='Bilgi Ekranı'):
         return
 
     # --- Yenilikler duyurusu (her kullaniciya bir kez; "Anladim" ile kapanir) ---
-    _whatsnew_v = 'v2026-07-gelir-gider-pdf'
+    _whatsnew_v = 'v2026-07-tum-yenilikler'
     if app.storage.user.get('whatsnew_seen') != _whatsnew_v:
+        _auth_user = app.storage.user.get('auth_user') or {}
+        _tenant_name = str(app.storage.user.get('tenant_name') or '').strip()
+        _tenant_id = _auth_user.get('tenant_id')
+        _is_murat_tenant = str(_tenant_id) == '4' or 'murat' in _tenant_name.casefold()
+
         with ui.dialog() as _wn_dlg, ui.card().classes('q-pa-none').style(
-                'max-width:450px;border-radius:16px;overflow:hidden'):
+                'max-width:500px;border-radius:16px;overflow:hidden'):
             with ui.element('div').style(
                     'background:linear-gradient(120deg,#0f766e,#059669);padding:18px 22px;color:#fff'):
                 ui.label('🎉 Yenilikler').style('font-size:18px;font-weight:800')
-                ui.label('Yeni İşlem ekranı + Gelir/Gider raporları yenilendi').style('font-size:12.5px;opacity:.92')
-            with ui.column().classes('gap-4').style('padding:18px 22px'):
-                def _madde(ikon, baslik, aciklama):
-                    with ui.row().classes('items-start no-wrap gap-3'):
-                        ui.icon(ikon).style('color:#059669;font-size:22px;margin-top:2px')
-                        with ui.column().classes('gap-0'):
-                            ui.label(baslik).style('font-weight:700;font-size:13.5px;color:#0f172a')
-                            ui.label(aciklama).style('font-size:12.5px;color:#475569;line-height:1.5')
-                _madde('receipt_long', 'Yeni İşlem modalı',
-                       'Daha kompakt, sade ve hızlı bir işlem giriş ekranı — her şey tek bakışta.')
-                _madde('keyboard', 'Klavye ile hızlı giriş',
-                       'Enter tuşuyla alandan alana geçin: tarih → tür → firma → ürün → miktar... '
-                       'Mouse’a gerek yok. Listede olmayan firma/ürünü yazıp Enter’layınca '
-                       'hızlıca ekleyebilirsiniz (Evet/Hayır onayıyla).')
-                _madde('playlist_add', 'Çoklu ürün kalemi',
-                       'Tek işlemde birden fazla ürün girebilirsiniz. Her kalemin kendi miktarı, '
-                       'birim fiyatı ve KDV oranı olur; matrah, KDV ve genel toplam otomatik hesaplanır. '
-                       'Cari ekstrede işlem tek satır görünür, tıklayınca kalemler açılır.')
-                _madde('picture_as_pdf', 'Gelir/Gider — Kategori bazlı PDF',
-                       'PDF butonu artık bir seçim penceresi açıyor. İstediğiniz tarih aralığını '
-                       '(gün/ay/yıl) seçip ister düz liste, ister kategori bazlı rapor alın: '
-                       'Nakliye, Yemek, Ardiye gibi kategorilerin toplamları ve yüzdeleri tek sayfada özetlenir.')
+                ui.label('İşlem girişi, WhatsApp ve raporlama özellikleri yenilendi').style('font-size:12.5px;opacity:.92')
+            with ui.column().classes('gap-3').style('padding:18px 22px;max-height:68vh;overflow-y:auto'):
+                def _madde(ikon, metin):
+                    with ui.row().classes('items-center no-wrap gap-3'):
+                        ui.icon(ikon).style('color:#059669;font-size:22px')
+                        ui.label(metin).style('font-weight:600;font-size:13px;color:#334155;line-height:1.45')
+
+                _madde('swap_vert',
+                       'Yeni İşlem ekranıyla alış ve satış kayıtlarını daha hızlı girebilirsiniz.')
+                _madde('keyboard',
+                       'Enter tuşuyla alanlar arasında ilerleyerek klavyeden hızlı kayıt yapabilirsiniz.')
+                _madde('playlist_add',
+                       'Tek işlemde birden fazla ürün kalemi ekleyebilirsiniz.')
+                _madde('donut_small',
+                       'Gelir/Gider kayıtlarını kategori özeti olarak görüntüleyebilir veya PDF alabilirsiniz.')
+                _madde('picture_as_pdf',
+                       'Cari hesap dökümünü PDF olarak WhatsApp’tan doğrudan paylaşabilirsiniz.')
+                _madde('chat',
+                       'Cari bakiyesini hazır mesajla WhatsApp’tan müşterinize gönderebilirsiniz.')
+                _madde('event_upcoming',
+                       'Çek portföyünü vadeye göre izleyebilir ve yaklaşan çek uyarılarını görebilirsiniz.')
+                _madde('query_stats',
+                       'Ürün bazında ortalama alış, satış ve kâr marjı yüzdesini raporlayabilirsiniz.')
+                if _is_murat_tenant:
+                    _madde('recycling',
+                           'Söküm veriminde parti bazlı girdi, çıktı ve kâr takibi yapabilirsiniz.')
             with ui.row().classes('w-full justify-end').style('padding:0 22px 18px'):
                 def _wn_kapat():
                     app.storage.user['whatsnew_seen'] = _whatsnew_v
