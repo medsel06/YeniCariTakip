@@ -321,10 +321,57 @@ def cari_detay_page(firma_kod: str):
                             ui.button('Kaydet', color=renk, on_click=_save_odeme).props('unelevated')
                     odlg.open()
 
+                def _normalize_tel(raw):
+                    """Turk cep no -> uluslararasi (90...) formata cevirir."""
+                    d = ''.join(ch for ch in (raw or '') if ch.isdigit())
+                    if not d:
+                        return ''
+                    if d.startswith('0'):
+                        d = d[1:]
+                    if not d.startswith('90'):
+                        d = '90' + d
+                    return d
+
+                def _whatsapp_bakiye():
+                    """Cari bakiyesini WhatsApp'ta hazir mesajla acar (onizlemeli)."""
+                    bugun = datetime.now().strftime('%d.%m.%Y')
+                    if son_bakiye > 0:
+                        durum = f"{fmt_para(son_bakiye)} TL borç bakiyeniz"
+                    elif son_bakiye < 0:
+                        durum = f"{fmt_para(-son_bakiye)} TL alacaklı bakiyeniz"
+                    else:
+                        durum = "0,00 TL bakiyeniz (hesabınız kapalı)"
+                    varsayilan = (f"Sayın {firma['ad']},\n{bugun} tarihi itibarıyla cari hesabınızda "
+                                  f"{durum} görünmektedir.\nBilginize sunar, iyi çalışmalar dileriz.")
+                    with ui.dialog() as wdlg, ui.card().classes('alse-dialog').style('width:90vw;max-width:440px'):
+                        with ui.element('div').classes('alse-dialog-header'):
+                            ui.icon('chat')
+                            ui.label('WhatsApp ile Bakiye Gönder').classes('dialog-title')
+                        inp_tel = ui.input('Telefon (5xx...)', value=(firma.get('tel') or '')).props(
+                            'outlined dense').classes('w-full q-mt-sm')
+                        inp_msg = ui.textarea('Mesaj', value=varsayilan).props(
+                            'outlined dense autogrow').classes('w-full')
+                        with ui.row().classes('w-full justify-end q-mt-md'):
+                            ui.button('İptal', on_click=wdlg.close).props('flat color=grey')
+                            def _ac():
+                                import urllib.parse
+                                num = _normalize_tel(inp_tel.value)
+                                if not num or len(num) < 12:
+                                    notify_err('Geçerli telefon girin (örn 5321234567)')
+                                    return
+                                url = f"https://wa.me/{num}?text={urllib.parse.quote(inp_msg.value or '')}"
+                                ui.navigate.to(url, new_tab=True)
+                                wdlg.close()
+                            ui.button("WhatsApp'ta Aç", icon='open_in_new', color='positive',
+                                      on_click=_ac).props('unelevated')
+                    wdlg.open()
+
                 ui.button('Ödeme', color='negative',
                           on_click=lambda: _open_odeme_dialog(False)).props('dense no-caps')
                 ui.button('Tahsilat', color='positive',
                           on_click=lambda: _open_odeme_dialog(True)).props('dense no-caps')
+                ui.button('WhatsApp', icon='chat', color='green-7',
+                          on_click=_whatsapp_bakiye).props('dense no-caps')
                 ui.button('PDF', icon='picture_as_pdf', color='primary', on_click=_pdf_ekstre_top).props('dense')
 
         with ui.tab_panels(tabs, value=ekstre_tab).classes('w-full'):
