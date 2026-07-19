@@ -28,12 +28,21 @@ def gelir_gider_page(focus: int = None):
     table_ref = None
     all_rows = []
     ozet_box = None
+    view_button = None
+    back_button = None
+    table_title = None
     now = datetime.now()
     # Default: yil=mevcut, ay=None (Tumu) — UI donem_secici default_ay=0 ile sync
-    state = {'yil': now.year, 'ay': None}
+    state = {
+        'yil': now.year,
+        'ay': None,
+        'view': 'normal',
+        'selected_tur': None,
+        'selected_kategori': None,
+    }
     search_val = {'text': ''}
 
-    columns = [
+    normal_columns = [
         {'name': 'tarih', 'label': 'Tarih', 'field': 'tarih', 'align': 'center', 'sortable': True},
         {'name': 'tur', 'label': 'Tür', 'field': 'tur', 'align': 'center', 'sortable': True},
         {'name': 'kategori', 'label': 'Kategori', 'field': 'kategori', 'align': 'left', 'sortable': True},
@@ -43,6 +52,16 @@ def gelir_gider_page(focus: int = None):
         {'name': 'odeme_durumu', 'label': 'Durum', 'field': 'odeme_durumu', 'align': 'center'},
         {'name': 'odeme_sekli', 'label': 'Ödeme', 'field': 'odeme_sekli', 'align': 'center'},
         {'name': 'actions', 'label': 'İşlemler', 'field': 'actions', 'align': 'center'},
+    ]
+
+    kategori_columns = [
+        {'name': 'tur', 'label': 'Tür', 'field': 'tur', 'align': 'center', 'sortable': True},
+        {'name': 'kategori', 'label': 'Kategori', 'field': 'kategori', 'align': 'left', 'sortable': True},
+        {'name': 'adet', 'label': 'Adet', 'field': 'adet', 'align': 'right', 'sortable': True},
+        {'name': 'matrah', 'label': 'Matrah', 'field': 'matrah', 'align': 'right', 'sortable': True},
+        {'name': 'kdv', 'label': 'KDV', 'field': 'kdv', 'align': 'right', 'sortable': True},
+        {'name': 'toplam', 'label': 'Toplam', 'field': 'toplam', 'align': 'right', 'sortable': True},
+        {'name': 'yuzde', 'label': '%', 'field': 'yuzde', 'align': 'right', 'sortable': True},
     ]
 
     def _filter_rows(rows):
@@ -55,10 +74,96 @@ def gelir_gider_page(focus: int = None):
                 q in normalize_search(r.get('firma_ad', '')) or
                 q in normalize_search(r.get('tur', ''))]
 
+    def _kategori_rows(rows):
+        """PDF raporundaki gruplamayi ekrana uygun, hafif satirlara donusturur."""
+        grouped = kategori_ozet(rows)
+        result = []
+        for tur in ('GIDER', 'GELIR'):
+            tur_rows = grouped.get(tur, [])
+            tur_toplam = sum(float(item.get('toplam', 0) or 0) for item in tur_rows)
+            for index, item in enumerate(tur_rows):
+                toplam = float(item.get('toplam', 0) or 0)
+                result.append({
+                    'id': f'kategori:{tur}:{index}',
+                    'tur': tur,
+                    'kategori': item.get('kategori', ''),
+                    'adet': item.get('adet', 0),
+                    'matrah': item.get('matrah', 0),
+                    'kdv': item.get('kdv', 0),
+                    'toplam': toplam,
+                    'yuzde': (toplam / tur_toplam * 100) if tur_toplam else 0,
+                })
+        return result
+
+    def _update_view_header():
+        if table_title is None:
+            return
+
+        view = state['view']
+        if view == 'kategori':
+            table_title.set_text('Kategori Özeti')
+        elif view == 'kategori_detay':
+            tur_label = 'Gelir' if state['selected_tur'] == 'GELIR' else 'Gider'
+            table_title.set_text(f"{tur_label} Kategori Detayı: {state['selected_kategori']}")
+        else:
+            table_title.set_text('Gelir / Gider Kayıtları')
+
+        if back_button is not None:
+            back_button.set_visibility(view == 'kategori_detay')
+        if view_button is not None:
+            view_button.set_text('Normal Kayıtlar' if view != 'normal' else 'Kategori')
+
     def apply_filters():
-        if table_ref:
-            table_ref.rows = _filter_rows(all_rows)
-            table_ref.update()
+        if not table_ref:
+            return
+
+        rows = _filter_rows(all_rows)
+        if state['view'] == 'kategori':
+            table_ref.columns = kategori_columns
+            table_ref.rows = _kategori_rows(rows)
+            table_ref.pagination = {'rowsPerPage': 50}
+        elif state['view'] == 'kategori_detay':
+            table_ref.columns = normal_columns
+            table_ref.rows = [
+                row for row in rows
+                if row.get('tur') == state['selected_tur']
+                and ((row.get('kategori') or '').strip() or '(Kategorisiz)') == state['selected_kategori']
+            ]
+            table_ref.pagination = {'rowsPerPage': 50, 'sortBy': 'tarih', 'descending': True}
+        else:
+            table_ref.columns = normal_columns
+            table_ref.rows = rows
+            table_ref.pagination = {'rowsPerPage': 50, 'sortBy': 'tarih', 'descending': True}
+
+        _update_view_header()
+        table_ref.update()
+
+    def _toggle_kategori_view():
+        if state['view'] == 'normal':
+            state['view'] = 'kategori'
+        else:
+            state['view'] = 'normal'
+            state['selected_tur'] = None
+            state['selected_kategori'] = None
+        apply_filters()
+
+    def _show_kategori_detail(row):
+        state['view'] = 'kategori_detay'
+        state['selected_tur'] = row.get('tur')
+        state['selected_kategori'] = row.get('kategori')
+        apply_filters()
+
+    def _back_to_kategori():
+        state['view'] = 'kategori'
+        state['selected_tur'] = None
+        state['selected_kategori'] = None
+        apply_filters()
+
+    def _handle_table_row_click(row):
+        if state['view'] == 'kategori':
+            _show_kategori_detail(row)
+        else:
+            _show_row_detail(row)
 
     def load_data():
         nonlocal all_rows
@@ -653,18 +758,39 @@ def gelir_gider_page(focus: int = None):
                             ui.button('PDF Oluştur', color='primary', on_click=_uret).props('unelevated')
                     pdlg.open()
 
+                view_button = ui.button(
+                    'Kategori', icon='category', color='primary', on_click=_toggle_kategori_view,
+                ).props('dense outline no-caps')
                 ui.button('PDF', icon='picture_as_pdf', color='primary', on_click=_open_pdf_dialog).props('dense')
                 ui.button('YENİ', icon='swap_vert', color='primary', on_click=lambda: open_dialog()).props('dense no-caps')
 
+        with ui.row().classes('w-full items-center gap-2 q-mb-xs').style('min-height: 32px'):
+            back_button = ui.button(
+                'Kategori Özetine Dön', icon='arrow_back', on_click=_back_to_kategori,
+            ).props('dense flat no-caps color=primary')
+            back_button.set_visibility(False)
+            table_title = ui.label('Gelir / Gider Kayıtları').classes('text-subtitle2 text-weight-bold text-grey-8')
+
         # Table
         table_ref = ui.table(
-            columns=columns, rows=all_rows, row_key='id',
+            columns=normal_columns, rows=all_rows, row_key='id',
             pagination={'rowsPerPage': 50, 'sortBy': 'tarih', 'descending': True}
         ).classes('w-full gg-table').style('--table-extra-rows: 2;')
         table_ref.props('flat bordered dense')
 
         table_ref.add_slot('body-cell-tarih', TARIH_SLOT)
         table_ref.add_slot('body-cell-toplam', PARA_SLOT)
+        table_ref.add_slot('body-cell-matrah', PARA_SLOT)
+        table_ref.add_slot('body-cell-kdv', r'''
+            <q-td :props="props">
+                {{ (Number(props.value) || 0).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' TL' }}
+            </q-td>
+        ''')
+        table_ref.add_slot('body-cell-yuzde', r'''
+            <q-td :props="props">
+                <span class="text-weight-bold text-grey-8">%{{ Math.round(Number(props.value) || 0) }}</span>
+            </q-td>
+        ''')
 
         table_ref.add_slot('body-cell-tur', r'''
             <q-td :props="props">
@@ -725,7 +851,7 @@ def gelir_gider_page(focus: int = None):
 
         table_ref.on('edit', lambda e: open_dialog(edit_row=e.args))
         table_ref.on('delete', lambda e: do_delete(e.args['id']))
-        table_ref.on('row-click', lambda e: _show_row_detail(e.args[1]))
+        table_ref.on('row-click', lambda e: _handle_table_row_click(e.args[1]))
 
         # Islemler detay modalindan 'Kaynak -> kayda git' ile gelinince ilgili kaydi ac
         if focus:
