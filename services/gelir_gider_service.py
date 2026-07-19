@@ -18,6 +18,76 @@ GIDER_KATEGORILER = [
     'Damga Vergisi', 'Noter', 'Yemek/İkram', 'Diğer',
 ]
 
+# Kategori normalize edilirken buyuk kalacak kisaltmalar (SGK -> Sgk olmasin)
+_KATEGORI_KISALTMALAR = {'SGK', 'SSK', 'KDV', 'ÖTV', 'ÖİV', 'MTV', 'GVK', 'KKEG', 'TL'}
+
+
+def _tr_kucuk(s):
+    """Turkce kurallariyla kucuk harf (I->ı, İ->i)."""
+    return s.replace('I', 'ı').replace('İ', 'i').lower()
+
+
+def _tr_buyuk(s):
+    """Turkce kurallariyla buyuk harf (ı->I, i->İ)."""
+    return s.replace('ı', 'I').replace('i', 'İ').upper()
+
+
+def kategori_normalize(s):
+    """Kategori metnini 'Ilk Harf Buyuk' formatina cevirir (Turkce kurallariyla).
+    Ornek: 'İŞÇİLİK' -> 'İşçilik', 'KART NAKİT AVANS' -> 'Kart Nakit Avans'.
+    Bilinen kisaltmalar (SGK, KDV...) tamamen buyuk kalir."""
+    import re
+    if not s:
+        return s
+
+    def _kelime(m):
+        w = m.group(0)
+        if _tr_buyuk(w) in _KATEGORI_KISALTMALAR:
+            return _tr_buyuk(w)
+        return _tr_buyuk(w[0]) + _tr_kucuk(w[1:])
+
+    # Sadece harf dizilerini isle; bosluk / '/' gibi ayiraclar korunur
+    return re.sub(r'[^\W\d_]+', _kelime, s, flags=re.UNICODE).strip()
+
+
+# Kategori -> kucuk emoji ikon (dropdown gorunumunde). Bilinmeyenler icin varsayilan.
+KATEGORI_IKON = {
+    # Gelir
+    'Fason İşçilik': '🧵', 'İşçilik': '🔨', 'Hurda Satış': '♻️',
+    'Kira Geliri': '🏠', 'Komisyon': '🤝', 'Faiz': '📈',
+    'Kur Farkı Geliri': '💱', 'Vade Farkı Geliri': '⏳',
+    # Gider
+    'Nakliye': '🚚', 'Ardiye': '📦', 'Kira': '🏠', 'Elektrik': '⚡',
+    'Su': '💧', 'Doğalgaz': '🔥', 'Telefon': '📞', 'İnternet': '🌐',
+    'Personel Maaş': '👷', 'Masraf': '💸', 'Kart Nakit Avans Komisyon': '💳',
+    'SGK': '🏛️', 'Vergi': '🧾', 'Sigorta': '🛡️', 'Akaryakıt': '⛽',
+    'Bakım/Onarım': '🔧', 'Kırtasiye': '✏️', 'Banka Masrafı': '🏦',
+    'Damga Vergisi': '📜', 'Noter': '📝', 'Yemek/İkram': '🍽️',
+    'Diğer': '📌',
+}
+
+
+def kategori_ikon(kat):
+    """Kategori icin kucuk emoji ikon. Ozel/bilinmeyen kategoriler icin varsayilan etiket."""
+    if not kat:
+        return '🏷️'
+    return KATEGORI_IKON.get(kat.strip(), '🏷️')
+
+
+def get_kategori_kullanim(tur=None):
+    """Kategorilerin kullanim sayisi (en cok kullanilan once). Donus: [(kategori, adet), ...]."""
+    where = "kategori IS NOT NULL AND kategori != ''"
+    params = []
+    if tur in ('GELIR', 'GIDER'):
+        where += " AND tur=?"
+        params.append(tur)
+    with get_db() as conn:
+        rows = conn.execute(
+            f"SELECT kategori, COUNT(*) AS adet FROM gelir_gider WHERE {where} "
+            f"GROUP BY kategori ORDER BY adet DESC, kategori", params
+        ).fetchall()
+        return [(r['kategori'], r['adet']) for r in rows]
+
 
 def _date_filter(yil=None, ay=None, col='tarih'):
     """Donem filtresi (3 modlu): aylik / yillik / tum zamanlar.
@@ -66,7 +136,7 @@ def _add_gelir_gider_conn(conn, data):
         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         RETURNING id
     ''', (
-        data['tarih'], data['tur'], data.get('kategori', ''),
+        data['tarih'], data['tur'], kategori_normalize(data.get('kategori', '')),
         data.get('aciklama', ''), data['tutar'],
         data.get('kdv_orani', 0), data.get('kdv_tutar', 0),
         data.get('toplam', data['tutar']),
@@ -135,7 +205,7 @@ def update_gelir_gider(rec_id, data):
                 firma_kod=?, firma_ad=?, odeme_durumu=?, vade_tarih=?
             WHERE id=?
         ''', (
-            data['tarih'], data['tur'], data.get('kategori', ''),
+            data['tarih'], data['tur'], kategori_normalize(data.get('kategori', '')),
             data.get('aciklama', ''), data['tutar'],
             data.get('kdv_orani', 0), data.get('kdv_tutar', 0),
             data.get('toplam', data['tutar']),

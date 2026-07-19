@@ -9,6 +9,7 @@ from services.gelir_gider_service import (
     get_gelir_gider_list, get_gelir_gider_ozet,
     add_gelir_gider, update_gelir_gider, delete_gelir_gider,
     get_gelir_gider_rapor, kategori_ozet,
+    kategori_normalize, kategori_ikon, get_kategori_kullanim,
     GELIR_KATEGORILER, GIDER_KATEGORILER, ONE_CIKAN_GIDER_KATEGORILER,
 )
 from services.banka_service import list_banka_hesaplari
@@ -111,7 +112,12 @@ def gelir_gider_page(focus: int = None):
         if back_button is not None:
             back_button.set_visibility(view == 'kategori_detay')
         if view_button is not None:
-            view_button.set_text('Normal Kayıtlar' if view != 'normal' else 'Kategori')
+            if view == 'normal':
+                view_button.set_text('Kategori')
+                view_button.props('icon=donut_small')
+            else:
+                view_button.set_text('Normal Kayıtlar')
+                view_button.props('icon=view_list')
 
     def apply_filters():
         if not table_ref:
@@ -181,18 +187,29 @@ def gelir_gider_page(focus: int = None):
                 ])
 
     def _build_kategori_options(tur):
-        """Kategori secenekleri - one cikanlar en ustte, renkli iconlu."""
-        if tur == 'GELIR':
-            return {k: k for k in GELIR_KATEGORILER}
-        # GIDER - one cikanlari emoji ile vurgula
+        """Kategori secenekleri: en cok kullanilan ustte, hepsi iconlu.
+        Kullanicinin olusturdugu (veride var olan) kategoriler de dahil."""
+        known = list(GELIR_KATEGORILER if tur == 'GELIR' else GIDER_KATEGORILER)
+        # Kullanim sayisina gore sirali kategoriler (cok -> az)
+        try:
+            kullanim = get_kategori_kullanim(tur)
+        except Exception:
+            kullanim = []
+        # Sira: once kullanilanlar (cok->az), sonra hic kullanilmayan hazir kategoriler
+        ordered, seen = [], set()
+        for k, _adet in kullanim:
+            if k and k not in seen:
+                ordered.append(k)
+                seen.add(k)
+        for k in known:
+            if k not in seen:
+                ordered.append(k)
+                seen.add(k)
+        # Label'lari icon ile kur
         opts = {}
-        for k in GIDER_KATEGORILER:
-            if k == 'Nakliye':
-                opts[k] = '🚚 Nakliye'
-            elif k == 'Ardiye':
-                opts[k] = '📦 Ardiye'
-            else:
-                opts[k] = k
+        for k in ordered:
+            ikon = kategori_ikon(k)
+            opts[k] = f'{ikon} {k}' if ikon else k
         return opts
 
     def open_quick_firma_dialog(on_added):
@@ -223,6 +240,30 @@ def gelir_gider_page(focus: int = None):
                 ui.button('Kaydet', color='primary', on_click=_save).props('unelevated')
         qdlg.open()
 
+    def open_quick_kategori_dialog(on_added):
+        """Hizli yeni kategori ekleme dialogu."""
+        with ui.dialog() as kdlg, ui.card().classes('alse-dialog').style('width: 90vw; max-width: 380px'):
+            with ui.element('div').classes('alse-dialog-header'):
+                ui.icon('sell')
+                ui.label('Yeni Kategori Ekle').classes('dialog-title')
+            inp_kat_ad = ui.input('Kategori Adı').props('outlined dense autofocus').classes('w-full q-mt-sm')
+            ui.label('İlk harfler otomatik büyük yazılır (örn: nakliye → Nakliye).').classes(
+                'text-caption text-grey-6 q-pl-sm')
+
+            def _save():
+                ad = kategori_normalize((inp_kat_ad.value or '').strip())
+                if not ad:
+                    ui.notify('Kategori adı boş olamaz', type='warning')
+                    return
+                kdlg.close()
+                on_added(ad)
+
+            inp_kat_ad.on('keydown.enter', lambda _: _save())
+            with ui.row().classes('w-full justify-end q-mt-md'):
+                ui.button('İptal', on_click=kdlg.close).props('flat color=grey')
+                ui.button('Ekle', color='primary', on_click=_save).props('unelevated')
+        kdlg.open()
+
     def open_dialog(edit_row=None):
         is_edit = edit_row is not None
         title = 'Kayıt Düzenle' if is_edit else 'Yeni Gelir/Gider'
@@ -250,10 +291,14 @@ def gelir_gider_page(focus: int = None):
                         label='Tür', value='GIDER'
                     ).props('outlined dense').classes('col')
 
-                    inp_kategori = ui.select(
-                        options=_build_kategori_options('GIDER'),
-                        label='Kategori', value='Nakliye'
-                    ).props('outlined dense').classes('col')
+                    with ui.row().classes('col gap-xs items-center no-wrap'):
+                        inp_kategori = ui.select(
+                            options=_build_kategori_options('GIDER'),
+                            label='Kategori', value='Nakliye'
+                        ).props('outlined dense').classes('col')
+                        ui.button(icon='add', color='primary',
+                                  on_click=lambda: open_quick_kategori_dialog(_on_kategori_added)
+                                  ).props('round dense flat').tooltip('Yeni Kategori Ekle')
 
                 # One cikan uyari (Nakliye/Ardiye icin)
                 lbl_one_cikan = ui.label('').classes('text-caption text-orange-9 q-pl-sm')
@@ -295,6 +340,18 @@ def gelir_gider_page(focus: int = None):
                     else:
                         lbl_one_cikan.set_text('')
                 inp_kategori.on_value_change(on_kategori_change)
+
+                def _on_kategori_added(ad):
+                    """Yeni olusturulan kategoriyi en uste ekle (iconlu) ve sec."""
+                    opts = dict(inp_kategori.options)
+                    if ad not in opts:
+                        ikon = kategori_ikon(ad)
+                        yeni = {ad: (f'{ikon} {ad}' if ikon else ad)}
+                        yeni.update(opts)
+                        inp_kategori.options = yeni
+                    inp_kategori.value = ad
+                    inp_kategori.update()
+                    on_kategori_change(None)
 
                 with ui.row().classes('w-full gap-md'):
                     inp_tutar = ui.number(label='Tutar (Net)', value=0, format='%.2f').props('outlined dense').classes('col')
@@ -759,7 +816,7 @@ def gelir_gider_page(focus: int = None):
                     pdlg.open()
 
                 view_button = ui.button(
-                    'Kategori', icon='category', color='primary', on_click=_toggle_kategori_view,
+                    'Kategori', icon='donut_small', color='primary', on_click=_toggle_kategori_view,
                 ).props('dense outline no-caps')
                 ui.button('PDF', icon='picture_as_pdf', color='primary', on_click=_open_pdf_dialog).props('dense')
                 ui.button('YENİ', icon='swap_vert', color='primary', on_click=lambda: open_dialog()).props('dense no-caps')
