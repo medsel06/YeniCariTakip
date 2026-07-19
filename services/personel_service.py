@@ -190,10 +190,12 @@ def recalc_aylik(conn, personel_id, yil, ay):
     return recalc_donem(conn, personel_id, yil, ay, hafta=0)
 
 
-def get_donem_ozet(yil, ay, hafta=0):
-    """Donem ozeti. hafta=0 -> aylik, hafta>0 -> haftalik."""
+def get_donem_ozet(yil, ay, hafta=0, durum='AKTIF'):
+    """Donem ozeti. hafta=0 -> aylik, hafta>0 -> haftalik.
+    durum='AKTIF' (varsayilan) veya 'PASIF' ile filtrelenir.
+    """
     with get_db() as conn:
-        aktif = conn.execute("SELECT * FROM personel WHERE durum='AKTIF' ORDER BY ad").fetchall()
+        aktif = conn.execute("SELECT * FROM personel WHERE durum=? ORDER BY ad", (durum,)).fetchall()
         result = []
         for p in aktif:
             ensure_donem_kayit(conn, p['id'], yil, ay, hafta)

@@ -25,9 +25,15 @@ def odeme_takibi_page():
         .odeme-tbl td, .odeme-tbl th { padding: 2px 10px !important; }
         .odeme-tbl tbody tr { height: 34px; background: #fff; cursor: pointer; }
         .odeme-tbl tbody td { border-bottom: 1px solid #e0e0e0; }
+        /* Banka gibi: tabloyu net kenarlikli/yuvarlak kutuya al, alt kenar sabit bitis cizgisi.
+           .odeme-tbl sinifi kok .q-table__container elemaninin USTUNDE -> ayni eleman selektoru. */
+        .odeme-tbl.q-table__container, .odeme-tbl .q-table__container {
+            border: 1px solid #cbd5e1 !important; border-radius: 10px; overflow: hidden;
+        }
         .odeme-tbl .q-table__middle {
-            min-height: 0 !important;
-            max-height: calc(100vh - 235px) !important;
+            height: calc(100vh - 250px) !important;
+            min-height: calc(100vh - 250px) !important;
+            max-height: calc(100vh - 250px) !important;
             overflow: auto !important;
             overscroll-behavior: contain;
         }
@@ -164,7 +170,7 @@ def odeme_takibi_page():
                     _secim_iptal_bar('Ödenmemiş kredi kartı harcaması yok. (İptal ile çıkın)')
                 # Bos olsa da tablo yapisi (basliklar) sabit dursun — dolu haldekiyle ayni gorunum
                 bos_tbl = ui.table(columns=columns, rows=[], row_key='_rid') \
-                    .classes('w-full odeme-tbl').props('flat bordered dense hide-bottom')
+                    .classes('w-full odeme-tbl sabit-tablo').props('flat bordered dense hide-bottom').style('--table-extra-rows: 3;')
                 bos_tbl.add_slot('no-data', r'''
                     <div class="full-width row flex-center q-pa-lg text-grey-6" style="gap:8px;">
                         <q-icon name="inbox" size="20px" />
@@ -210,8 +216,9 @@ def odeme_takibi_page():
             tbl = ui.table(
                 columns=columns, rows=disp, row_key='_rid',
                 selection='multiple' if mode['secim'] else None,
-                pagination={'rowsPerPage': len(disp) or 1},
-            ).classes('w-full odeme-tbl' + (' odeme-sel' if mode['secim'] else '')).props('flat bordered hide-bottom dense')
+                pagination={'rowsPerPage': 0},
+            ).classes('w-full odeme-tbl sabit-tablo' + (' odeme-sel' if mode['secim'] else '')).props(
+                'flat bordered hide-bottom dense').style('--table-extra-rows: 3;')
             if mode['secim']:
                 with _bar:
                     ui.icon('credit_card').style('color:#1d4ed8;font-size:22px')
@@ -240,22 +247,24 @@ def odeme_takibi_page():
             tbl.add_slot('body-cell-kaynak', r'''
                 <q-td :props="props">
                     <div class="row items-center no-wrap justify-center" style="gap:4px;">
-                        <q-chip dense square text-color="white"
-                            :icon="props.row._kkod==='KART' ? 'credit_card' :
-                                   props.row._kkod==='CARI' ? 'people' :
-                                   props.row._kkod==='CEK' ? 'description' :
-                                   props.row._kkod==='VERGI' ? 'gavel' :
-                                   props.row._kkod==='SGK' ? 'health_and_safety' :
-                                   (props.row._kkod==='KREDI' || props.row._kkod==='BANKA_KREDI') ? 'account_balance' : 'label'"
-                            :color="props.row._kkod==='KART' ? 'deep-purple' :
-                                    props.row._kkod==='CARI' ? 'blue-7' :
-                                    props.row._kkod==='CEK' ? 'orange-8' :
-                                    props.row._kkod==='VERGI' ? 'red-7' :
-                                    props.row._kkod==='SGK' ? 'teal-7' :
-                                    (props.row._kkod==='KREDI' || props.row._kkod==='BANKA_KREDI') ? 'indigo-7' : 'blue-grey-5'"
-                            style="font-size:10.5px;height:20px;margin:0;">
+                        <span class="row items-center no-wrap"
+                            style="gap:4px;padding:2px 9px;border-radius:7px;font-size:10.5px;font-weight:600;white-space:nowrap;"
+                            :style="props.row._kkod==='KART' ? 'background:#ede9fe;color:#6d28d9;' :
+                                    props.row._kkod==='CARI' ? 'background:#dbeafe;color:#1d4ed8;' :
+                                    props.row._kkod==='CEK' ? 'background:#ffedd5;color:#c2410c;' :
+                                    props.row._kkod==='VERGI' ? 'background:#fee2e2;color:#b91c1c;' :
+                                    props.row._kkod==='SGK' ? 'background:#ccfbf1;color:#0f766e;' :
+                                    (props.row._kkod==='KREDI' || props.row._kkod==='BANKA_KREDI') ? 'background:#e0e7ff;color:#4338ca;' :
+                                    'background:#f1f5f9;color:#475569;'">
+                            <q-icon size="13px"
+                                :name="props.row._kkod==='KART' ? 'credit_card' :
+                                       props.row._kkod==='CARI' ? 'people' :
+                                       props.row._kkod==='CEK' ? 'description' :
+                                       props.row._kkod==='VERGI' ? 'gavel' :
+                                       props.row._kkod==='SGK' ? 'health_and_safety' :
+                                       (props.row._kkod==='KREDI' || props.row._kkod==='BANKA_KREDI') ? 'account_balance' : 'label'" />
                             {{ props.value }}
-                        </q-chip>
+                        </span>
                         <q-icon :name="props.row._src==='MANUEL' ? 'edit_note' : 'autorenew'" size="14px"
                             :color="props.row._src==='MANUEL' ? 'grey-6' : 'cyan-7'">
                             <q-tooltip>{{ props.row._src==='MANUEL' ? 'Manuel eklendi' : 'Otomatik oluştu (vadeli işlem / çek)' }}</q-tooltip>
