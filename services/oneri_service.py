@@ -66,7 +66,9 @@ def get_urun_karlilik_ozeti():
                 SUM(CASE WHEN tur='ALIS' THEN miktar ELSE 0 END) AS alis_miktar,
                 SUM(CASE WHEN tur='SATIS' THEN miktar ELSE 0 END) AS satis_miktar,
                 SUM(CASE WHEN tur='ALIS' THEN kdvli_toplam ELSE 0 END) AS alis_tutar,
-                SUM(CASE WHEN tur='SATIS' THEN kdvli_toplam ELSE 0 END) AS satis_tutar
+                SUM(CASE WHEN tur='SATIS' THEN kdvli_toplam ELSE 0 END) AS satis_tutar,
+                SUM(CASE WHEN tur='ALIS' THEN toplam ELSE 0 END) AS alis_matrah,
+                SUM(CASE WHEN tur='SATIS' THEN toplam ELSE 0 END) AS satis_matrah
             FROM hareketler
             GROUP BY urun_kod, urun_ad
             ORDER BY urun_ad
@@ -76,13 +78,20 @@ def get_urun_karlilik_ozeti():
         for r in rows:
             alis_t = float(r['alis_tutar'] or 0)
             satis_t = float(r['satis_tutar'] or 0)
+            alis_m = float(r['alis_miktar'] or 0)
+            satis_m = float(r['satis_miktar'] or 0)
             kar = satis_t - alis_t
             marj = (kar / satis_t * 100.0) if satis_t > 0 else 0.0
+            # Ortalama birim fiyat (KDV haric matrah / miktar) — "kaca aldim / kaca sattim"
+            ort_alis = (float(r['alis_matrah'] or 0) / alis_m) if alis_m > 0 else 0.0
+            ort_satis = (float(r['satis_matrah'] or 0) / satis_m) if satis_m > 0 else 0.0
             result.append({
                 'urun_kod': r['urun_kod'],
                 'urun_ad': r['urun_ad'],
-                'alis_miktar': float(r['alis_miktar'] or 0),
-                'satis_miktar': float(r['satis_miktar'] or 0),
+                'alis_miktar': alis_m,
+                'satis_miktar': satis_m,
+                'ort_alis_fiyat': ort_alis,
+                'ort_satis_fiyat': ort_satis,
                 'alis_tutar': alis_t,
                 'satis_tutar': satis_t,
                 'kar': kar,

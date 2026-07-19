@@ -43,12 +43,14 @@ def karlilik_page():
             ui.space()
 
         cols = [
-            {'name': 'urun_ad', 'label': 'Urun', 'field': 'urun_ad', 'align': 'left', 'sortable': True},
-            {'name': 'alis_miktar', 'label': 'Alis Miktar', 'field': 'alis_miktar', 'align': 'right', 'sortable': True},
-            {'name': 'satis_miktar', 'label': 'Satis Miktar', 'field': 'satis_miktar', 'align': 'right', 'sortable': True},
-            {'name': 'alis_tutar', 'label': 'Alis Tutar', 'field': 'alis_tutar', 'align': 'right', 'sortable': True},
-            {'name': 'satis_tutar', 'label': 'Satis Tutar', 'field': 'satis_tutar', 'align': 'right', 'sortable': True},
-            {'name': 'kar', 'label': 'Kar', 'field': 'kar', 'align': 'right', 'sortable': True},
+            {'name': 'urun_ad', 'label': 'Ürün', 'field': 'urun_ad', 'align': 'left', 'sortable': True},
+            {'name': 'alis_miktar', 'label': 'Alış Miktar', 'field': 'alis_miktar', 'align': 'right', 'sortable': True},
+            {'name': 'ort_alis_fiyat', 'label': 'Ort. Alış', 'field': 'ort_alis_fiyat', 'align': 'right', 'sortable': True},
+            {'name': 'satis_miktar', 'label': 'Satış Miktar', 'field': 'satis_miktar', 'align': 'right', 'sortable': True},
+            {'name': 'ort_satis_fiyat', 'label': 'Ort. Satış', 'field': 'ort_satis_fiyat', 'align': 'right', 'sortable': True},
+            {'name': 'alis_tutar', 'label': 'Alış Tutar', 'field': 'alis_tutar', 'align': 'right', 'sortable': True},
+            {'name': 'satis_tutar', 'label': 'Satış Tutar', 'field': 'satis_tutar', 'align': 'right', 'sortable': True},
+            {'name': 'kar', 'label': 'Kâr', 'field': 'kar', 'align': 'right', 'sortable': True},
             {'name': 'marj', 'label': 'Marj %', 'field': 'marj', 'align': 'right', 'sortable': True},
         ]
         tbl = ui.table(
@@ -60,6 +62,8 @@ def karlilik_page():
         tbl.props('flat bordered dense')
         tbl.add_slot('body-cell-alis_miktar', MIKTAR_SLOT)
         tbl.add_slot('body-cell-satis_miktar', MIKTAR_SLOT)
+        tbl.add_slot('body-cell-ort_alis_fiyat', PARA_SLOT)
+        tbl.add_slot('body-cell-ort_satis_fiyat', PARA_SLOT)
         tbl.add_slot('body-cell-alis_tutar', PARA_SLOT)
         tbl.add_slot('body-cell-satis_tutar', PARA_SLOT)
         tbl.add_slot('body-cell-kar', PARA_SLOT)
