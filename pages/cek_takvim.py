@@ -59,7 +59,7 @@ def cek_takvim_page():
                 columns=columns,
                 rows=all_rows,
                 row_key='id',
-                pagination={'rowsPerPage': 50, 'sortBy': 'vade_tarih', 'descending': False},
+                pagination={'rowsPerPage': 50, 'sortBy': 'vade_tarih', 'descending': True},
             ).classes('w-full')
             tbl.props('flat bordered dense')
             tbl.add_slot('body-cell-vade_tarih', TARIH_SLOT)
