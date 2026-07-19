@@ -147,8 +147,7 @@ app.add_static_files('/pdf-share', str(get_pdf_share_dir()))
 assets_dir = os.path.join(BASE_DIR, 'assets')
 if os.path.isdir(assets_dir):
     app.add_static_files('/assets', assets_dir)
-    # Kolay Muhasebe favicon: mor kare + beyaz ads_click (parmak/tikla) ikonu — login ile ayni
-    ui.add_head_html('<link rel="icon" type="image/svg+xml" href="/assets/logo/favicon-km.svg?v=3">', shared=True)
+    # Favicon ui.run(favicon=...) ile ayarlanir (PNG — Chrome sekmesinde guvenilir render)
 
 # Yeni v3 (Trend) tasarimi - GIRIS ARKASINDA servis edilir (statik mount degil).
 # Erisim: http://<host>:8080/v3/  veya http://<host>:8080/v3/Cari%20Takip%20v3%20(Trend).html
@@ -289,6 +288,7 @@ if __name__ in {"__main__", "__mp_main__"}:
         threading.Thread(target=_open_when_ready, daemon=True).start()
     ui.run(
         title='Kolay Muhasebe',
+        favicon='assets/logo/favicon-km.png',
         host=os.environ.get('APP_HOST', '127.0.0.1'),
         port=int(os.environ.get('APP_PORT', '8080')),
         reload=False,

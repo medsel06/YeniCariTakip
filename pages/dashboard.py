@@ -113,7 +113,7 @@ def dashboard_page():
                        'Cari hesap dökümünü PDF olarak WhatsApp’tan doğrudan paylaşabilirsiniz.')
                 _madde('chat',
                        'Cari bakiyesini hazır mesajla WhatsApp’tan müşterinize gönderebilirsiniz.')
-                _madde('event_upcoming',
+                _madde('account_balance_wallet',
                        'Çek portföyünü vadeye göre izleyebilir ve yaklaşan çek uyarılarını görebilirsiniz.')
                 _madde('query_stats',
                        'Ürün bazında ortalama alış, satış ve kâr marjı yüzdesini raporlayabilirsiniz.')
