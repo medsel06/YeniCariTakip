@@ -285,7 +285,7 @@ if __name__ in {"__main__", "__mp_main__"}:
             _launch_chrome_app_mode()
         threading.Thread(target=_open_when_ready, daemon=True).start()
     ui.run(
-        title='Cari Takip',
+        title='Kolay Muhasebe',
         port=int(os.environ.get('APP_PORT', '8080')),
         reload=False,
         show=not app_mode,
