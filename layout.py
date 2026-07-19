@@ -979,21 +979,21 @@ def create_layout(active_path='/', page_title=''):
                 )
 
             with ui.column().classes('w-full q-px-sm alse-nav-scroll').style('padding-top: 8px; padding-bottom: 16px; gap: 2px;'):
-                # Akordeon: tum gruplar varsayilan KAPALI; tiklayinca acilir (group=navgrp -> tek acik)
+                def _nav_item(path, icon, text):
+                    is_active = active_path == path
+                    row_cls = 'w-full items-center no-wrap cursor-pointer'
+                    row_cls += ' active-nav-modern' if is_active else ' inactive-nav-modern'
+                    with ui.row().classes(row_cls).style('height: 34px; display: flex; align-items: center; gap: 10px; padding: 0 12px;').on('click', lambda p=path: ui.navigate.to(p)):
+                        ui.icon(icon, size='18px').classes('nav-item-icon')
+                        ui.label(text).classes('nav-item-label').style('font-size: 13px; font-weight: 600;')
+
                 for group_title, group_icon, items in menu_groups:
-                    with ui.expansion(group_title, icon=group_icon, value=False).classes(
+                    # Hepsi tek akordeon (group=navgrp -> ayni anda tek acik).
+                    # Operasyon VARSAYILAN acik (sayfa acilis/yenilemede); baskasina basinca kapanir.
+                    with ui.expansion(group_title, icon=group_icon, value=(group_title == 'Operasyon')).classes(
                             'alse-group w-full').props('group=navgrp dense'):
                         for path, icon, text in items:
-                            is_active = active_path == path
-                            row_cls = 'w-full items-center no-wrap cursor-pointer'
-                            if is_active:
-                                row_cls += ' active-nav-modern'
-                            else:
-                                row_cls += ' inactive-nav-modern'
-
-                            with ui.row().classes(row_cls).style('height: 34px; display: flex; align-items: center; gap: 10px; padding: 0 12px;').on('click', lambda p=path: ui.navigate.to(p)):
-                                ui.icon(icon, size='18px').classes('nav-item-icon')
-                                ui.label(text).classes('nav-item-label').style('font-size: 13px; font-weight: 600;')
+                            _nav_item(path, icon, text)
             
             # User profile and actions at the bottom of the drawer (sabit alt)
             auth_user = app.storage.user.get('auth_user', {})
