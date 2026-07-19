@@ -42,7 +42,7 @@ def _odeme_yaklasanlar(limit=5, gun=7):
         except Exception:
             d = None
         r['_gun'] = d
-    return out[:limit]
+    return out if limit is None else out[:limit]
 
 
 def _load_dashboard_summary(yil=None, ay=None):
@@ -526,51 +526,27 @@ def dashboard_page():
             # --- MODERN SIDE-BY-SIDE GRID LAYOUT ---
             with ui.row().classes('w-full items-start no-wrap gap-4 q-row-mobile-wrap q-mt-md'):
                 # Sol: Yaklaşan Ödeme / Tahsilat (7 gün) (flex-2)
-                yaklasan = _odeme_yaklasanlar(5, 7)
-                with ui.card().classes('modern-card q-pa-md').style('flex: 2; border-radius: 16px; min-width: 0;'):
-                    with ui.row().classes('w-full justify-between items-center no-wrap q-mb-md'):
-                        with ui.row().classes('items-center gap-2'):
-                            ui.icon('event', color='primary').style('font-size: 20px; color: #2563eb !important;')
-                            ui.label('Yaklaşan Ödeme / Tahsilat').classes('text-subtitle1 text-weight-bold text-slate-800').style('font-size: 15px;')
-                            ui.label('7 gün').style('font-size: 11px; color: #64748b;')
-                        if yaklasan:
-                            with ui.row().classes('items-center q-px-sm q-py-xs').style('background: #eff6ff; color: #2563eb; border-radius: 20px; font-size: 11px; font-weight: 600;'):
-                                ui.label(f'{len(yaklasan)} kayıt')
-                    if not yaklasan:
-                        ui.label('Önümüzdeki 7 günde vadesi gelen açık kayıt yok.').classes('text-caption text-grey-6 q-pa-sm')
-                    else:
-                        def _gunlbl(g):
-                            if g is None:
-                                return ''
-                            if g < 0:
-                                return f'{abs(g)} gün geçti'
-                            if g == 0:
-                                return 'Bugün'
-                            return f'{g} gün kaldı'
-                        yk_rows = []
-                        for i, item in enumerate(yaklasan):
-                            vd = (item.get('vade_tarih') or '')[:10]
-                            vd = '.'.join(reversed(vd.split('-'))) if vd else ''
-                            yk_rows.append({
-                                '_rid': i,
-                                'vade': vd,
-                                'tip': 'Borç' if item['tip'] == 'BORC' else 'Alacak',
-                                'firma': item.get('firma_ad') or '—',
-                                'durum': _gunlbl(item.get('_gun')),
-                                'kalan': float(item['kalan'] or 0),
-                                '_borc': item['tip'] == 'BORC',
-                                '_gun': item.get('_gun') if item.get('_gun') is not None else 999,
-                            })
-                        yk_cols = [
-                            {'name': 'vade', 'label': 'Vade', 'field': 'vade', 'align': 'left'},
-                            {'name': 'tip', 'label': 'Tip', 'field': 'tip', 'align': 'center'},
-                            {'name': 'firma', 'label': 'Firma', 'field': 'firma', 'align': 'left'},
-                            {'name': 'durum', 'label': 'Durum', 'field': 'durum', 'align': 'center'},
-                            {'name': 'kalan', 'label': 'Tutar', 'field': 'kalan', 'align': 'right'},
-                        ]
-                        ykt = ui.table(columns=yk_cols, rows=yk_rows, row_key='_rid',
-                                       pagination={'rowsPerPage': 0}).classes('w-full dash-table').props('flat dense hide-bottom')
-                        ykt.add_slot('body', r'''
+                _tum_odeme = _odeme_yaklasanlar(limit=None, gun=7)
+                _geciken = [r for r in _tum_odeme if r.get('_gun') is not None and r['_gun'] < 0]
+                _yaklasan = [r for r in _tum_odeme if r.get('_gun') is not None and r['_gun'] >= 0]
+
+                def _gunlbl(g):
+                    if g is None:
+                        return ''
+                    if g < 0:
+                        return f'{abs(g)} gün geçti'
+                    if g == 0:
+                        return 'Bugün'
+                    return f'{g} gün kaldı'
+
+                _yk_cols = [
+                    {'name': 'vade', 'label': 'Vade', 'field': 'vade', 'align': 'left'},
+                    {'name': 'tip', 'label': 'Tip', 'field': 'tip', 'align': 'center'},
+                    {'name': 'firma', 'label': 'Firma', 'field': 'firma', 'align': 'left'},
+                    {'name': 'durum', 'label': 'Durum', 'field': 'durum', 'align': 'center'},
+                    {'name': 'kalan', 'label': 'Tutar', 'field': 'kalan', 'align': 'right'},
+                ]
+                _yk_slot = r'''
                             <q-tr :props="props"
                                 :style="props.row._gun === 0 ? 'background:#fef2f2 !important;' : ''"
                                 :class="props.row._gun === 0 ? 'yk-bugun' : ''">
@@ -593,7 +569,44 @@ def dashboard_page():
                                 <q-td key="kalan" :props="props" class="text-right">
                                     <span :style="props.row._borc ? 'color:#ef4444;font-weight:700;' : 'color:#10b981;font-weight:700;'">{{ Number(props.row.kalan).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}) }} TL</span>
                                 </q-td>
-                            </q-tr>''')
+                            </q-tr>'''
+
+                def _odeme_tablo(items, bos_msg):
+                    if not items:
+                        ui.label(bos_msg).classes('text-caption text-grey-6 q-pa-sm')
+                        return
+                    _tp = sum(float(x['kalan'] or 0) for x in items)
+                    ui.label(f'{len(items)} kayıt · Toplam kalan: {fmt_para(_tp)} TL').classes(
+                        'text-caption text-grey-7').style('padding:4px 4px 6px;')
+                    _rows = []
+                    for _i, item in enumerate(items[:6]):
+                        vd = (item.get('vade_tarih') or '')[:10]
+                        vd = '.'.join(reversed(vd.split('-'))) if vd else ''
+                        _rows.append({
+                            '_rid': _i, 'vade': vd,
+                            'tip': 'Borç' if item['tip'] == 'BORC' else 'Alacak',
+                            'firma': item.get('firma_ad') or '—',
+                            'durum': _gunlbl(item.get('_gun')),
+                            'kalan': float(item['kalan'] or 0),
+                            '_borc': item['tip'] == 'BORC',
+                            '_gun': item.get('_gun') if item.get('_gun') is not None else 999,
+                        })
+                    _t = ui.table(columns=_yk_cols, rows=_rows, row_key='_rid',
+                                  pagination={'rowsPerPage': 0}).classes('w-full dash-table').props('flat dense hide-bottom')
+                    _t.add_slot('body', _yk_slot)
+
+                with ui.card().classes('modern-card q-pa-md').style('flex: 2; border-radius: 16px; min-width: 0;'):
+                    with ui.row().classes('items-center gap-2 q-mb-sm'):
+                        ui.icon('event', color='primary').style('font-size: 20px; color: #2563eb !important;')
+                        ui.label('Yaklaşan Ödeme / Tahsilat').classes('text-subtitle1 text-weight-bold text-slate-800').style('font-size: 15px;')
+                    with ui.tabs().props('dense no-caps align=left active-color=primary indicator-color=primary').classes('w-full') as _otabs:
+                        ui.tab('geciken', label=f'⚠ Geciken ({len(_geciken)})')
+                        ui.tab('yaklasan', label=f'Yaklaşan · 7 gün ({len(_yaklasan)})')
+                    with ui.tab_panels(_otabs, value=('geciken' if _geciken else 'yaklasan')).classes('w-full').props('animated'):
+                        with ui.tab_panel('geciken').classes('q-pa-none'):
+                            _odeme_tablo(_geciken, 'Vadesi geçmiş açık kayıt yok. 👍')
+                        with ui.tab_panel('yaklasan').classes('q-pa-none'):
+                            _odeme_tablo(_yaklasan, 'Önümüzdeki 7 günde vadesi gelen açık kayıt yok.')
 
                 # Sağ: Vade Uyarıları (flex-1, Compact Liste)
                 with ui.card().classes('modern-card q-pa-md').style('flex: 1; border-radius: 16px; min-width: 0;'):
