@@ -809,3 +809,33 @@ def save_pdf_preview(pdf_bytes, filename):
     out_path.write_bytes(pdf_bytes)
     return f"/pdf-preview/{final_name}"
 
+
+def get_pdf_share_dir() -> Path:
+    """Paylasilabilir (link ile disariya gonderilen) PDF'lerin klasoru — pdf_preview'in kardesi."""
+    d = get_pdf_preview_dir().parent / 'pdf_share'
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def save_shared_pdf(pdf_bytes, prefix='ekstre', gecerlilik_gun=15):
+    """Paylasilabilir PDF'i tahmin edilemez token'li isimle kaydeder ve
+    '/pdf-share/<isim>' goreli URL'ini dondurur. Her cagride gecerlilik_gun'den
+    eski dosyalari siler (link suresi ~ gecerlilik_gun gun)."""
+    import uuid
+    import time
+    d = get_pdf_share_dir()
+    try:
+        kesim = time.time() - gecerlilik_gun * 86400
+        for f in d.glob('*.pdf'):
+            try:
+                if f.stat().st_mtime < kesim:
+                    f.unlink()
+            except Exception:
+                pass
+    except Exception:
+        pass
+    safe_prefix = ''.join(c for c in (prefix or 'ekstre') if c.isalnum() or c in ('_', '-')) or 'ekstre'
+    final_name = f"{safe_prefix}_{uuid.uuid4().hex}.pdf"
+    (d / final_name).write_bytes(pdf_bytes)
+    return f"/pdf-share/{final_name}"
+

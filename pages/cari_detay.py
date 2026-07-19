@@ -12,6 +12,7 @@ from services.pdf_service import (
     generate_kasa_raporu_pdf,
     generate_cek_raporu_pdf,
     save_pdf_preview,
+    save_shared_pdf,
 )
 @ui.page('/cari/{firma_kod}')
 def cari_detay_page(firma_kod: str):
@@ -332,18 +333,35 @@ def cari_detay_page(firma_kod: str):
                         d = '90' + d
                     return d
 
-                def _whatsapp_bakiye():
-                    """Cari bakiyesini WhatsApp'ta hazir mesajla acar (onizlemeli)."""
+                async def _whatsapp_bakiye():
+                    """Cari bakiye + 15 gün geçerli ekstre PDF linki ile WhatsApp mesajı hazırlar (önizlemeli)."""
                     bugun = datetime.now().strftime('%d.%m.%Y')
                     if son_bakiye > 0:
-                        durum = f"{fmt_para(son_bakiye)} TL borç bakiyeniz"
+                        durum = f"Borç bakiyeniz: {fmt_para(son_bakiye)} TL"
                     elif son_bakiye < 0:
-                        durum = f"{fmt_para(-son_bakiye)} TL alacaklı bakiyeniz"
+                        durum = f"Alacak bakiyeniz: {fmt_para(-son_bakiye)} TL"
                     else:
-                        durum = "0,00 TL bakiyeniz (hesabınız kapalı)"
-                    varsayilan = (f"Sayın {firma['ad']},\n{bugun} tarihi itibarıyla cari hesabınızda "
-                                  f"{durum} görünmektedir.\nBilginize sunar, iyi çalışmalar dileriz.")
-                    with ui.dialog() as wdlg, ui.card().classes('alse-dialog').style('width:90vw;max-width:440px'):
+                        durum = "Bakiyeniz: 0,00 TL (hesabınız kapalı)"
+                    # Ekstre PDF olustur + paylasilabilir link (15 gun gecerli)
+                    pdf_satiri = ''
+                    try:
+                        origin = await ui.run_javascript('window.location.origin', timeout=5.0)
+                        ekstre_meta = get_cari_ekstre(firma_kod, yil=donem_state['yil'],
+                                                      ay=donem_state['ay'], with_meta=True)
+                        rel = save_shared_pdf(generate_cari_ekstre_pdf(firma['ad'], ekstre_meta),
+                                              prefix=f'ekstre_{firma_kod}')
+                        if origin:
+                            pdf_satiri = f"\n\n📄 Detaylı hesap ekstreniz (15 gün geçerlidir):\n{origin}{rel}"
+                    except Exception:
+                        pdf_satiri = ''
+                    varsayilan = (
+                        f"Sayın {firma['ad']},\n\n"
+                        f"Cari hesabınızın {bugun} tarihli durumu:\n"
+                        f"• {durum}"
+                        f"{pdf_satiri}\n\n"
+                        f"Bilgilerinize sunar, çalışmalarınızda başarılar dileriz."
+                    )
+                    with ui.dialog() as wdlg, ui.card().classes('alse-dialog').style('width:90vw;max-width:460px'):
                         with ui.element('div').classes('alse-dialog-header'):
                             ui.icon('chat')
                             ui.label('WhatsApp ile Bakiye Gönder').classes('dialog-title')
@@ -351,6 +369,9 @@ def cari_detay_page(firma_kod: str):
                             'outlined dense').classes('w-full q-mt-sm')
                         inp_msg = ui.textarea('Mesaj', value=varsayilan).props(
                             'outlined dense autogrow').classes('w-full')
+                        if not pdf_satiri:
+                            ui.label('Not: Ekstre linki oluşturulamadı, mesaj linksiz gidecek.').classes(
+                                'text-caption text-orange-8 q-pl-sm')
                         with ui.row().classes('w-full justify-end q-mt-md'):
                             ui.button('İptal', on_click=wdlg.close).props('flat color=grey')
                             def _ac():

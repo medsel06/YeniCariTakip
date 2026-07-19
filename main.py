@@ -12,7 +12,7 @@ from nicegui import ui, app
 import nicegui.run as nicegui_run
 from db import init_db, get_db, BASE_DIR
 from services.auth_service import ensure_default_admin
-from services.pdf_service import get_pdf_preview_dir
+from services.pdf_service import get_pdf_preview_dir, get_pdf_share_dir
 
 # Sayfa modullerini import et (bu @ui.page decorator'larini register eder)
 import pages.dashboard  # / -> eski Quasar dashboard
@@ -140,6 +140,8 @@ def startup():
 # startup() main blokta dogrudan cagirilir, on_startup gereksiz
 pdf_preview_dir = str(get_pdf_preview_dir())
 app.add_static_files('/pdf-preview', pdf_preview_dir)
+# Paylasilabilir (WhatsApp vb. ile disariya link olarak gonderilen) PDF'ler - login gerekmez
+app.add_static_files('/pdf-share', str(get_pdf_share_dir()))
 assets_dir = os.path.join(BASE_DIR, 'assets')
 if os.path.isdir(assets_dir):
     app.add_static_files('/assets', assets_dir)
