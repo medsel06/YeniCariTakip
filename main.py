@@ -145,12 +145,8 @@ app.add_static_files('/pdf-share', str(get_pdf_share_dir()))
 assets_dir = os.path.join(BASE_DIR, 'assets')
 if os.path.isdir(assets_dir):
     app.add_static_files('/assets', assets_dir)
-    # Kolay Muhasebe favicon: marka mor karesi + beyaz "snap" kivilcimi (parmak siklatma temasi)
-    _fav = ("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='64'%20height='64'%3E"
-            "%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%236d28d9'/%3E"
-            "%3Cpath%20d='M32%2014%20l3.2%209.6%209.6%203.2%20-9.6%203.2%20-3.2%209.6%20-3.2%20-9.6%20-9.6%20-3.2%209.6%20-3.2%20Z'%20fill='%23ffffff'/%3E"
-            "%3C/svg%3E")
-    ui.add_head_html(f'<link rel="icon" type="image/svg+xml" href="{_fav}">', shared=True)
+    # Kolay Muhasebe favicon: mor kare + beyaz ads_click (parmak/tikla) ikonu — login ile ayni
+    ui.add_head_html('<link rel="icon" type="image/svg+xml" href="/assets/logo/favicon-km.svg?v=3">', shared=True)
 
 # Yeni v3 (Trend) tasarimi - GIRIS ARKASINDA servis edilir (statik mount degil).
 # Erisim: http://<host>:8080/v3/  veya http://<host>:8080/v3/Cari%20Takip%20v3%20(Trend).html
