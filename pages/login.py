@@ -3,25 +3,6 @@ from nicegui import ui, app
 
 from services.auth_service import authenticate
 
-# Ozgun "parmak siklatma" (snap) marka ikonu — kolay/hizli temasi (mor-indigo gradient)
-SNAP_SVG = '''
-<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
-  <defs>
-    <linearGradient id="km" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#8b5cf6"/>
-      <stop offset="1" stop-color="#6366f1"/>
-    </linearGradient>
-  </defs>
-  <g fill="url(#km)">
-    <path d="M46 7 l1.8 5.3 5.3 1.8 -5.3 1.8 -1.8 5.3 -1.8 -5.3 -5.3 -1.8 5.3 -1.8 Z"/>
-    <path d="M14 42 c-1 -6 2 -11 7 -13 l4 -2 c3 -1 5 -3 6 -6 c1 -3 4 -4 6 -3
-             c3 1 4 4 3 7 c-1 2 -1 3 0 4 c3 1 6 4 7 8 c1 4 0 8 -3 11
-             c-4 4 -9 5 -14 4 c-6 -1 -11 -6 -12 -12 Z"/>
-    <path d="M27 22 c-2 -3 -1 -7 2 -9 c2 -1 5 0 6 3 l2 6 c-4 -1 -7 -1 -10 0 Z"/>
-  </g>
-</svg>
-'''
-
 
 @ui.page('/login')
 def login_page():
@@ -40,9 +21,9 @@ def login_page():
             # --- Marka basligi ---
             with ui.column().classes('w-full items-center').style('padding:30px 26px 20px;gap:12px'):
                 with ui.row().classes('items-center no-wrap').style('gap:12px'):
-                    ui.html(SNAP_SVG).style(
-                        'width:46px;height:46px;background:#f5f3ff;border-radius:14px;'
-                        'padding:5px;box-shadow:0 4px 14px rgba(124,58,237,.18)')
+                    ui.icon('ads_click').style(
+                        'font-size:30px;color:#7c3aed;background:#f5f3ff;border-radius:14px;'
+                        'padding:8px;box-shadow:0 4px 14px rgba(124,58,237,.18)')
                     with ui.row().classes('items-baseline no-wrap').style('gap:4px'):
                         ui.label('Kolay').style('font-size:27px;font-weight:800;color:#1e1b4b;letter-spacing:-.6px')
                         ui.label('Muhasebe').style('font-size:27px;font-weight:800;color:#7c3aed;letter-spacing:-.6px')
@@ -53,9 +34,14 @@ def login_page():
             with ui.column().classes('w-full').style('padding:6px 28px 26px;gap:14px'):
                 ui.label('Sisteme Giriş').style('font-size:14px;font-weight:700;color:#374151')
 
-                inp_user = ui.input('Kullanıcı Adı').props('outlined dense').classes('w-full')
-                inp_pass = ui.input('Şifre', password=True, password_toggle_button=True).props(
+                _saved = app.storage.user.get('login_remember') or {}
+                inp_user = ui.input('Kullanıcı Adı', value=_saved.get('u', '')).props(
                     'outlined dense').classes('w-full')
+                inp_pass = ui.input('Şifre', value=_saved.get('p', ''),
+                                    password=True, password_toggle_button=True).props(
+                    'outlined dense').classes('w-full')
+                chk_remember = ui.checkbox('Beni hatırla', value=bool(_saved.get('u'))).props(
+                    'dense color=deep-purple').classes('text-grey-7')
 
                 def _login():
                     try:
@@ -68,6 +54,9 @@ def login_page():
                         if not user:
                             ui.notify('Kullanıcı adı veya şifre hatalı', type='negative')
                             return
+                        # Beni hatirla: sifreli oturum cerezinde sakla / temizle
+                        app.storage.user['login_remember'] = (
+                            {'u': username, 'p': password} if chk_remember.value else {})
                         app.storage.user['auth_user'] = user
                         app.storage.user['tenant_schema'] = user['tenant_schema']
                         app.storage.user['tenant_name'] = user['tenant_name']
