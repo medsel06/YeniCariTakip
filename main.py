@@ -144,6 +144,21 @@ pdf_preview_dir = str(get_pdf_preview_dir())
 app.add_static_files('/pdf-preview', pdf_preview_dir)
 # Paylasilabilir (WhatsApp vb. ile disariya link olarak gonderilen) PDF'ler - login gerekmez
 app.add_static_files('/pdf-share', str(get_pdf_share_dir()))
+
+
+# KISA paylasilan PDF linki: https://kolaymuhasebe.site/Alse_Plastik_Cari_ab12cd.pdf
+# pdf_share klasorundeki dosyayi kok URL'den servis eder (login gerekmez, 15 gun gecerli).
+@app.get('/{fname}.pdf')
+def _kisa_pdf_link(fname: str):
+    import re as _re2
+    from fastapi import HTTPException
+    from fastapi.responses import FileResponse as _FR
+    if not _re2.fullmatch(r'[A-Za-z0-9_-]{1,120}', fname):
+        raise HTTPException(status_code=404)
+    p = get_pdf_share_dir() / f'{fname}.pdf'
+    if not p.is_file():
+        raise HTTPException(status_code=404)
+    return _FR(str(p), media_type='application/pdf', filename=f'{fname}.pdf')
 assets_dir = os.path.join(BASE_DIR, 'assets')
 if os.path.isdir(assets_dir):
     app.add_static_files('/assets', assets_dir)

@@ -835,6 +835,29 @@ tr:hover .tarihsiz-cell { background: #fecaca !important; }
 .alse-drawer .q-drawer__content::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* ==== Kisa ekranlarda menu SIGMALI: kademeli kompaktlasma ====
+   Laptop/olcekli ekranlarda (etkin yukseklik dusuk) Operasyon'un son menuleri
+   (Cek/Senet, Uretim, Sokum Verimi) tasip gorunmez oluyordu. Item/baslik
+   yuksekliklerini viewport yuksekligine gore kucult; yine sigmayan durumda
+   orta bolge (alse-nav-scroll) zaten kayar. !important inline stilleri ezer. */
+@media (max-height: 1020px) {
+  .alse-drawer .alse-drawer-brand { height: 48px !important; }
+  .alse-drawer .active-nav-modern, .alse-drawer .inactive-nav-modern { height: 30px !important; }
+  .alse-drawer .alse-nav-scroll { gap: 1px !important; padding-bottom: 8px !important; }
+  .alse-drawer .nicegui-expansion-content { gap: 3px !important; row-gap: 3px !important; }
+  .alse-group .q-expansion-item__container > .q-item { min-height: 30px !important; height: 30px !important; }
+  .alse-user-foot { padding: 8px 12px !important; }
+}
+@media (max-height: 880px) {
+  .alse-drawer .alse-drawer-brand { height: 42px !important; }
+  .alse-drawer .active-nav-modern, .alse-drawer .inactive-nav-modern { height: 26px !important; }
+  .alse-drawer .nav-item-label { font-size: 12px !important; }
+  .alse-drawer .nav-item-icon { font-size: 16px !important; }
+  .alse-drawer .nicegui-expansion-content { gap: 2px !important; row-gap: 2px !important; }
+  .alse-group .q-expansion-item__container > .q-item { min-height: 26px !important; height: 26px !important; }
+  .alse-user-foot { padding: 5px 10px !important; }
+}
 '''
 
 
@@ -1017,7 +1040,7 @@ def create_layout(active_path='/', page_title=''):
             
             # User profile and actions at the bottom of the drawer (sabit alt)
             auth_user = app.storage.user.get('auth_user', {})
-            with ui.column().classes('w-full q-pa-md').style('flex: 0 0 auto; border-top: 1px solid #e2e8f0; background: #ffffff;'):
+            with ui.column().classes('w-full q-pa-md alse-user-foot').style('flex: 0 0 auto; border-top: 1px solid #e2e8f0; background: #ffffff;'):
                 with ui.row().classes('items-center justify-between no-wrap w-full'):
                     with ui.row().classes('items-center gap-2 no-wrap'):
                         initial = (auth_user.get('full_name') or auth_user.get('username') or 'U')[0].upper()

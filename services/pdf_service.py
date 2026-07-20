@@ -817,10 +817,24 @@ def get_pdf_share_dir() -> Path:
     return d
 
 
-def save_shared_pdf(pdf_bytes, prefix='ekstre', gecerlilik_gun=15):
-    """Paylasilabilir PDF'i tahmin edilemez token'li isimle kaydeder ve
-    '/pdf-share/<isim>' goreli URL'ini dondurur. Her cagride gecerlilik_gun'den
-    eski dosyalari siler (link suresi ~ gecerlilik_gun gun)."""
+def _ascii_slug(s):
+    """Turkce karakterleri sadeleyip dosya-adi-guvenli slug uretir: 'Alse Plastik' -> 'Alse_Plastik'."""
+    tr_map = str.maketrans('çÇğĞıİöÖşŞüÜ', 'cCgGiIoOsSuU')
+    s = (s or '').translate(tr_map)
+    s = ''.join(c if (c.isalnum() or c in ('_', '-')) else '_' for c in s.strip())
+    while '__' in s:
+        s = s.replace('__', '_')
+    return s.strip('_') or 'dosya'
+
+
+def save_shared_pdf(pdf_bytes, prefix='ekstre', gecerlilik_gun=15, kisa_ad=None):
+    """Paylasilabilir PDF'i kaydeder ve goreli URL dondurur. Her cagride
+    gecerlilik_gun'den eski dosyalari siler (link suresi ~ gecerlilik_gun gun).
+
+    kisa_ad verilirse: KISA kok link — '/Firma_Adi_Cari_ab12cd.pdf'
+    (main.py'deki /{fname}.pdf route'u pdf_share klasorunden servis eder;
+    kisa token tahmini zorlastirir). Verilmezse eski '/pdf-share/<uuid>' bicimi.
+    """
     import uuid
     import time
     d = get_pdf_share_dir()
@@ -834,6 +848,10 @@ def save_shared_pdf(pdf_bytes, prefix='ekstre', gecerlilik_gun=15):
                 pass
     except Exception:
         pass
+    if kisa_ad:
+        final_name = f"{_ascii_slug(kisa_ad)}_{uuid.uuid4().hex[:6]}.pdf"
+        (d / final_name).write_bytes(pdf_bytes)
+        return f"/{final_name}"
     safe_prefix = ''.join(c for c in (prefix or 'ekstre') if c.isalnum() or c in ('_', '-')) or 'ekstre'
     final_name = f"{safe_prefix}_{uuid.uuid4().hex}.pdf"
     (d / final_name).write_bytes(pdf_bytes)

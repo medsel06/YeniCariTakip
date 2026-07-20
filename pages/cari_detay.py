@@ -348,8 +348,12 @@ def cari_detay_page(firma_kod: str):
                         origin = await ui.run_javascript('window.location.origin', timeout=5.0)
                         ekstre_meta = get_cari_ekstre(firma_kod, yil=donem_state['yil'],
                                                       ay=donem_state['ay'], with_meta=True)
+                        # Kisa link: https://site/Alse_Plastik_Cari_ab12cd.pdf (firma adi ayarlardan)
+                        from services.settings_service import get_company_settings as _gcs
+                        _fa = (_gcs().get('firma_adi') or '').strip() or 'Firma'
                         rel = save_shared_pdf(generate_cari_ekstre_pdf(firma['ad'], ekstre_meta),
-                                              prefix=f'ekstre_{firma_kod}')
+                                              prefix=f'ekstre_{firma_kod}',
+                                              kisa_ad=f'{_fa} Cari')
                         if origin:
                             pdf_satiri = f"\n\n📄 Detaylı hesap ekstreniz (15 gün geçerlidir):\n{origin}{rel}"
                     except Exception:
