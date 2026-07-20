@@ -584,9 +584,6 @@ def dashboard_page():
                     if not items:
                         ui.label(bos_msg).classes('text-caption text-grey-6 q-pa-sm')
                         return
-                    _tp = sum(float(x['kalan'] or 0) for x in items)
-                    ui.label(f'{len(items)} kayıt · Toplam kalan: {fmt_para(_tp)} TL').classes(
-                        'text-caption text-grey-7').style('padding:2px 4px 3px;font-size:11px;')
                     _rows = []
                     for _i, item in enumerate(items[:5]):
                         vd = (item.get('vade_tarih') or '')[:10]
@@ -604,17 +601,28 @@ def dashboard_page():
                                   pagination={'rowsPerPage': 0}).classes('w-full dash-table yk-tbl').props('flat dense hide-bottom')
                     _t.add_slot('body', _yk_slot)
 
+                # Sekme basina ozet metni (baslik yaninda gosterilir, sekme degisince guncellenir)
+                def _ozet_txt(items):
+                    if not items:
+                        return ''
+                    return f'{len(items)} kayıt · Toplam: {fmt_para(sum(float(x["kalan"] or 0) for x in items))} TL'
+                _osum = {'geciken': _ozet_txt(_geciken), 'yaklasan': _ozet_txt(_yaklasan)}
+                _ilk_tab = 'geciken' if _geciken else 'yaklasan'
+
                 with ui.card().classes('modern-card yk-card').style('flex: 2; border-radius: 14px; min-width: 0;'):
-                    # Baslik + sekmeler AYNI satirda (sekmeler en sagda) -> ayri sekme bandi yok
+                    # Baslik + ozet + sekmeler AYNI satirda (sekmeler en sagda)
                     with ui.row().classes('w-full items-center no-wrap gap-2'):
                         ui.icon('event', color='primary').style('font-size: 18px; color: #2563eb !important;')
                         ui.label('Yaklaşan Ödeme / Tahsilat').classes('text-subtitle1 text-weight-bold text-slate-800').style('font-size: 13.5px;')
+                        lbl_osum = ui.label(_osum[_ilk_tab]).classes('text-caption text-grey-7') \
+                            .style('font-size:11px;margin-left:6px;white-space:nowrap;')
                         ui.space()
                         with ui.tabs().props('dense no-caps active-color=primary indicator-color=primary') as _otabs:
                             ui.tab('geciken', label=f'⚠ Geciken ({len(_geciken)})')
                             ui.tab('yaklasan', label=f'Yaklaşan · 7g ({len(_yaklasan)})')
-                    # Baslik ile tablo arasinda ~0,5 cm bosluk, sonra direkt tablo
-                    with ui.tab_panels(_otabs, value=('geciken' if _geciken else 'yaklasan')).classes('w-full').style('margin-top:0.5cm;'):
+                    _otabs.on_value_change(lambda e: lbl_osum.set_text(_osum.get(e.value, '')))
+                    # Baslik ile tablo arasi minimal bosluk
+                    with ui.tab_panels(_otabs, value=_ilk_tab).classes('w-full').style('margin-top:5px;'):
                         with ui.tab_panel('geciken').classes('q-pa-none'):
                             _odeme_tablo(_geciken, 'Vadesi geçmiş açık kayıt yok. 👍')
                         with ui.tab_panel('yaklasan').classes('q-pa-none'):
