@@ -150,6 +150,13 @@ def hareketler_page():
     .im-odeme .im-octx { display:flex; gap:8px; flex:1; min-width:0; align-items:flex-end; }
     .im-vqbtns { display:flex; gap:5px; align-items:center; padding-bottom:3px; }
 
+    /* Enter-akisi: Vadeli/Pesin sarici klavyeyle gelince belirgin kutu */
+    .im-vpwrap { border:2px dashed transparent; border-radius:10px; padding:1px 6px; outline:none; }
+    .im-vpwrap:focus { border-color:#0891b2; background:#ecfeff; }
+    /* Kaydet/Iptal klavye odagi belirgin olsun */
+    .im-modal .im-btn-kaydet:focus, .im-modal .im-btn-iptal:focus {
+        outline:2px solid #0891b2; outline-offset:2px; }
+
     /* Vadeli/Pesin: yesil KUTU toggle (D4 pill) */
     .im-modal .q-radio--checked .q-radio__inner { color:#059669 !important; }
     .im-modal .im-odeme .q-option-group { display:flex; gap:8px; }
@@ -495,6 +502,40 @@ def hareketler_page():
                         });
                     '''), once=True)
 
+                def _kalem_soru():
+                    """KDV secildikten sonra Enter: yeni kalem eklensin mi? Enter=Evet, ←=Hayır(açıklamaya)."""
+                    with ui.dialog() as kdlg, ui.card().classes('q-pa-md im-confirm-card').style('min-width:360px;border-radius:12px'):
+                        ui.label('Yeni kalem eklensin mi?').classes('text-subtitle2 text-weight-bold').style('color:#0f766e')
+                        ui.label('Enter = Evet   ·   ← ile Hayır (açıklamaya geçer)').classes('text-caption text-grey-6 q-mb-sm')
+
+                        def _evet():
+                            kdlg.close()
+                            add_kalem_row()
+                            kalemler_state[-1]['urun'].run_method('focus')
+
+                        def _hayir():
+                            kdlg.close()
+                            inp_aciklama.run_method('focus')
+
+                        with ui.row().classes('w-full justify-end gap-2'):
+                            ui.button('Hayır', on_click=_hayir).props('flat color=grey')
+                            ui.button('Evet', on_click=_evet).props('unelevated color=positive')
+                    kdlg.open()
+                    ui.timer(0.12, lambda: ui.run_javascript('''
+                        const card = [...document.querySelectorAll('.im-confirm-card')].pop();
+                        if(!card) return;
+                        const btns = card.querySelectorAll('button');
+                        if(btns.length < 2) return;
+                        const noBtn = btns[0], yesBtn = btns[1];
+                        const mark = (b) => { noBtn.classList.remove('imsel'); yesBtn.classList.remove('imsel');
+                                              b.classList.add('imsel'); b.focus(); };
+                        mark(yesBtn);
+                        card.addEventListener('keydown', (e) => {
+                            if(e.key === 'ArrowLeft'){ mark(noBtn); e.preventDefault(); }
+                            else if(e.key === 'ArrowRight'){ mark(yesBtn); e.preventDefault(); }
+                        });
+                    '''), once=True)
+
                 def _focus_ilk_urun():
                     if kalemler_state:
                         kalemler_state[0]['urun'].run_method('focus')
@@ -645,7 +686,20 @@ def hareketler_page():
                         _quick_add_confirm('Stok', yeni_ad, _yes, _no)
                     k_urun.on_value_change(lambda: _on_urun_change())
                     k_miktar.on('keydown.enter.prevent', lambda: k_bf.run_method('focus'))
-                    k_bf.on('keydown.enter.prevent', lambda: k_kdv.run_method('focus'))
+
+                    # B.fiyat Enter -> KDV listesi acilir (secili oran ustte); Enter secince
+                    # "yeni kalem eklensin mi?" sorusu gelir. Mouse akisi etkilenmez (bayrak).
+                    _kdv_nav = {'v': False}
+                    def _bf_enter():
+                        _kdv_nav['v'] = True
+                        k_kdv.run_method('focus')
+                        k_kdv.run_method('showPopup')
+                    k_bf.on('keydown.enter.prevent', _bf_enter)
+                    def _kdv_hide():
+                        if _kdv_nav['v']:
+                            _kdv_nav['v'] = False
+                            _kalem_soru()
+                    k_kdv.on('popup-hide', _kdv_hide)
                     kalemler_state.append(entry)
                     if not ilk:
                         recalc()
@@ -667,9 +721,11 @@ def hareketler_page():
 
                 # Odeme: toggle + baglamsal alanlar YAN YANA (dikey uzama/scroll yok)
                 with ui.element('div').classes('im-odeme w-full q-mt-xs'):
-                    inp_odeme_mod = ui.radio(
-                        {'vadeli': 'Vadeli', 'pesin': 'Peşin'}, value='vadeli'
-                    ).props('inline dense color=cyan-8')
+                    # tabindex=-1: Enter-akisinda JS ile odaklanir; ok tuslari Vadeli/Pesin secer
+                    with ui.element('div').classes('im-vpwrap').props('tabindex=-1') as vp_wrap:
+                        inp_odeme_mod = ui.radio(
+                            {'vadeli': 'Vadeli', 'pesin': 'Peşin'}, value='vadeli'
+                        ).props('inline dense color=cyan-8')
 
                     # Vadeli: vade tarihi (native takvim, etiket ustte) + hizli vade
                     with ui.element('div').classes('im-octx') as vadeli_box:
@@ -706,7 +762,7 @@ def hareketler_page():
                         with ui.element('div').classes('im-field').style('flex:1;min-width:0'):
                             ui.label('TUTAR').classes('im-flabel')
                             inp_pesin_tutar = ui.input(value='').props(
-                                'outlined dense input-class=text-right placeholder="0,00"').classes('w-full')
+                                'outlined dense input-class=text-right placeholder="0,00"').classes('w-full im-ptutar')
                             inp_pesin_tutar.on('blur', lambda _:
                                 inp_pesin_tutar.set_value(_fmt_para(_num_parse(inp_pesin_tutar.value)))
                                 if inp_pesin_tutar.value not in (None, '') else None)
@@ -815,7 +871,7 @@ def hareketler_page():
             with ui.row().classes('w-full justify-end items-center').style(
                     'flex:0 0 auto;overflow:visible;padding:11px 16px;'
                     'border-top:1px solid #eef2f6;'):
-                ui.button('İptal', on_click=dlg.close).props('flat color=grey')
+                btn_iptal = ui.button('İptal', on_click=dlg.close).props('flat color=grey').classes('im-btn-iptal')
 
                 def save():
                     if not inp_tarih.value:
@@ -939,8 +995,64 @@ def hareketler_page():
                     except Exception as e:
                         notify_err(f'Hata: {e}')
 
-                ui.button('Kaydet', on_click=save, color=None).props('unelevated no-caps').style(
+                btn_kaydet = ui.button('Kaydet', on_click=save, color=None).props('unelevated no-caps') \
+                    .classes('im-btn-kaydet').style(
                     'background:#059669;color:#fff;font-weight:700;padding:7px 22px;border-radius:9px')
+
+                # --- Enter-akisi kablolari: aciklama -> Vadeli/Peşin -> (vade | kasa/odeme/tutar) -> Kaydet ---
+                def _js_focus(sel_css, select_all=False):
+                    ui.run_javascript(
+                        f"const el=[...document.querySelectorAll('{sel_css}')].pop();"
+                        "if(el){el.focus();" + ("if(el.select)el.select();" if select_all else "") + "}")
+
+                def _focus_kaydet():
+                    _js_focus('.im-modal .im-btn-kaydet')
+
+                def _aciklama_enter():
+                    if is_edit:
+                        inp_vade.run_method('focus')   # duzenlemede pesin akisi yok
+                    else:
+                        _js_focus('.im-vpwrap')
+                inp_aciklama.on('keydown.enter.prevent', _aciklama_enter)
+
+                # Vadeli/Peşin kutusu: ← Vadeli, → Peşin, Enter secili olanla devam
+                vp_wrap.on('keydown.arrowleft.prevent', lambda: inp_odeme_mod.set_value('vadeli'))
+                vp_wrap.on('keydown.arrowright.prevent', lambda: inp_odeme_mod.set_value('pesin'))
+                _pesin_nav = {'hesap': False, 'odeme': False}
+
+                def _vp_enter():
+                    if inp_odeme_mod.value == 'pesin':
+                        _pesin_nav['hesap'] = True
+                        inp_pesin_hesap.run_method('focus')
+                        inp_pesin_hesap.run_method('showPopup')
+                    else:
+                        inp_vade.run_method('focus')
+                vp_wrap.on('keydown.enter.prevent', _vp_enter)
+
+                # Vadeli: tarih girildi, Enter -> Kaydet'e odak
+                inp_vade.on('keydown.enter.prevent', _focus_kaydet)
+
+                # Pesin zinciri: kasa/banka secilince odeme sekli acilir, o secilince tutara gecilir
+                def _hesap_hide():
+                    if _pesin_nav['hesap']:
+                        _pesin_nav['hesap'] = False
+                        _pesin_nav['odeme'] = True
+                        inp_pesin_odeme.run_method('focus')
+                        inp_pesin_odeme.run_method('showPopup')
+                inp_pesin_hesap.on('popup-hide', _hesap_hide)
+
+                def _odeme_hide():
+                    if _pesin_nav['odeme']:
+                        _pesin_nav['odeme'] = False
+                        # Tutar dolu gelir; tumu secili odaklanir (yazinca ustune yazar, Enter ile gecer)
+                        _js_focus('.im-modal .im-ptutar input', select_all=True)
+                inp_pesin_odeme.on('popup-hide', _odeme_hide)
+
+                inp_pesin_tutar.on('keydown.enter.prevent', _focus_kaydet)
+
+                # Kaydet/Iptal: Enter odaklanan butona tiklar; ← Iptal, → Kaydet
+                btn_kaydet.on('keydown.arrowleft.prevent', lambda: _js_focus('.im-modal .im-btn-iptal'))
+                btn_iptal.on('keydown.arrowright.prevent', lambda: _js_focus('.im-modal .im-btn-kaydet'))
         dlg.open()
         # Modal acilinca odak dogrudan Tarih'e
         ui.timer(0.2, lambda: inp_tarih.run_method('focus'), once=True)
