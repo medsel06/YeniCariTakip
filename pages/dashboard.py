@@ -524,6 +524,15 @@ def dashboard_page():
 
         else:
             # --- MODERN SIDE-BY-SIDE GRID LAYOUT ---
+            # Yaklasan Odeme/Tahsilat karti KOMPAKT (modal yogunlugunda) — sayfa scroll etmesin
+            ui.add_css('''
+                .yk-card { padding: 10px 14px !important; }
+                .yk-card .q-tab { min-height: 30px !important; padding: 0 10px !important; }
+                .yk-card .q-tab__label { font-size: 12px !important; }
+                .yk-tbl th { padding: 3px 8px !important; font-size: 9.5px !important; }
+                .yk-tbl td { padding: 3px 8px !important; font-size: 11.5px !important; }
+                .yk-tbl .q-table__middle { min-height: 0 !important; }
+            ''')
             with ui.row().classes('w-full items-start no-wrap gap-4 q-row-mobile-wrap q-mt-md'):
                 # Sol: Yaklaşan Ödeme / Tahsilat (7 gün) (flex-2)
                 _tum_odeme = _odeme_yaklasanlar(limit=None, gun=7)
@@ -577,9 +586,9 @@ def dashboard_page():
                         return
                     _tp = sum(float(x['kalan'] or 0) for x in items)
                     ui.label(f'{len(items)} kayıt · Toplam kalan: {fmt_para(_tp)} TL').classes(
-                        'text-caption text-grey-7').style('padding:4px 4px 6px;')
+                        'text-caption text-grey-7').style('padding:2px 4px 3px;font-size:11px;')
                     _rows = []
-                    for _i, item in enumerate(items[:6]):
+                    for _i, item in enumerate(items[:5]):
                         vd = (item.get('vade_tarih') or '')[:10]
                         vd = '.'.join(reversed(vd.split('-'))) if vd else ''
                         _rows.append({
@@ -592,13 +601,13 @@ def dashboard_page():
                             '_gun': item.get('_gun') if item.get('_gun') is not None else 999,
                         })
                     _t = ui.table(columns=_yk_cols, rows=_rows, row_key='_rid',
-                                  pagination={'rowsPerPage': 0}).classes('w-full dash-table').props('flat dense hide-bottom')
+                                  pagination={'rowsPerPage': 0}).classes('w-full dash-table yk-tbl').props('flat dense hide-bottom')
                     _t.add_slot('body', _yk_slot)
 
-                with ui.card().classes('modern-card q-pa-md').style('flex: 2; border-radius: 16px; min-width: 0;'):
-                    with ui.row().classes('items-center gap-2 q-mb-sm'):
-                        ui.icon('event', color='primary').style('font-size: 20px; color: #2563eb !important;')
-                        ui.label('Yaklaşan Ödeme / Tahsilat').classes('text-subtitle1 text-weight-bold text-slate-800').style('font-size: 15px;')
+                with ui.card().classes('modern-card yk-card').style('flex: 2; border-radius: 14px; min-width: 0;'):
+                    with ui.row().classes('items-center gap-2 q-mb-xs'):
+                        ui.icon('event', color='primary').style('font-size: 18px; color: #2563eb !important;')
+                        ui.label('Yaklaşan Ödeme / Tahsilat').classes('text-subtitle1 text-weight-bold text-slate-800').style('font-size: 13.5px;')
                     with ui.tabs().props('dense no-caps align=left active-color=primary indicator-color=primary').classes('w-full') as _otabs:
                         ui.tab('geciken', label=f'⚠ Geciken ({len(_geciken)})')
                         ui.tab('yaklasan', label=f'Yaklaşan · 7 gün ({len(_yaklasan)})')
