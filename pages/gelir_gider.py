@@ -24,7 +24,58 @@ from services.pdf_service import (
 def gelir_gider_page(focus: int = None):
     if not create_layout(active_path='/gelir-gider', page_title='Gelir / Gider'):
         return
-    ui.add_css('.gg-table tbody tr { cursor: pointer; }')
+    ui.add_css('''
+    .gg-table tbody tr { cursor: pointer; }
+
+    /* ===== Yeni Gelir/Gider modali — Yeni Islem (D4) kompakt yapisiyla ayni ===== */
+    .im-modal { font-size:12.5px; border-radius:14px; }
+    .im-modal .im-head { background:#f0fdf9; border-bottom:1px solid #d5efe6;
+        padding:11px 18px; display:flex; align-items:center; gap:9px;
+        width:100%; align-self:stretch; box-sizing:border-box;
+        flex:0 0 auto !important; overflow:hidden !important; }
+    .im-modal .im-head .im-ic { color:#059669; font-size:20px; }
+    .im-modal .im-head .im-title { font-size:15px; font-weight:700; color:#0f172a; }
+    .im-modal .im-body { background:#ffffff !important; padding:10px 16px !important; gap:6px !important; }
+    .im-modal .im-body > .row, .im-modal .im-body > .nicegui-row { gap:8px !important; }
+    .im-modal .im-field { display:flex; flex-direction:column; gap:2px; min-width:0;
+        background:transparent !important; padding:0 !important; }
+    .im-modal .im-flabel { font-size:10px; font-weight:700; text-transform:uppercase;
+        color:#64748b; letter-spacing:.03em; line-height:1.2; padding-left:1px; }
+    .im-modal .q-field--outlined .q-field__control:before { border-color:#dbe3ea !important; }
+    .im-modal .q-field--dense .q-field__control,
+    .im-modal .q-field--dense .q-field__append,
+    .im-modal .q-field--dense .q-field__control--addon { height:34px !important; min-height:34px !important; }
+    .im-modal .q-field--dense .q-field__control-container { display:flex; align-items:center; }
+    .im-modal .q-field--dense .q-field__native, .im-modal .q-field--dense .q-field__input {
+        font-size:12.5px; min-height:32px; }
+    .im-modal .q-field__label { color:#64748b !important; text-transform:uppercase;
+        font-size:10px; letter-spacing:.03em; }
+    .im-modal .q-field--focused .q-field__label { color:#059669 !important; }
+    .im-modal .q-field--focused .q-field__control:after { border-color:#059669 !important; }
+    .im-modal .q-select__dropdown-icon { display:none !important; }
+    /* Toplam cubugu (3 hucre) */
+    .im-totbar { display:grid; background:#f8fafc; border:1px solid #e2e8f0;
+        border-radius:9px; overflow:hidden; flex:0 0 auto; }
+    .gg-tot3 { grid-template-columns:repeat(3,1fr); }
+    .im-tot { padding:7px 12px; border-right:1px solid #e8edf3; }
+    .im-tot:last-child { border-right:none; background:#ecfdf5; }
+    .im-tot .tk { font-size:9.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:#8a97a6; }
+    .im-tot:last-child .tk { color:#059669; }
+    .im-tot .tv { font-size:14.5px; font-weight:800; color:#0f172a; font-variant-numeric:tabular-nums; }
+    .im-tot:last-child .tv { color:#047857; }
+    /* Odeme durumu: pill radio + klavye odak kutusu */
+    .im-odeme { display:flex; align-items:flex-end; gap:12px; flex-wrap:nowrap; }
+    .im-modal .q-radio--checked .q-radio__inner { color:#059669 !important; }
+    .im-modal .im-odeme .q-option-group { display:flex; gap:8px; flex-wrap:wrap; }
+    .im-modal .im-odeme .q-radio { border:1px solid #dbe1e8; border-radius:8px; padding:2px 10px; margin:0; }
+    .im-modal .im-odeme .q-radio--checked { background:#e7f6ef; border-color:#059669; }
+    .im-modal .im-odeme .q-radio__label { font-weight:600; font-size:12px; }
+    .im-modal .im-odeme .q-radio__inner { font-size:22px; }
+    .im-vpwrap { border:2px dashed transparent; border-radius:10px; padding:1px 6px; outline:none; }
+    .im-vpwrap:focus { border-color:#0891b2; background:#ecfeff; }
+    .im-modal .im-btn-kaydet:focus, .im-modal .im-btn-iptal:focus {
+        outline:2px solid #0891b2; outline-offset:2px; }
+    ''')
 
     table_ref = None
     all_rows = []
@@ -271,34 +322,34 @@ def gelir_gider_page(focus: int = None):
         firmalar = get_firma_list()
         firma_options = {f['kod']: f['ad'] for f in firmalar}
 
-        with ui.dialog() as dlg, ui.card().classes('alse-dialog').style('width: 90vw; max-width: 640px'):
-            with ui.element('div').classes('alse-dialog-header'):
-                ui.icon('payments' if not is_edit else 'edit')
-                ui.label(title).classes('dialog-title')
+        with ui.dialog() as dlg, ui.card().classes('alse-dialog im-modal').style(
+                'width: 92vw; max-width: 660px; max-height: 92vh; display: flex; flex-direction: column; padding:0;'):
+            with ui.element('div').classes('im-head'):
+                ui.icon('payments' if not is_edit else 'drive_file_rename_outline').classes('im-ic')
+                ui.label(title).classes('im-title')
 
-            with ui.column().classes('w-full q-mt-sm gap-sm'):
-                # Tarih
-                inp_tarih = ui.input('Tarih', value=date.today().isoformat()).props('outlined dense').classes('w-full')
-                with inp_tarih.add_slot('append'):
-                    icon_t = ui.icon('event').classes('cursor-pointer')
-                    with ui.menu() as menu_t:
-                        ui.date(on_change=lambda e: (inp_tarih.set_value(e.value), menu_t.close()))
-                    icon_t.on('click', menu_t.open)
-
-                with ui.row().classes('w-full gap-md'):
-                    inp_tur = ui.select(
-                        options={'GELIR': 'Gelir', 'GIDER': 'Gider'},
-                        label='Tür', value='GIDER'
-                    ).props('outlined dense').classes('col')
-
-                    with ui.row().classes('col gap-xs items-center no-wrap'):
+            # Icerik kendi icinde kayar; buton satiri altta sabit
+            with ui.column().classes('w-full im-body gap-1').style(
+                    'overflow-y:auto;flex:1 1 auto;min-height:0;'):
+                # Satir 1: Tarih + Tur + Kategori (etiket kutu USTUNDE — Yeni Islem D4 yapisi)
+                with ui.row().classes('w-full gap-sm no-wrap'):
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('TARİH').classes('im-flabel')
+                        inp_tarih = ui.input(value=date.today().isoformat()).props(
+                            'outlined dense type=date').classes('w-full')
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('TÜR').classes('im-flabel')
+                        inp_tur = ui.select(
+                            options={'GELIR': 'Gelir', 'GIDER': 'Gider'}, value='GIDER'
+                        ).props('outlined dense').classes('w-full')
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('KATEGORİ').classes('im-flabel')
                         inp_kategori = ui.select(
-                            options=_build_kategori_options('GIDER'),
-                            label='Kategori', value='Nakliye'
-                        ).props('outlined dense').classes('col')
-                        ui.button(icon='add', color='primary',
-                                  on_click=lambda: open_quick_kategori_dialog(_on_kategori_added)
-                                  ).props('round dense flat').tooltip('Yeni Kategori Ekle')
+                            options=_build_kategori_options('GIDER'), value='Nakliye'
+                        ).props('outlined dense').classes('w-full')
+                        with inp_kategori.add_slot('append'):
+                            ui.icon('add', size='20px').classes('cursor-pointer').style('color:#059669').on(
+                                'click', lambda: open_quick_kategori_dialog(_on_kategori_added))
 
                 # One cikan uyari (Nakliye/Ardiye icin)
                 lbl_one_cikan = ui.label('').classes('text-caption text-orange-9 q-pl-sm')
@@ -312,19 +363,15 @@ def gelir_gider_page(focus: int = None):
                     on_kategori_change(None)
                 inp_tur.on_value_change(on_tur_change)
 
-                # --- CARI SECIMI (opsiyonel tum giderlerde, Nakliye/Ardiye icin otomatik acilir) ---
-                cari_container = ui.column().classes('w-full')
-                with cari_container:
-                    with ui.row().classes('w-full gap-sm items-center no-wrap'):
-                        inp_firma = ui.select(
-                            options=firma_options, label='Cari (Opsiyonel)',
-                            with_input=True, clearable=True,
-                        ).props('outlined dense').classes('col')
-                        ui.button(icon='add', color='primary',
-                                  on_click=lambda: open_quick_firma_dialog(_on_firma_added)
-                                  ).props('round dense flat').tooltip('Yeni Cari Ekle')
-
-                    lbl_firma_bakiye = ui.label('').classes('text-caption text-grey-7 q-pl-sm')
+                # Cari (opsiyonel; + kutu ICINDE — Yeni Islem firma alani gibi)
+                with ui.element('div').classes('im-field w-full'):
+                    ui.label('CARİ (OPSİYONEL)').classes('im-flabel')
+                    inp_firma = ui.select(
+                        options=firma_options, with_input=True, clearable=True,
+                    ).props('outlined dense').classes('w-full gg-cari')
+                    with inp_firma.add_slot('append'):
+                        ui.icon('add', size='20px').classes('cursor-pointer').style('color:#059669').on(
+                            'click', lambda: open_quick_firma_dialog(_on_firma_added))
 
                 def _on_firma_added(kod, ad):
                     firmalar2 = get_firma_list()
@@ -353,60 +400,72 @@ def gelir_gider_page(focus: int = None):
                     inp_kategori.update()
                     on_kategori_change(None)
 
-                with ui.row().classes('w-full gap-md'):
-                    inp_tutar = ui.number(label='Tutar (Net)', value=0, format='%.2f').props('outlined dense').classes('col')
-                    inp_kdv = ui.select(
-                        options={0: '%0', 1: '%1', 10: '%10', 20: '%20'},
-                        label='KDV Oranı', value=20
-                    ).props('outlined dense').classes('col')
+                # Satir 3: Tutar + KDV
+                with ui.row().classes('w-full gap-sm no-wrap'):
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('TUTAR (NET)').classes('im-flabel')
+                        inp_tutar = ui.number(value=0, format='%.2f').props(
+                            'outlined dense input-class=text-right').classes('w-full gg-tutar')
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('KDV ORANI').classes('im-flabel')
+                        inp_kdv = ui.select(
+                            options={0: '%0', 1: '%1', 10: '%10', 20: '%20'}, value=20
+                        ).props('outlined dense').classes('w-full')
 
-                # Odeme Durumu
-                ui.label('Ödeme Durumu').classes('text-subtitle2 text-weight-medium q-mt-sm')
-                inp_durum = ui.radio(
-                    options={
-                        'NAKIT': 'Nakit (Kasa)',
-                        'BANKA': 'Banka',
-                        'CEK': 'Çek',
-                        'SENET': 'Senet',
-                        'ODENMEDI': 'Ödenmedi (Cari borç)',
-                    },
-                    value='NAKIT',
-                ).props('inline')
+                # Odeme durumu: pill radio; klavyeyle gelince belirgin kutu (ok tuslariyla secim)
+                with ui.element('div').classes('im-field w-full'):
+                    ui.label('ÖDEME DURUMU').classes('im-flabel')
+                    with ui.element('div').classes('im-odeme'):
+                        with ui.element('div').classes('im-vpwrap').props('tabindex=-1') as durum_wrap:
+                            inp_durum = ui.radio(
+                                options={
+                                    'NAKIT': 'Nakit (Kasa)',
+                                    'BANKA': 'Banka',
+                                    'CEK': 'Çek',
+                                    'SENET': 'Senet',
+                                    'ODENMEDI': 'Ödenmedi (Cari borç)',
+                                },
+                                value='NAKIT',
+                            ).props('inline dense')
 
-                # Odenen tutar ve banka alanlari
-                odeme_container = ui.column().classes('w-full gap-sm')
-                with odeme_container:
-                    with ui.row().classes('w-full gap-md items-center no-wrap'):
-                        inp_odenen = ui.number(
-                            label='Ödenen Tutar', value=0, format='%.2f'
-                        ).props('outlined dense').classes('col')
-                        lbl_kalan_borc = ui.label('').classes('text-caption text-orange-9').style('min-width: 140px')
+                # Baglamsal alanlar: Odenen + Banka + Vade (duruma gore) tek satirda
+                with ui.row().classes('w-full gap-sm no-wrap items-end'):
+                    odeme_container = ui.row().classes('col gap-sm items-end no-wrap')
+                    with odeme_container:
+                        with ui.element('div').classes('im-field').style('flex:0 0 150px'):
+                            ui.label('ÖDENEN TUTAR').classes('im-flabel')
+                            inp_odenen = ui.number(value=0, format='%.2f').props(
+                                'outlined dense input-class=text-right').classes('w-full gg-odenen')
+                        banka_row = ui.element('div').classes('im-field').style('flex:1;min-width:0')
+                        banka_row.set_visibility(False)
+                        with banka_row:
+                            ui.label('BANKA HESABI').classes('im-flabel')
+                            _bopts = {str(h['id']): h['ad'] for h in list_banka_hesaplari(sadece_aktif=True)}
+                            inp_banka = ui.select(_bopts).props('outlined dense').classes('w-full')
+                        lbl_kalan_borc = ui.label('').classes('text-caption text-orange-9') \
+                            .style('padding-bottom:8px;white-space:nowrap')
+                    vade_container = ui.element('div').classes('im-field').style('flex:0 0 160px')
+                    vade_container.set_visibility(False)
+                    with vade_container:
+                        ui.label('VADE TARİHİ').classes('im-flabel')
+                        inp_vade = ui.input(value='').props(
+                            'outlined dense type=date clearable').classes('w-full gg-vade')
 
-                    banka_row = ui.row().classes('w-full')
-                    banka_row.set_visibility(False)
-                    with banka_row:
-                        _bopts = {str(h['id']): h['ad'] for h in list_banka_hesaplari(sadece_aktif=True)}
-                        inp_banka = ui.select(_bopts, label='Banka Hesabı').props('outlined dense').classes('col')
+                # Aciklama
+                with ui.element('div').classes('im-field w-full'):
+                    ui.label('AÇIKLAMA').classes('im-flabel')
+                    inp_aciklama = ui.input().props('outlined dense').classes('w-full gg-aciklama')
 
-                # Vade tarih - ODENMEDI secilince gorunsun
-                vade_container = ui.row().classes('w-full')
-                vade_container.set_visibility(False)
-                with vade_container:
-                    inp_vade = ui.input('Vade Tarihi', value='').props('outlined dense').classes('col')
-                    with inp_vade.add_slot('append'):
-                        icon_v = ui.icon('event').classes('cursor-pointer')
-                        with ui.menu() as menu_v:
-                            ui.date(on_change=lambda e: (inp_vade.set_value(e.value), menu_v.close()))
-                        icon_v.on('click', menu_v.open)
+                # Toplam cubugu (Yeni Islem'deki gibi)
+                def _tot_cell(baslik):
+                    with ui.element('div').classes('im-tot'):
+                        ui.label(baslik).classes('tk')
+                        return ui.label('0,00').classes('tv')
 
-                inp_aciklama = ui.input('Açıklama').props('outlined dense').classes('w-full')
-
-                # Hesaplama alani
-                ui.separator()
-                with ui.row().classes('w-full gap-md items-center'):
-                    lbl_tutar = ui.label('Tutar: 0,00 TL').classes('text-subtitle2 col')
-                    lbl_kdv = ui.label('KDV: 0,00 TL').classes('text-subtitle2 col')
-                    lbl_toplam = ui.label('Toplam: 0,00 TL').classes('text-subtitle2 text-weight-bold col text-primary')
+                with ui.element('div').classes('im-totbar gg-tot3 w-full'):
+                    lbl_tutar = _tot_cell('TUTAR (NET)')
+                    lbl_kdv = _tot_cell('KDV')
+                    lbl_toplam = _tot_cell('TOPLAM')
 
                 def fmt_tr(val):
                     s = f"{abs(val):,.2f}"
@@ -423,9 +482,9 @@ def gelir_gider_page(focus: int = None):
                     ko = float(inp_kdv.value or 0)
                     kdv = t * ko / 100
                     toplam = t + kdv
-                    lbl_tutar.set_text(f'Tutar: {fmt_tr(t)} TL')
-                    lbl_kdv.set_text(f'KDV: {fmt_tr(kdv)} TL')
-                    lbl_toplam.set_text(f'Toplam: {fmt_tr(toplam)} TL')
+                    lbl_tutar.set_text(fmt_tr(t))
+                    lbl_kdv.set_text(fmt_tr(kdv))
+                    lbl_toplam.set_text(fmt_tr(toplam) + ' ₺')
 
                     # Odenen varsayilan: toplam (sadece ODENMEDI degilse ve kullanici ellemediyse guncellenir)
                     if (inp_durum.value or 'NAKIT') != 'ODENMEDI':
@@ -502,8 +561,9 @@ def gelir_gider_page(focus: int = None):
             # Initial kategori uyari cek
             on_kategori_change(None)
 
-            with ui.row().classes('w-full justify-end q-mt-md'):
-                ui.button('İptal', on_click=dlg.close).props('flat color=grey')
+            with ui.row().classes('w-full justify-end items-center').style(
+                    'flex:0 0 auto;overflow:visible;padding:11px 16px;border-top:1px solid #eef2f6;'):
+                btn_iptal = ui.button('İptal', on_click=dlg.close).props('flat color=grey').classes('im-btn-iptal')
 
                 def save():
                     if not inp_tarih.value:
@@ -608,8 +668,107 @@ def gelir_gider_page(focus: int = None):
                     except Exception as e:
                         notify_err(f'Hata: {e}')
 
-                ui.button('Kaydet', color='primary', on_click=save).props('unelevated')
+                btn_kaydet = ui.button('Kaydet', on_click=save, color=None).props('unelevated no-caps') \
+                    .classes('im-btn-kaydet').style(
+                    'background:#059669;color:#fff;font-weight:700;padding:7px 22px;border-radius:9px')
+
+                # --- Enter akisi (sunucu tarafi: popup acma zinciri) ---
+                # Tarih -> Tur(liste) -> Kategori(liste) -> Cari -> Tutar -> KDV(liste)
+                # -> Odeme Durumu kutusu -> (Vade | Banka -> Odenen | Odenen) -> Aciklama -> Kaydet
+                def _js_focus(sel_css, select_all=False):
+                    ui.run_javascript(
+                        f"const el=[...document.querySelectorAll('{sel_css}')].pop();"
+                        "if(el){el.focus();" + ("if(el.select)el.select();" if select_all else "") + "}")
+
+                _nav = {'tur': False, 'kat': False, 'kdv': False, 'banka': False}
+
+                def _ac(sel, flag):
+                    _nav[flag] = True
+                    sel.run_method('focus')
+                    sel.run_method('showPopup')
+
+                inp_tarih.on('keydown.enter.prevent', lambda: _ac(inp_tur, 'tur'))
+
+                def _tur_hide():
+                    if _nav['tur']:
+                        _nav['tur'] = False
+                        _ac(inp_kategori, 'kat')
+                inp_tur.on('popup-hide', _tur_hide)
+
+                def _kat_hide():
+                    if _nav['kat']:
+                        _nav['kat'] = False
+                        inp_firma.run_method('focus')
+                inp_kategori.on('popup-hide', _kat_hide)
+
+                inp_tutar.on('keydown.enter.prevent', lambda: _ac(inp_kdv, 'kdv'))
+
+                def _kdv_hide():
+                    if _nav['kdv']:
+                        _nav['kdv'] = False
+                        _js_focus('.im-modal .im-vpwrap')
+                inp_kdv.on('popup-hide', _kdv_hide)
+
+                def _durum_enter():
+                    val = inp_durum.value or 'NAKIT'
+                    if val == 'ODENMEDI':
+                        inp_vade.run_method('focus')
+                    elif val == 'BANKA':
+                        _ac(inp_banka, 'banka')
+                    else:
+                        _js_focus('.im-modal .gg-odenen input', select_all=True)
+                durum_wrap.on('keydown.enter.prevent', _durum_enter)
+
+                def _banka_hide():
+                    if _nav['banka']:
+                        _nav['banka'] = False
+                        _js_focus('.im-modal .gg-odenen input', select_all=True)
+                inp_banka.on('popup-hide', _banka_hide)
         dlg.open()
+        # Acilinca odak Tarih'e
+        ui.timer(0.2, lambda: inp_tarih.run_method('focus'), once=True)
+        # Klavye akisi (CLIENT-SIDE, gecikmesiz): durum kutusunda ok tuslari,
+        # Cari/Odenen/Vade/Aciklama Enter atlamalari, Kaydet<->Iptal ok gecisi
+        ui.timer(0.3, lambda: ui.run_javascript('''
+            const modal = [...document.querySelectorAll('.im-modal')].pop();
+            if(!modal || modal.__ggFlow) return;
+            modal.__ggFlow = true;
+            const kaydet = modal.querySelector('.im-btn-kaydet');
+            const iptal = modal.querySelector('.im-btn-iptal');
+            const go = (sel, selAll) => { const el = modal.querySelector(sel);
+                if(el){ el.focus(); if(selAll && el.select) el.select(); } };
+            const dw = modal.querySelector('.im-vpwrap');
+            if(dw) dw.addEventListener('keydown', (e) => {
+                const r = [...dw.querySelectorAll('.q-radio')];
+                const i = r.findIndex(x => x.getAttribute('aria-checked') === 'true');
+                if(e.key === 'ArrowRight'){ e.preventDefault();
+                    const n = r[Math.min(i + 1, r.length - 1)]; if(n) n.click(); dw.focus(); }
+                else if(e.key === 'ArrowLeft'){ e.preventDefault();
+                    const p = r[Math.max(i - 1, 0)]; if(p) p.click(); dw.focus(); }
+            });
+            const cari = modal.querySelector('.gg-cari input');
+            if(cari) cari.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter'){ setTimeout(() => go('.gg-tutar input', true), 80); }
+            });
+            const odenen = modal.querySelector('.gg-odenen input');
+            if(odenen) odenen.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter'){ e.preventDefault(); go('.gg-aciklama input'); }
+            });
+            const vade = modal.querySelector('.gg-vade input');
+            if(vade) vade.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter'){ e.preventDefault(); go('.gg-aciklama input'); }
+            });
+            const acik = modal.querySelector('.gg-aciklama input');
+            if(acik) acik.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter'){ e.preventDefault(); if(kaydet) kaydet.focus(); }
+            });
+            if(kaydet) kaydet.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowLeft'){ e.preventDefault(); if(iptal) iptal.focus(); }
+            });
+            if(iptal) iptal.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowRight'){ e.preventDefault(); if(kaydet) kaydet.focus(); }
+            });
+        '''), once=True)
 
     def do_delete(rec_id):
         def confirmed():
