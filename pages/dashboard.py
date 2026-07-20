@@ -605,13 +605,16 @@ def dashboard_page():
                     _t.add_slot('body', _yk_slot)
 
                 with ui.card().classes('modern-card yk-card').style('flex: 2; border-radius: 14px; min-width: 0;'):
-                    with ui.row().classes('items-center gap-2 q-mb-xs'):
+                    # Baslik + sekmeler AYNI satirda (sekmeler en sagda) -> ayri sekme bandi yok
+                    with ui.row().classes('w-full items-center no-wrap gap-2'):
                         ui.icon('event', color='primary').style('font-size: 18px; color: #2563eb !important;')
                         ui.label('Yaklaşan Ödeme / Tahsilat').classes('text-subtitle1 text-weight-bold text-slate-800').style('font-size: 13.5px;')
-                    with ui.tabs().props('dense no-caps align=left active-color=primary indicator-color=primary').classes('w-full') as _otabs:
-                        ui.tab('geciken', label=f'⚠ Geciken ({len(_geciken)})')
-                        ui.tab('yaklasan', label=f'Yaklaşan · 7 gün ({len(_yaklasan)})')
-                    with ui.tab_panels(_otabs, value=('geciken' if _geciken else 'yaklasan')).classes('w-full').props('animated'):
+                        ui.space()
+                        with ui.tabs().props('dense no-caps active-color=primary indicator-color=primary') as _otabs:
+                            ui.tab('geciken', label=f'⚠ Geciken ({len(_geciken)})')
+                            ui.tab('yaklasan', label=f'Yaklaşan · 7g ({len(_yaklasan)})')
+                    # Baslik ile tablo arasinda ~0,5 cm bosluk, sonra direkt tablo
+                    with ui.tab_panels(_otabs, value=('geciken' if _geciken else 'yaklasan')).classes('w-full').style('margin-top:0.5cm;'):
                         with ui.tab_panel('geciken').classes('q-pa-none'):
                             _odeme_tablo(_geciken, 'Vadesi geçmiş açık kayıt yok. 👍')
                         with ui.tab_panel('yaklasan').classes('q-pa-none'):
