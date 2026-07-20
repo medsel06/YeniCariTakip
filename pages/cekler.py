@@ -1,7 +1,7 @@
 """ALSE Plastik Hammadde - Cekler Sayfası"""
 from datetime import datetime, date
 from nicegui import ui
-from layout import create_layout, fmt_para, PARA_SLOT, TARIH_SLOT, notify_ok, notify_err, confirm_dialog, normalize_search
+from layout import create_layout, fmt_para, PARA_SLOT, TARIH_SLOT, notify_ok, notify_err, confirm_dialog, normalize_search, IM_MODAL_CSS
 from services.cek_service import (
     list_cekler, add_cek, change_durum, delete_cek, update_cek, get_cek_by_id, get_cek_hareketleri,
     get_valid_transitions, DURUM_LABELS, DURUM_COLORS,
@@ -16,6 +16,7 @@ from services.pdf_service import generate_cek_raporu_pdf, save_pdf_preview
 def cekler_page(focus: int = None):
     if not create_layout(active_path='/cekler', page_title='Çekler'):
         return
+    ui.add_css(IM_MODAL_CSS)
 
     def _open_pdf(pdf_bytes, filename: str):
         preview_url = save_pdf_preview(pdf_bytes, filename)
@@ -68,42 +69,58 @@ def cekler_page(focus: int = None):
         firmalar = get_firma_list()
         firma_options = {f['kod']: f['ad'] for f in firmalar}
 
-        with ui.dialog() as dlg, ui.card().classes('alse-dialog').style('width: 90vw; max-width: 500px'):
+        with ui.dialog() as dlg, ui.card().classes('alse-dialog im-modal').style(
+                'width: 92vw; max-width: 560px; max-height: 92vh; display: flex; flex-direction: column; padding:0;'):
             turu_label = 'Alınan' if cek_turu == 'ALINAN' else 'Verilen'
-            with ui.element('div').classes('alse-dialog-header'):
-                ui.icon('add_circle')
-                ui.label(f'Yeni {turu_label} Çek/Senet').classes('dialog-title')
+            with ui.element('div').classes('im-head'):
+                ui.icon('payments').classes('im-ic')
+                ui.label(f'Yeni {turu_label} Çek/Senet').classes('im-title')
 
-            inp_evrak_tipi = ui.radio(
-                options={'CEK': 'Çek', 'SENET': 'Senet'},
-                value='CEK',
-            ).props('inline').classes('q-mt-sm')
+            with ui.column().classes('w-full im-body gap-1').style(
+                    'overflow-y:auto;flex:1 1 auto;min-height:0;'):
+                # Satir 1: Evrak tipi (pill kutu, ok tuslariyla) + Evrak No
+                with ui.row().classes('w-full gap-sm no-wrap items-end'):
+                    with ui.element('div').classes('im-field'):
+                        ui.label('EVRAK TİPİ').classes('im-flabel')
+                        with ui.element('div').classes('im-odeme'):
+                            with ui.element('div').classes('im-vpwrap').props('tabindex=-1'):
+                                inp_evrak_tipi = ui.radio(
+                                    options={'CEK': 'Çek', 'SENET': 'Senet'}, value='CEK'
+                                ).props('inline dense')
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('EVRAK NO').classes('im-flabel')
+                        inp_cek_no = ui.input().props('outlined dense').classes('w-full ck-no')
 
-            inp_cek_no = ui.input('Evrak No').classes('w-full').props('outlined dense')
+                # Firma
+                with ui.element('div').classes('im-field w-full'):
+                    ui.label('FİRMA').classes('im-flabel')
+                    inp_firma = ui.select(
+                        options=firma_options, with_input=True
+                    ).props('outlined dense clearable').classes('w-full ck-firma')
 
-            inp_firma = ui.select(
-                options=firma_options, label='Firma', with_input=True
-            ).classes('w-full').props('outlined dense')
+                # Satir: Kesim + Vade + Tutar
+                with ui.row().classes('w-full gap-sm no-wrap'):
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('KESİM TARİHİ').classes('im-flabel')
+                        inp_kesim = ui.input(value=date.today().isoformat()).props(
+                            'outlined dense type=date').classes('w-full ck-kesim')
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('VADE TARİHİ').classes('im-flabel')
+                        inp_vade = ui.input(value=date.today().isoformat()).props(
+                            'outlined dense type=date').classes('w-full ck-vade')
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('TUTAR').classes('im-flabel')
+                        inp_tutar = ui.number(value=0, format='%.2f').props(
+                            'outlined dense input-class=text-right').classes('w-full ck-tutar')
 
-            inp_kesim = ui.input('Kesim Tarihi', value=date.today().isoformat()).classes('w-full').props('outlined dense')
-            with inp_kesim.add_slot('append'):
-                icon_k = ui.icon('event').classes('cursor-pointer')
-                with ui.menu() as menu_k:
-                    ui.date(on_change=lambda e: (inp_kesim.set_value(e.value), menu_k.close()))
-                icon_k.on('click', menu_k.open)
+                # Notlar
+                with ui.element('div').classes('im-field w-full'):
+                    ui.label('NOTLAR').classes('im-flabel')
+                    inp_notlar = ui.input().props('outlined dense').classes('w-full ck-notlar')
 
-            inp_vade = ui.input('Vade Tarihi', value=date.today().isoformat()).classes('w-full').props('outlined dense')
-            with inp_vade.add_slot('append'):
-                icon_v = ui.icon('event').classes('cursor-pointer')
-                with ui.menu() as menu_v:
-                    ui.date(on_change=lambda e: (inp_vade.set_value(e.value), menu_v.close()))
-                icon_v.on('click', menu_v.open)
-
-            inp_tutar = ui.number(label='Tutar', value=0, format='%.2f').classes('w-full').props('outlined dense')
-            inp_notlar = ui.textarea('Notlar').classes('w-full').props('outlined dense')
-
-            with ui.row().classes('w-full justify-end q-mt-md'):
-                ui.button('İptal', on_click=dlg.close).props('flat color=grey')
+            with ui.row().classes('w-full justify-end items-center').style(
+                    'flex:0 0 auto;overflow:visible;padding:11px 16px;border-top:1px solid #eef2f6;'):
+                btn_iptal = ui.button('İptal', on_click=dlg.close).props('flat color=grey').classes('im-btn-iptal')
 
                 def save():
                     evrak_label = 'Senet' if inp_evrak_tipi.value == 'SENET' else 'Çek'
@@ -137,8 +154,56 @@ def cekler_page(focus: int = None):
                     except Exception as e:
                         notify_err(f'Hata: {e}')
 
-                ui.button('Kaydet', color='primary', on_click=save).props('unelevated')
+                btn_kaydet = ui.button('Kaydet', on_click=save, color=None).props('unelevated no-caps') \
+                    .classes('im-btn-kaydet').style(
+                    'background:#059669;color:#fff;font-weight:700;padding:7px 22px;border-radius:9px')
         dlg.open()
+        # Klavye akisi (CLIENT-SIDE): Evrak tipi kutusu -> No -> Firma -> Kesim -> Vade
+        # -> Tutar (tumu secili) -> Notlar -> Kaydet; Kaydet<->Iptal ok gecisi
+        ui.timer(0.3, lambda: ui.run_javascript('''
+            const modal = [...document.querySelectorAll('.im-modal')].pop();
+            if(!modal || modal.__ckFlow) return;
+            modal.__ckFlow = true;
+            const kaydet = modal.querySelector('.im-btn-kaydet');
+            const iptal = modal.querySelector('.im-btn-iptal');
+            const go = (sel, selAll) => { const el = modal.querySelector(sel);
+                if(el){ el.focus(); if(selAll && el.select) el.select(); } };
+            const tw = modal.querySelector('.im-vpwrap');
+            if(tw){
+                tw.addEventListener('keydown', (e) => {
+                    const r = [...tw.querySelectorAll('.q-radio')];
+                    const i = r.findIndex(x => x.getAttribute('aria-checked') === 'true');
+                    if(e.key === 'ArrowRight'){ e.preventDefault();
+                        const n = r[Math.min(i + 1, r.length - 1)]; if(n) n.click(); tw.focus(); }
+                    else if(e.key === 'ArrowLeft'){ e.preventDefault();
+                        const p = r[Math.max(i - 1, 0)]; if(p) p.click(); tw.focus(); }
+                    else if(e.key === 'Enter'){ e.preventDefault(); go('.ck-no input'); }
+                });
+                tw.focus();
+            }
+            const wire = (sel, next, selAll) => {
+                const el = modal.querySelector(sel);
+                if(el) el.addEventListener('keydown', (e) => {
+                    if(e.key === 'Enter'){ e.preventDefault();
+                        setTimeout(() => go(next, selAll), sel.includes('ck-firma') ? 80 : 0); }
+                });
+            };
+            wire('.ck-no input', '.ck-firma input');
+            wire('.ck-firma input', '.ck-kesim input');
+            wire('.ck-kesim input', '.ck-vade input');
+            wire('.ck-vade input', '.ck-tutar input', true);
+            wire('.ck-tutar input', '.ck-notlar input');
+            const notlar = modal.querySelector('.ck-notlar input');
+            if(notlar) notlar.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter'){ e.preventDefault(); if(kaydet) kaydet.focus(); }
+            });
+            if(kaydet) kaydet.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowLeft'){ e.preventDefault(); if(iptal) iptal.focus(); }
+            });
+            if(iptal) iptal.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowRight'){ e.preventDefault(); if(kaydet) kaydet.focus(); }
+            });
+        '''), once=True)
 
     def open_edit_dialog(cek):
         firmalar = get_firma_list()

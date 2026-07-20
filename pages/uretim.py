@@ -1,7 +1,7 @@
 """ALSE Plastik Hammadde - Uretim Kayitlari Sayfasi"""
 from datetime import date
 from nicegui import ui
-from layout import create_layout, fmt_miktar, MIKTAR_SLOT, TARIH_SLOT, notify_ok, notify_err, confirm_dialog
+from layout import create_layout, fmt_miktar, MIKTAR_SLOT, TARIH_SLOT, notify_ok, notify_err, confirm_dialog, IM_MODAL_CSS
 from db import get_db
 from services.stok_service import get_urun_list
 
@@ -260,42 +260,93 @@ def uretim_page():
 
         girdi_rows = []
         cikti_rows = []
+        girdi_widgets = []   # Enter akisi icin satir widget referanslari
+        cikti_widgets = []
         girdi_container = None
         cikti_container = None
 
-        with ui.dialog() as dlg, ui.card().classes('q-pa-lg shadow-10').style('width: 90vw; max-width: 900px'):
-            with ui.column().classes('w-full'):
-                with ui.row().classes('items-center q-mb-sm'):
-                    ui.icon('add_circle', color='primary').classes('text-h5')
-                    ui.label('Yeni Üretim Kaydı').classes('text-h6 text-weight-bold q-ml-sm')
-                ui.separator()
+        ui.add_css(IM_MODAL_CSS)
+        with ui.dialog() as dlg, ui.card().classes('alse-dialog im-modal').style(
+                'width: 92vw; max-width: 640px; max-height: 92vh; display: flex; flex-direction: column; padding:0;'):
+            with ui.element('div').classes('im-head'):
+                ui.icon('factory').classes('im-ic')
+                ui.label('Yeni Üretim Kaydı').classes('im-title')
 
-                inp_tarih = ui.input('Tarih', value=date.today().isoformat()).classes('w-full q-mt-md').props(
-                    'outlined dense')
-                with inp_tarih:
-                    with ui.menu().props('no-parent-event') as tarih_menu:
-                        with ui.date(mask='YYYY-MM-DD').bind_value(inp_tarih) as dp:
-                            with ui.row().classes('justify-end'):
-                                ui.button('Kapat', on_click=tarih_menu.close).props('flat')
-                    with inp_tarih.add_slot('append'):
-                        ui.icon('edit_calendar').on('click', tarih_menu.open).classes('cursor-pointer')
+            with ui.column().classes('w-full im-body gap-1').style(
+                    'overflow-y:auto;flex:1 1 auto;min-height:0;'):
+                # Satir 1: Tarih + Aciklama
+                with ui.row().classes('w-full gap-sm no-wrap'):
+                    with ui.element('div').classes('im-field').style('flex:0 0 160px'):
+                        ui.label('TARİH').classes('im-flabel')
+                        inp_tarih = ui.input(value=date.today().isoformat()).props(
+                            'outlined dense type=date').classes('w-full ur-tarih')
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('AÇIKLAMA').classes('im-flabel')
+                        inp_aciklama = ui.input().props('outlined dense').classes('w-full ur-aciklama')
 
-                inp_aciklama = ui.input('Açıklama').classes('w-full').props('outlined dense')
+                # Evet/Hayir sorusu (Yeni Islem'deki kalem sorusu deseni; varsayilan Hayir)
+                def _soru(mesaj, on_yes, on_no):
+                    with ui.dialog() as sdlg, ui.card().classes('q-pa-md im-confirm-card').style(
+                            'min-width:360px;border-radius:12px'):
+                        ui.label(mesaj).classes('text-subtitle2 text-weight-bold').style('color:#0f766e')
+                        ui.label('Enter = Hayır   ·   → ile Evet').classes('text-caption text-grey-6 q-mb-sm')
+                        with ui.row().classes('w-full justify-end gap-2'):
+                            ui.button('Hayır', on_click=lambda: (sdlg.close(), on_no())).props('flat color=grey')
+                            ui.button('Evet', on_click=lambda: (sdlg.close(), on_yes())).props('unelevated color=positive')
+                    sdlg.open()
+                    ui.timer(0.12, lambda: ui.run_javascript('''
+                        const card = [...document.querySelectorAll('.im-confirm-card')].pop();
+                        if(!card) return;
+                        const btns = card.querySelectorAll('button');
+                        if(btns.length < 2) return;
+                        const noBtn = btns[0], yesBtn = btns[1];
+                        const mark = (b) => { noBtn.classList.remove('imsel'); yesBtn.classList.remove('imsel');
+                                              b.classList.add('imsel'); b.focus(); };
+                        mark(noBtn);
+                        card.addEventListener('keydown', (e) => {
+                            if(e.key === 'ArrowLeft'){ mark(noBtn); e.preventDefault(); }
+                            else if(e.key === 'ArrowRight'){ mark(yesBtn); e.preventDefault(); }
+                        });
+                    '''), once=True)
+
+                def _js_focus(sel_css):
+                    ui.run_javascript(
+                        f"const el=[...document.querySelectorAll('{sel_css}')].pop();if(el)el.focus();")
 
                 # --- Girdiler ---
-                ui.label('Girdiler (Hammadde)').classes('text-subtitle1 text-weight-medium q-mt-md')
-                girdi_container = ui.column().classes('w-full')
+                ui.label('GİRDİLER (HAMMADDE)').classes('im-flabel q-mt-xs')
+                girdi_container = ui.column().classes('w-full gap-1')
+
+                def _girdi_soru():
+                    def _evet():
+                        add_girdi_row()
+                        girdi_widgets[-1]['sel'].run_method('focus')
+
+                    def _hayir():
+                        if not cikti_widgets:
+                            add_cikti_row()
+                        cikti_widgets[0]['sel'].run_method('focus')
+                    _soru('Yeni girdi satırı eklensin mi?', _evet, _hayir)
+
+                def _cikti_soru():
+                    def _evet():
+                        add_cikti_row()
+                        cikti_widgets[-1]['sel'].run_method('focus')
+
+                    def _hayir():
+                        _js_focus('.im-modal .im-btn-kaydet')
+                    _soru('Yeni çıktı satırı eklensin mi?', _evet, _hayir)
 
                 def add_girdi_row():
                     row_data = {'urun_kod': '', 'miktar': 0}
                     girdi_rows.append(row_data)
                     with girdi_container:
-                        with ui.row().classes('w-full items-center gap-2') as row_el:
+                        with ui.row().classes('w-full items-center gap-2 no-wrap') as row_el:
                             sel = ui.select(
-                                options=urun_options, label='Ürün', with_input=True
-                            ).classes('flex-grow').props('outlined dense')
-                            mik = ui.number('Miktar (KG)', value=0, min=0, step=0.01).classes(
-                                'w-32').props('outlined dense')
+                                options=urun_options, with_input=True
+                            ).props('outlined dense').classes('col')
+                            mik = ui.number(value=0, min=0, step=0.01).props(
+                                'outlined dense input-class=text-right suffix=KG').classes('w-36')
 
                             def update_row(s=sel, m=mik, rd=row_data):
                                 rd['urun_kod'] = s.value or ''
@@ -303,32 +354,37 @@ def uretim_page():
 
                             sel.on('update:model-value', lambda e, u=update_row: u())
                             mik.on('update:model-value', lambda e, u=update_row: u())
+                            # Enter akisi: urun secilince miktara gec; miktar Enter -> soru
+                            sel.on_value_change(lambda e, m=mik: (m.run_method('focus') if e.value else None))
+                            mik.on('keydown.enter.prevent', _girdi_soru)
 
-                            def remove_girdi(r_el=row_el, rd=row_data):
+                            def remove_girdi(r_el=row_el, rd=row_data, w=None):
                                 if rd in girdi_rows:
                                     girdi_rows.remove(rd)
+                                girdi_widgets[:] = [x for x in girdi_widgets if x['rd'] is not rd]
                                 r_el.delete()
 
                             ui.button(icon='close', on_click=remove_girdi).props(
-                                'flat round dense color=negative size=sm')
+                                'flat round dense color=grey size=sm')
+                    girdi_widgets.append({'rd': row_data, 'sel': sel, 'mik': mik})
 
-                ui.button('Girdi Satiri Ekle', icon='add', on_click=add_girdi_row).props(
-                    'flat color=primary size=sm').classes('q-mt-xs')
+                ui.button('Girdi Satırı Ekle', icon='add', on_click=lambda: add_girdi_row()).props(
+                    'flat color=green-7 no-caps size=sm').style('font-size:11px;padding:2px 6px')
 
                 # --- Ciktilar ---
-                ui.label('Çıktılar (Üretilen)').classes('text-subtitle1 text-weight-medium q-mt-md')
-                cikti_container = ui.column().classes('w-full')
+                ui.label('ÇIKTILAR (ÜRETİLEN)').classes('im-flabel q-mt-xs')
+                cikti_container = ui.column().classes('w-full gap-1')
 
                 def add_cikti_row():
                     row_data = {'urun_kod': '', 'miktar': 0}
                     cikti_rows.append(row_data)
                     with cikti_container:
-                        with ui.row().classes('w-full items-center gap-2') as row_el:
+                        with ui.row().classes('w-full items-center gap-2 no-wrap') as row_el:
                             sel = ui.select(
-                                options=urun_options, label='Ürün', with_input=True
-                            ).classes('flex-grow').props('outlined dense')
-                            mik = ui.number('Miktar (KG)', value=0, min=0, step=0.01).classes(
-                                'w-32').props('outlined dense')
+                                options=urun_options, with_input=True
+                            ).props('outlined dense').classes('col')
+                            mik = ui.number(value=0, min=0, step=0.01).props(
+                                'outlined dense input-class=text-right suffix=KG').classes('w-36')
 
                             def update_row(s=sel, m=mik, rd=row_data):
                                 rd['urun_kod'] = s.value or ''
@@ -336,21 +392,31 @@ def uretim_page():
 
                             sel.on('update:model-value', lambda e, u=update_row: u())
                             mik.on('update:model-value', lambda e, u=update_row: u())
+                            sel.on_value_change(lambda e, m=mik: (m.run_method('focus') if e.value else None))
+                            mik.on('keydown.enter.prevent', _cikti_soru)
 
                             def remove_cikti(r_el=row_el, rd=row_data):
                                 if rd in cikti_rows:
                                     cikti_rows.remove(rd)
+                                cikti_widgets[:] = [x for x in cikti_widgets if x['rd'] is not rd]
                                 r_el.delete()
 
                             ui.button(icon='close', on_click=remove_cikti).props(
-                                'flat round dense color=negative size=sm')
+                                'flat round dense color=grey size=sm')
+                    cikti_widgets.append({'rd': row_data, 'sel': sel, 'mik': mik})
 
-                ui.button('Cikti Satiri Ekle', icon='add', on_click=add_cikti_row).props(
-                    'flat color=primary size=sm').classes('q-mt-xs')
+                ui.button('Çıktı Satırı Ekle', icon='add', on_click=lambda: add_cikti_row()).props(
+                    'flat color=green-7 no-caps size=sm').style('font-size:11px;padding:2px 6px')
 
-            ui.separator().classes('q-my-md')
-            with ui.row().classes('w-full justify-end'):
-                ui.button('İptal', on_click=dlg.close).props('flat color=grey')
+                # Enter akisi baslangici: Tarih -> Aciklama -> ilk girdi urunu
+                def _aciklama_enter():
+                    if girdi_widgets:
+                        girdi_widgets[0]['sel'].run_method('focus')
+                inp_aciklama.on('keydown.enter.prevent', _aciklama_enter)
+
+            with ui.row().classes('w-full justify-end items-center').style(
+                    'flex:0 0 auto;overflow:visible;padding:11px 16px;border-top:1px solid #eef2f6;'):
+                btn_iptal = ui.button('İptal', on_click=dlg.close).props('flat color=grey').classes('im-btn-iptal')
 
                 def save():
                     if not girdi_rows and not cikti_rows:
@@ -393,12 +459,35 @@ def uretim_page():
                     except Exception as e:
                         notify_err(f'Hata: {e}')
 
-                ui.button('Kaydet', color='primary', on_click=save).props('unelevated')
+                btn_kaydet = ui.button('Kaydet', on_click=save, color=None).props('unelevated no-caps') \
+                    .classes('im-btn-kaydet').style(
+                    'background:#059669;color:#fff;font-weight:700;padding:7px 22px;border-radius:9px')
 
         # Add initial rows
         add_girdi_row()
         add_cikti_row()
         dlg.open()
+        # Acilinca odak Tarih'e
+        ui.timer(0.2, lambda: inp_tarih.run_method('focus'), once=True)
+        # Klavye akisi (CLIENT-SIDE): Tarih Enter -> Aciklama; Kaydet<->Iptal ok gecisi
+        ui.timer(0.3, lambda: ui.run_javascript('''
+            const modal = [...document.querySelectorAll('.im-modal')].pop();
+            if(!modal || modal.__urFlow) return;
+            modal.__urFlow = true;
+            const kaydet = modal.querySelector('.im-btn-kaydet');
+            const iptal = modal.querySelector('.im-btn-iptal');
+            const tarih = modal.querySelector('.ur-tarih input');
+            if(tarih) tarih.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter'){ e.preventDefault();
+                    const a = modal.querySelector('.ur-aciklama input'); if(a) a.focus(); }
+            });
+            if(kaydet) kaydet.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowLeft'){ e.preventDefault(); if(iptal) iptal.focus(); }
+            });
+            if(iptal) iptal.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowRight'){ e.preventDefault(); if(kaydet) kaydet.focus(); }
+            });
+        '''), once=True)
 
     def do_delete(uretim_id):
         def confirmed():

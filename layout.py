@@ -326,6 +326,10 @@ body, html, .q-page-container, .q-page, .q-layout,
   overflow: auto;
   overscroll-behavior: contain;
 }
+/* Sabit boy tablo: bos bile olsa Islemler tablosuyla ayni yukseklik (min=max) */
+.sabit-tablo .q-table__middle {
+  min-height: calc(clamp(320px, calc(100vh - 320px), 680px) + (var(--table-extra-rows, 0) * 42px));
+}
 .q-table thead tr th {
   position: sticky;
   top: 0;
@@ -349,6 +353,9 @@ body, html, .q-page-container, .q-page, .q-layout,
     min-height: 180px;
     max-height: calc(clamp(250px, calc(100vh - 255px), 500px) + (var(--table-extra-rows, 0) * 38px));
   }
+  .sabit-tablo .q-table__middle {
+    min-height: calc(clamp(250px, calc(100vh - 255px), 500px) + (var(--table-extra-rows, 0) * 38px));
+  }
   .alse-group {
     margin: 0 !important;
     width: 100%;
@@ -369,6 +376,9 @@ body, html, .q-page-container, .q-page, .q-layout,
   .q-table__middle {
     min-height: 180px;
     max-height: calc(clamp(240px, calc(100vh - 260px), 520px) + (var(--table-extra-rows, 0) * 34px));
+  }
+  .sabit-tablo .q-table__middle {
+    min-height: calc(clamp(240px, calc(100vh - 260px), 520px) + (var(--table-extra-rows, 0) * 34px));
   }
 }
 '''
@@ -684,6 +694,10 @@ tr:hover .tarihsiz-cell { background: #fecaca !important; }
   overflow: auto;
   overscroll-behavior: contain;
 }
+/* Sabit boy tablo: bos bile olsa Islemler tablosuyla ayni yukseklik (min=max) */
+.sabit-tablo .q-table__middle {
+  min-height: calc(clamp(320px, calc(100vh - 320px), 680px) + (var(--table-extra-rows, 0) * 42px));
+}
 .q-table thead tr th {
   position: sticky;
   top: 0;
@@ -707,6 +721,9 @@ tr:hover .tarihsiz-cell { background: #fecaca !important; }
     min-height: 180px;
     max-height: calc(clamp(250px, calc(100vh - 255px), 500px) + (var(--table-extra-rows, 0) * 38px));
   }
+  .sabit-tablo .q-table__middle {
+    min-height: calc(clamp(250px, calc(100vh - 255px), 500px) + (var(--table-extra-rows, 0) * 38px));
+  }
   .alse-group {
     margin: 0 !important;
     width: 100%;
@@ -727,6 +744,9 @@ tr:hover .tarihsiz-cell { background: #fecaca !important; }
   .q-table__middle {
     min-height: 180px;
     max-height: calc(clamp(240px, calc(100vh - 260px), 520px) + (var(--table-extra-rows, 0) * 34px));
+  }
+  .sabit-tablo .q-table__middle {
+    min-height: calc(clamp(240px, calc(100vh - 260px), 520px) + (var(--table-extra-rows, 0) * 34px));
   }
 }
 
@@ -1532,4 +1552,62 @@ def odeme_banka_secici(*, odeme_value='NAKIT', banka_hesap_id=None, secenekler=N
         odeme=inp_odeme, banka=inp_banka,
         resolve_banka_id=resolve_banka_id, has_hesap=bool(banka_opts),
     )
+
+
+# --- Kompakt modal (Yeni Islem D4) ORTAK CSS'i ---
+# im-modal yapisini kullanan dialoglar sayfada `ui.add_css(IM_MODAL_CSS)` ile yukler.
+# (hareketler.py ve gelir_gider.py kendi kopyasini tasir; yeni sayfalar bunu kullanir.)
+IM_MODAL_CSS = '''
+    .im-modal { font-size:12.5px; border-radius:14px; }
+    .im-modal .im-head { background:#f0fdf9; border-bottom:1px solid #d5efe6;
+        padding:11px 18px; display:flex; align-items:center; gap:9px;
+        width:100%; align-self:stretch; box-sizing:border-box;
+        flex:0 0 auto !important; overflow:hidden !important; }
+    .im-modal .im-head .im-ic { color:#059669; font-size:20px; }
+    .im-modal .im-head .im-title { font-size:15px; font-weight:700; color:#0f172a; }
+    .im-modal .im-body { background:#ffffff !important; padding:10px 16px !important; gap:6px !important; }
+    .im-modal .im-body > .row, .im-modal .im-body > .nicegui-row { gap:8px !important; }
+    .im-modal .im-field { display:flex; flex-direction:column; gap:2px; min-width:0;
+        background:transparent !important; padding:0 !important; }
+    .im-modal .im-flabel { font-size:10px; font-weight:700; text-transform:uppercase;
+        color:#64748b; letter-spacing:.03em; line-height:1.2; padding-left:1px; }
+    .im-modal .q-field--outlined .q-field__control:before { border-color:#dbe3ea !important; }
+    .im-modal .q-field--dense .q-field__control,
+    .im-modal .q-field--dense .q-field__append,
+    .im-modal .q-field--dense .q-field__control--addon { height:34px !important; min-height:34px !important; }
+    .im-modal .q-field--dense .q-field__control-container { display:flex; align-items:center; }
+    .im-modal .q-field--dense .q-field__native, .im-modal .q-field--dense .q-field__input {
+        font-size:12.5px; min-height:32px; }
+    .im-modal .q-field__label { color:#64748b !important; text-transform:uppercase;
+        font-size:10px; letter-spacing:.03em; }
+    .im-modal .q-field--focused .q-field__label { color:#059669 !important; }
+    .im-modal .q-field--focused .q-field__control:after { border-color:#059669 !important; }
+    .im-modal .q-select__dropdown-icon { display:none !important; }
+    /* Toplam cubugu */
+    .im-totbar { display:grid; background:#f8fafc; border:1px solid #e2e8f0;
+        border-radius:9px; overflow:hidden; flex:0 0 auto; }
+    .im-tot2 { grid-template-columns:repeat(2,1fr); }
+    .im-tot3 { grid-template-columns:repeat(3,1fr); }
+    .im-tot { padding:7px 12px; border-right:1px solid #e8edf3; }
+    .im-tot:last-child { border-right:none; background:#ecfdf5; }
+    .im-tot .tk { font-size:9.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:#8a97a6; }
+    .im-tot:last-child .tk { color:#059669; }
+    .im-tot .tv { font-size:14.5px; font-weight:800; color:#0f172a; font-variant-numeric:tabular-nums; }
+    .im-tot:last-child .tv { color:#047857; }
+    /* Pill radio + klavye odak kutusu */
+    .im-odeme { display:flex; align-items:flex-end; gap:12px; flex-wrap:nowrap; }
+    .im-modal .q-radio--checked .q-radio__inner { color:#059669 !important; }
+    .im-modal .im-odeme .q-option-group { display:flex; gap:8px; flex-wrap:wrap; }
+    .im-modal .im-odeme .q-radio { border:1px solid #dbe1e8; border-radius:8px; padding:2px 10px; margin:0; }
+    .im-modal .im-odeme .q-radio--checked { background:#e7f6ef; border-color:#059669; }
+    .im-modal .im-odeme .q-radio__label { font-weight:600; font-size:12px; }
+    .im-modal .im-odeme .q-radio__inner { font-size:22px; }
+    .im-vpwrap { border:2px dashed transparent; border-radius:10px; padding:1px 6px; outline:none; }
+    .im-vpwrap:focus { border-color:#0891b2; background:#ecfeff; }
+    .im-modal .im-btn-kaydet:focus, .im-modal .im-btn-iptal:focus {
+        outline:2px solid #0891b2; outline-offset:2px; }
+    /* Evet/Hayir onay popup: secili buton belirgin */
+    .im-confirm-card button.imsel { outline:3px solid #059669 !important; outline-offset:2px;
+        box-shadow:0 0 0 4px rgba(5,150,105,.20) !important; }
+'''
 

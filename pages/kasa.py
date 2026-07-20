@@ -1,8 +1,9 @@
 """ALSE Plastik Hammadde - Kasa Sayfası"""
 from datetime import date, datetime
 from nicegui import ui
-from layout import create_layout, fmt_para, ozet_pill, PARA_SLOT, BAKIYE_SLOT, TARIH_SLOT, notify_ok, notify_err, confirm_dialog, normalize_search, donem_popover_btn, odeme_banka_secici
+from layout import create_layout, fmt_para, ozet_pill, PARA_SLOT, BAKIYE_SLOT, TARIH_SLOT, notify_ok, notify_err, confirm_dialog, normalize_search, donem_popover_btn, odeme_banka_secici, IM_MODAL_CSS
 from services.kasa_service import get_kasa_list, get_kasa_bakiye, add_kasa, delete_kasa, update_kasa, get_kasa_by_id
+from services.banka_service import list_banka_hesaplari
 from services.cari_service import get_firma_list
 from services.cek_service import list_cekler_portfoyde, generate_firma_cek_no, add_cek, change_durum
 from services.pdf_service import generate_kasa_raporu_pdf, save_pdf_preview
@@ -14,6 +15,7 @@ def kasa_page():
     if not create_layout(active_path='/kasa', page_title='Kasa'):
         return
     ui.add_css('.kasa-table tbody tr { cursor: pointer; }')
+    ui.add_css(IM_MODAL_CSS)
 
     def _open_pdf(pdf_bytes, filename: str):
         preview_url = save_pdf_preview(pdf_bytes, filename)
@@ -84,106 +86,124 @@ def kasa_page():
         firmalar = get_firma_list()
         firma_options = {f['kod']: f['ad'] for f in firmalar}
 
-        with ui.dialog() as dlg, ui.card().classes('alse-dialog').style('width: 90vw; max-width: 550px'):
-            with ui.element('div').classes('alse-dialog-header'):
-                ui.icon('add_circle')
-                ui.label('Yeni Kasa Kaydı').classes('dialog-title')
+        with ui.dialog() as dlg, ui.card().classes('alse-dialog im-modal').style(
+                'width: 92vw; max-width: 620px; max-height: 92vh; display: flex; flex-direction: column; padding:0;'):
+            with ui.element('div').classes('im-head'):
+                ui.icon('point_of_sale').classes('im-ic')
+                ui.label('Yeni Kasa Kaydı').classes('im-title')
 
-            # Tarih
-            inp_tarih = ui.input('Tarih', value=date.today().isoformat()).classes('w-full q-mt-sm').props('outlined dense')
-            with inp_tarih.add_slot('append'):
-                icon = ui.icon('event').classes('cursor-pointer')
-                with ui.menu() as menu:
-                    dp = ui.date(on_change=lambda e: (inp_tarih.set_value(e.value), menu.close()))
-                icon.on('click', menu.open)
+            with ui.column().classes('w-full im-body gap-1').style(
+                    'overflow-y:auto;flex:1 1 auto;min-height:0;'):
+                # Satir 1: Tarih + Tur + Kategori
+                with ui.row().classes('w-full gap-sm no-wrap'):
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('TARİH').classes('im-flabel')
+                        inp_tarih = ui.input(value=date.today().isoformat()).props(
+                            'outlined dense type=date').classes('w-full')
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('TÜR').classes('im-flabel')
+                        inp_tur = ui.select(
+                            options={'GELIR': 'Gelir', 'GIDER': 'Gider'}, value='GIDER'
+                        ).props('outlined dense').classes('w-full')
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('KATEGORİ').classes('im-flabel')
+                        kat_options = {k: k for k in GIDER_KATEGORILER}
+                        inp_kategori = ui.select(
+                            options=kat_options, with_input=True
+                        ).props('outlined dense clearable').classes('w-full')
 
-            # Firma
-            inp_firma = ui.select(
-                options=firma_options, label='Firma', with_input=True
-            ).classes('w-full').props('outlined dense')
+                def on_tur_change(e):
+                    if e.value == 'GIDER':
+                        inp_kategori.options = {k: k for k in GIDER_KATEGORILER}
+                    elif e.value == 'GELIR':
+                        inp_kategori.options = {k: k for k in GELIR_KATEGORILER}
+                    inp_kategori.value = None
+                inp_tur.on_value_change(on_tur_change)
 
-            # Tur
-            inp_tur = ui.select(
-                options={'GELIR': 'Gelir', 'GIDER': 'Gider'}, label='Tür', value='GIDER'
-            ).classes('w-full').props('outlined dense')
+                # Firma
+                with ui.element('div').classes('im-field w-full'):
+                    ui.label('FİRMA').classes('im-flabel')
+                    inp_firma = ui.select(
+                        options=firma_options, with_input=True
+                    ).props('outlined dense clearable').classes('w-full ks-firma')
 
-            # Kategori (Gider secildiginde gorunur)
-            kat_options = {k: k for k in GIDER_KATEGORILER}
-            inp_kategori = ui.select(
-                options=kat_options, label='Kategori', with_input=True
-            ).classes('w-full').props('outlined dense clearable')
-            inp_kategori.set_visibility(True)
+                # Satir: Tutar + Odeme Sekli + Banka (gorunur/gizli)
+                with ui.row().classes('w-full gap-sm no-wrap items-end'):
+                    with ui.element('div').classes('im-field').style('flex:0 0 150px'):
+                        ui.label('TUTAR').classes('im-flabel')
+                        inp_tutar = ui.number(value=0, format='%.2f').props(
+                            'outlined dense input-class=text-right').classes('w-full ks-tutar')
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('ÖDEME ŞEKLİ').classes('im-flabel')
+                        inp_odeme = ui.select(
+                            {'NAKIT': 'Nakit', 'BANKA': 'Banka', 'CEK': 'Çek', 'SENET': 'Senet'},
+                            value='NAKIT',
+                        ).props('outlined dense').classes('w-full')
+                    banka_field = ui.element('div').classes('im-field col')
+                    banka_field.set_visibility(False)
+                    with banka_field:
+                        ui.label('BANKA HESABI').classes('im-flabel')
+                        _bopts = {str(h['id']): h['ad'] for h in list_banka_hesaplari(sadece_aktif=True)}
+                        inp_banka = ui.select(_bopts).props('outlined dense').classes('w-full')
 
-            def on_tur_change(e):
-                if e.value == 'GIDER':
-                    inp_kategori.options = {k: k for k in GIDER_KATEGORILER}
-                    inp_kategori.set_visibility(True)
-                elif e.value == 'GELIR':
-                    inp_kategori.options = {k: k for k in GELIR_KATEGORILER}
-                    inp_kategori.set_visibility(True)
-                inp_kategori.value = None
-            inp_tur.on_value_change(on_tur_change)
+                # --- Çek ek alanları (odeme=CEK secilince) ---
+                cek_container = ui.column().classes('w-full gap-1')
+                cek_container.set_visibility(False)
 
-            # Tutar
-            inp_tutar = ui.number(label='Tutar', value=0, format='%.2f').classes('w-full').props('outlined dense')
+                def _odeme_change(e):
+                    banka_field.set_visibility(e.value == 'BANKA')
+                    cek_container.set_visibility(e.value == 'CEK')
+                inp_odeme.on_value_change(_odeme_change)
 
-            # Odeme Sekli + Banka secici (ortak bilesen)
-            secici = odeme_banka_secici(
-                odeme_value='NAKIT',
-                secenekler={'NAKIT': 'Nakit', 'BANKA': 'Banka', 'CEK': 'Çek', 'SENET': 'Senet'},
-            )
-            inp_odeme = secici.odeme
+                with cek_container:
+                    with ui.row().classes('w-full gap-sm no-wrap items-end'):
+                        with ui.element('div').classes('im-field').style('flex:0 0 150px'):
+                            ui.label('ÇEK TÜRÜ').classes('im-flabel')
+                            inp_cek_turu = ui.select(
+                                options={'FIRMA': 'Firma Çeki', 'CIRO': 'Ciro Çeki'}, value='FIRMA'
+                            ).props('outlined dense').classes('w-full')
 
-            # --- Çek ek alanları (ödeme şekli/banka'dan sonra, başlangıçta gizli) ---
-            cek_container = ui.column().classes('w-full')
-            cek_container.set_visibility(False)
-            inp_odeme.on_value_change(lambda e: cek_container.set_visibility(e.value == 'CEK'))
+                        # Firma ceki alanlari
+                        firma_cek_container = ui.row().classes('col gap-sm no-wrap items-end')
+                        with firma_cek_container:
+                            with ui.element('div').classes('im-field col'):
+                                ui.label('ÇEK NO').classes('im-flabel')
+                                auto_cek_no = generate_firma_cek_no()
+                                inp_cek_no = ui.input(value=auto_cek_no).props(
+                                    'outlined dense').classes('w-full ks-cekno')
+                            with ui.element('div').classes('im-field').style('flex:0 0 160px'):
+                                ui.label('ÇEK VADE').classes('im-flabel')
+                                inp_cek_vade = ui.input(value=date.today().isoformat()).props(
+                                    'outlined dense type=date').classes('w-full ks-cekvade')
 
-            with cek_container:
-                ui.separator().classes('q-my-xs')
-                ui.label('Çek Bilgileri').classes('text-subtitle2 text-weight-medium')
+                        # Ciro ceki alanlari
+                        ciro_container = ui.element('div').classes('im-field col')
+                        ciro_container.set_visibility(False)
+                        with ciro_container:
+                            ui.label('CİRO EDİLECEK ÇEK').classes('im-flabel')
+                            portfoydeki = list_cekler_portfoyde()
+                            ciro_tutar_map = {str(c['id']): float(c.get('tutar', 0) or 0) for c in portfoydeki}
+                            cek_options = {str(c['id']): f"{c['cek_no']} - {c.get('firma_ad', '')} - {fmt_para(c.get('tutar', 0))} TL" for c in portfoydeki}
+                            inp_ciro_cek = ui.select(
+                                options=cek_options, with_input=True
+                            ).props('outlined dense').classes('w-full')
+                            inp_ciro_cek.on_value_change(
+                                lambda e: inp_tutar.set_value(ciro_tutar_map.get(str(e.value), inp_tutar.value))
+                            )
 
-                inp_cek_turu = ui.select(
-                    options={'FIRMA': 'Firma Çeki', 'CIRO': 'Ciro Çeki'},
-                    label='Çek Türü', value='FIRMA'
-                ).classes('w-full').props('outlined dense')
+                        def on_cek_turu_change(e):
+                            firma_cek_container.set_visibility(e.value == 'FIRMA')
+                            ciro_container.set_visibility(e.value == 'CIRO')
+                        inp_cek_turu.on_value_change(on_cek_turu_change)
 
-                # Firma çeki alanları
-                firma_cek_container = ui.column().classes('w-full')
-                with firma_cek_container:
-                    auto_cek_no = generate_firma_cek_no()
-                    inp_cek_no = ui.input('Çek No', value=auto_cek_no).classes('w-full').props('outlined dense')
-                    inp_cek_vade = ui.input('Çek Vade Tarihi', value=date.today().isoformat()).classes('w-full').props('outlined dense')
-                    with inp_cek_vade.add_slot('append'):
-                        icon_cv = ui.icon('event').classes('cursor-pointer')
-                        with ui.menu() as menu_cv:
-                            ui.date(on_change=lambda e: (inp_cek_vade.set_value(e.value), menu_cv.close()))
-                        icon_cv.on('click', menu_cv.open)
+                # Aciklama
+                with ui.element('div').classes('im-field w-full'):
+                    ui.label('AÇIKLAMA').classes('im-flabel')
+                    inp_aciklama = ui.input().props('outlined dense').classes('w-full ks-aciklama')
 
-                # Ciro çeki alanları
-                ciro_container = ui.column().classes('w-full')
-                ciro_container.set_visibility(False)
-                with ciro_container:
-                    portfoydeki = list_cekler_portfoyde()
-                    ciro_tutar_map = {str(c['id']): float(c.get('tutar', 0) or 0) for c in portfoydeki}
-                    cek_options = {str(c['id']): f"{c['cek_no']} - {c.get('firma_ad', '')} - {fmt_para(c.get('tutar', 0))} TL" for c in portfoydeki}
-                    inp_ciro_cek = ui.select(
-                        options=cek_options, label='Ciro Edilecek Çek', with_input=True
-                    ).classes('w-full').props('outlined dense')
-                    inp_ciro_cek.on_value_change(
-                        lambda e: inp_tutar.set_value(ciro_tutar_map.get(str(e.value), inp_tutar.value))
-                    )
-
-                def on_cek_turu_change(e):
-                    firma_cek_container.set_visibility(e.value == 'FIRMA')
-                    ciro_container.set_visibility(e.value == 'CIRO')
-                inp_cek_turu.on_value_change(on_cek_turu_change)
-
-            # Açıklama
-            inp_aciklama = ui.input('Açıklama').classes('w-full').props('outlined dense')
-
-            with ui.row().classes('w-full justify-end q-mt-md'):
-                ui.button('İptal', on_click=dlg.close).props('flat color=grey')
+            with ui.row().classes('w-full justify-end items-center').style(
+                    'flex:0 0 auto;overflow:visible;padding:11px 16px;border-top:1px solid #eef2f6;'):
+                btn_iptal = ui.button('İptal', on_click=dlg.close).props('flat color=grey').classes('im-btn-iptal')
 
                 def save():
                     if not inp_tarih.value:
@@ -261,7 +281,7 @@ def kasa_page():
                                 return
 
                         # Banka secildiyse hesap zorunlu
-                        banka_hesap_id = secici.resolve_banka_id()
+                        banka_hesap_id = int(inp_banka.value) if (odeme_secili == 'BANKA' and inp_banka.value) else None
                         if odeme_secili == 'BANKA' and not banka_hesap_id:
                             notify_err('Banka hesabı seçmelisiniz')
                             return
@@ -287,8 +307,111 @@ def kasa_page():
                     except Exception as e:
                         notify_err(f'Hata: {e}')
 
-                ui.button('Kaydet', color='primary', on_click=save).props('unelevated')
+                btn_kaydet = ui.button('Kaydet', on_click=save, color=None).props('unelevated no-caps') \
+                    .classes('im-btn-kaydet').style(
+                    'background:#059669;color:#fff;font-weight:700;padding:7px 22px;border-radius:9px')
+
+                # --- Enter akisi (sunucu: popup acma zinciri) ---
+                # Tarih -> Tur -> Kategori -> Firma -> Tutar -> Odeme Sekli
+                #  -> BANKA: hesap listesi -> Aciklama
+                #  -> CEK: cek turu -> (FIRMA: cek no -> vade | CIRO: cek listesi) -> Aciklama
+                #  -> NAKIT/SENET: Aciklama -> Kaydet
+                def _js_focus(sel_css, select_all=False):
+                    ui.run_javascript(
+                        f"const el=[...document.querySelectorAll('{sel_css}')].pop();"
+                        "if(el){el.focus();" + ("if(el.select)el.select();" if select_all else "") + "}")
+
+                _nav = {'tur': False, 'kat': False, 'odeme': False, 'banka': False,
+                        'cekturu': False, 'cirocek': False}
+
+                def _ac(sel, flag):
+                    _nav[flag] = True
+                    sel.run_method('focus')
+                    sel.run_method('showPopup')
+
+                inp_tarih.on('keydown.enter.prevent', lambda: _ac(inp_tur, 'tur'))
+
+                def _tur_hide():
+                    if _nav['tur']:
+                        _nav['tur'] = False
+                        _ac(inp_kategori, 'kat')
+                inp_tur.on('popup-hide', _tur_hide)
+
+                def _kat_hide():
+                    if _nav['kat']:
+                        _nav['kat'] = False
+                        inp_firma.run_method('focus')
+                inp_kategori.on('popup-hide', _kat_hide)
+
+                inp_tutar.on('keydown.enter.prevent', lambda: _ac(inp_odeme, 'odeme'))
+
+                def _odeme_hide():
+                    if _nav['odeme']:
+                        _nav['odeme'] = False
+                        val = inp_odeme.value or 'NAKIT'
+                        if val == 'BANKA':
+                            _ac(inp_banka, 'banka')
+                        elif val == 'CEK':
+                            _ac(inp_cek_turu, 'cekturu')
+                        else:
+                            _js_focus('.im-modal .ks-aciklama input')
+                inp_odeme.on('popup-hide', _odeme_hide)
+
+                def _banka_hide():
+                    if _nav['banka']:
+                        _nav['banka'] = False
+                        _js_focus('.im-modal .ks-aciklama input')
+                inp_banka.on('popup-hide', _banka_hide)
+
+                def _cekturu_hide():
+                    if _nav['cekturu']:
+                        _nav['cekturu'] = False
+                        if inp_cek_turu.value == 'CIRO':
+                            _ac(inp_ciro_cek, 'cirocek')
+                        else:
+                            _js_focus('.im-modal .ks-cekno input', select_all=True)
+                inp_cek_turu.on('popup-hide', _cekturu_hide)
+
+                def _cirocek_hide():
+                    if _nav['cirocek']:
+                        _nav['cirocek'] = False
+                        _js_focus('.im-modal .ks-aciklama input')
+                inp_ciro_cek.on('popup-hide', _cirocek_hide)
         dlg.open()
+        # Acilinca odak Tarih'e
+        ui.timer(0.2, lambda: inp_tarih.run_method('focus'), once=True)
+        # Klavye akisi (CLIENT-SIDE, gecikmesiz)
+        ui.timer(0.3, lambda: ui.run_javascript('''
+            const modal = [...document.querySelectorAll('.im-modal')].pop();
+            if(!modal || modal.__ksFlow) return;
+            modal.__ksFlow = true;
+            const kaydet = modal.querySelector('.im-btn-kaydet');
+            const iptal = modal.querySelector('.im-btn-iptal');
+            const go = (sel, selAll) => { const el = modal.querySelector(sel);
+                if(el){ el.focus(); if(selAll && el.select) el.select(); } };
+            const firma = modal.querySelector('.ks-firma input');
+            if(firma) firma.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter'){ setTimeout(() => go('.ks-tutar input', true), 80); }
+            });
+            const cekno = modal.querySelector('.ks-cekno input');
+            if(cekno) cekno.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter'){ e.preventDefault(); go('.ks-cekvade input'); }
+            });
+            const cekvade = modal.querySelector('.ks-cekvade input');
+            if(cekvade) cekvade.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter'){ e.preventDefault(); go('.ks-aciklama input'); }
+            });
+            const acik = modal.querySelector('.ks-aciklama input');
+            if(acik) acik.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter'){ e.preventDefault(); if(kaydet) kaydet.focus(); }
+            });
+            if(kaydet) kaydet.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowLeft'){ e.preventDefault(); if(iptal) iptal.focus(); }
+            });
+            if(iptal) iptal.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowRight'){ e.preventDefault(); if(kaydet) kaydet.focus(); }
+            });
+        '''), once=True)
 
     def open_edit_dialog(row):
         firmalar = get_firma_list()

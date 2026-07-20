@@ -1,7 +1,7 @@
 """Ödeme / Tahsilat Takibi — vade planı sayfası."""
 from datetime import date, datetime
 from nicegui import ui
-from layout import create_layout, fmt_para, ozet_pill, notify_ok, notify_err, confirm_dialog, segment_group, donem_popover_btn
+from layout import create_layout, fmt_para, ozet_pill, notify_ok, notify_err, confirm_dialog, segment_group, donem_popover_btn, IM_MODAL_CSS
 from services.odeme_takibi_service import (
     list_odeme_takibi, get_ozet, add_odeme_takibi, update_odeme_takibi,
     delete_odeme_takibi, ode, ode_toplu, get_vadeli_cari, get_cek_vadeleri,
@@ -363,24 +363,60 @@ def odeme_takibi_page():
         duzenle = row is not None
         firmalar = get_firma_list()
         firma_opts = {f['kod']: f['ad'] for f in firmalar}
-        with ui.dialog() as dlg, ui.card().classes('q-pa-md').style('min-width: 420px'):
-            ui.label('Ödeme/Tahsilat Düzenle' if duzenle else 'Yeni Ödeme/Tahsilat Planı').classes('text-h6')
-            inp_tip = ui.select({'BORC': 'Borç (ödenecek)', 'ALACAK': 'Alacak (tahsil)'},
-                                value=row['tip'] if duzenle else 'BORC', label='Tip').props('outlined dense').classes('w-full')
-            inp_kaynak = ui.select(KAYNAK, value=row.get('kaynak', 'DIGER') if duzenle else 'DIGER',
-                                   label='Kaynak').props('outlined dense').classes('w-full')
-            inp_firma = ui.select(firma_opts, value=row.get('firma_kod') or None if duzenle else None,
-                                  label='Kişi/Firma (cari)', with_input=True).props('outlined dense clearable').classes('w-full')
-            inp_aciklama = ui.input('Açıklama', value=row.get('aciklama', '') if duzenle else '').props('outlined dense').classes('w-full')
-            inp_tutar = ui.number('Tutar', value=float(row['tutar']) if duzenle else 0, format='%.2f').props('outlined dense').classes('w-full')
-            inp_vade = ui.input('Vade Tarihi', value=row.get('vade_tarih', '') if duzenle else date.today().isoformat()).props('outlined dense').classes('w-full')
-            with inp_vade.add_slot('append'):
-                ic = ui.icon('event').classes('cursor-pointer')
-                with ui.menu() as m:
-                    ui.date(on_change=lambda e: (inp_vade.set_value(e.value), m.close()))
-                ic.on('click', m.open)
-            with ui.row().classes('w-full justify-end q-mt-md'):
-                ui.button('İptal', on_click=dlg.close).props('flat color=grey')
+        ui.add_css(IM_MODAL_CSS)
+        with ui.dialog() as dlg, ui.card().classes('alse-dialog im-modal').style(
+                'width: 92vw; max-width: 540px; max-height: 92vh; display: flex; flex-direction: column; padding:0;'):
+            with ui.element('div').classes('im-head'):
+                ui.icon('event').classes('im-ic')
+                ui.label('Ödeme/Tahsilat Düzenle' if duzenle else 'Yeni Ödeme/Tahsilat Planı').classes('im-title')
+
+            with ui.column().classes('w-full im-body gap-1').style(
+                    'overflow-y:auto;flex:1 1 auto;min-height:0;'):
+                # Satir 1: Tip (pill kutu, ok tuslariyla) + Kaynak
+                with ui.row().classes('w-full gap-sm no-wrap items-end'):
+                    with ui.element('div').classes('im-field'):
+                        ui.label('TİP').classes('im-flabel')
+                        with ui.element('div').classes('im-odeme'):
+                            with ui.element('div').classes('im-vpwrap').props('tabindex=-1') as tip_wrap:
+                                inp_tip = ui.radio(
+                                    {'BORC': 'Borç (ödenecek)', 'ALACAK': 'Alacak (tahsil)'},
+                                    value=row['tip'] if duzenle else 'BORC'
+                                ).props('inline dense')
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('KAYNAK').classes('im-flabel')
+                        inp_kaynak = ui.select(
+                            KAYNAK, value=row.get('kaynak', 'DIGER') if duzenle else 'DIGER'
+                        ).props('outlined dense').classes('w-full')
+
+                # Kisi/Firma
+                with ui.element('div').classes('im-field w-full'):
+                    ui.label('KİŞİ / FİRMA (CARİ)').classes('im-flabel')
+                    inp_firma = ui.select(
+                        firma_opts, value=row.get('firma_kod') or None if duzenle else None,
+                        with_input=True,
+                    ).props('outlined dense clearable').classes('w-full pl-firma')
+
+                # Aciklama
+                with ui.element('div').classes('im-field w-full'):
+                    ui.label('AÇIKLAMA').classes('im-flabel')
+                    inp_aciklama = ui.input(value=row.get('aciklama', '') if duzenle else '').props(
+                        'outlined dense').classes('w-full pl-aciklama')
+
+                # Satir: Tutar + Vade
+                with ui.row().classes('w-full gap-sm no-wrap'):
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('TUTAR').classes('im-flabel')
+                        inp_tutar = ui.number(value=float(row['tutar']) if duzenle else 0, format='%.2f').props(
+                            'outlined dense input-class=text-right').classes('w-full pl-tutar')
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('VADE TARİHİ').classes('im-flabel')
+                        inp_vade = ui.input(
+                            value=row.get('vade_tarih', '') if duzenle else date.today().isoformat()
+                        ).props('outlined dense type=date').classes('w-full pl-vade')
+
+            with ui.row().classes('w-full justify-end items-center').style(
+                    'flex:0 0 auto;overflow:visible;padding:11px 16px;border-top:1px solid #eef2f6;'):
+                btn_iptal = ui.button('İptal', on_click=dlg.close).props('flat color=grey').classes('im-btn-iptal')
 
                 def _save():
                     if not inp_tutar.value or float(inp_tutar.value) <= 0:
@@ -399,8 +435,71 @@ def odeme_takibi_page():
                         dlg.close(); _refresh()
                     except Exception as e:
                         notify_err(f'Hata: {e}')
-                ui.button('Kaydet', color='primary', on_click=_save).props('unelevated')
+
+                btn_kaydet = ui.button('Kaydet', on_click=_save, color=None).props('unelevated no-caps') \
+                    .classes('im-btn-kaydet').style(
+                    'background:#059669;color:#fff;font-weight:700;padding:7px 22px;border-radius:9px')
+
+                # Enter akisi (sunucu: Kaynak popup zinciri)
+                _nav = {'kaynak': False}
+
+                def _tip_enter():
+                    _nav['kaynak'] = True
+                    inp_kaynak.run_method('focus')
+                    inp_kaynak.run_method('showPopup')
+                tip_wrap.on('keydown.enter.prevent', _tip_enter)
+
+                def _kaynak_hide():
+                    if _nav['kaynak']:
+                        _nav['kaynak'] = False
+                        inp_firma.run_method('focus')
+                inp_kaynak.on('popup-hide', _kaynak_hide)
         dlg.open()
+        # Klavye akisi (CLIENT-SIDE): Tip kutusu -> Kaynak -> Firma -> Aciklama
+        # -> Tutar (tumu secili) -> Vade -> Kaydet; Kaydet<->Iptal ok gecisi
+        ui.timer(0.3, lambda: ui.run_javascript('''
+            const modal = [...document.querySelectorAll('.im-modal')].pop();
+            if(!modal || modal.__plFlow) return;
+            modal.__plFlow = true;
+            const kaydet = modal.querySelector('.im-btn-kaydet');
+            const iptal = modal.querySelector('.im-btn-iptal');
+            const go = (sel, selAll) => { const el = modal.querySelector(sel);
+                if(el){ el.focus(); if(selAll && el.select) el.select(); } };
+            const tw = modal.querySelector('.im-vpwrap');
+            if(tw){
+                tw.addEventListener('keydown', (e) => {
+                    const r = [...tw.querySelectorAll('.q-radio')];
+                    const i = r.findIndex(x => x.getAttribute('aria-checked') === 'true');
+                    if(e.key === 'ArrowRight'){ e.preventDefault();
+                        const n = r[Math.min(i + 1, r.length - 1)]; if(n) n.click(); tw.focus(); }
+                    else if(e.key === 'ArrowLeft'){ e.preventDefault();
+                        const p = r[Math.max(i - 1, 0)]; if(p) p.click(); tw.focus(); }
+                });
+                tw.focus();
+            }
+            const firma = modal.querySelector('.pl-firma input');
+            if(firma) firma.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter'){ setTimeout(() => go('.pl-aciklama input'), 80); }
+            });
+            const acik = modal.querySelector('.pl-aciklama input');
+            if(acik) acik.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter'){ e.preventDefault(); go('.pl-tutar input', true); }
+            });
+            const tutar = modal.querySelector('.pl-tutar input');
+            if(tutar) tutar.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter'){ e.preventDefault(); go('.pl-vade input'); }
+            });
+            const vade = modal.querySelector('.pl-vade input');
+            if(vade) vade.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter'){ e.preventDefault(); if(kaydet) kaydet.focus(); }
+            });
+            if(kaydet) kaydet.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowLeft'){ e.preventDefault(); if(iptal) iptal.focus(); }
+            });
+            if(iptal) iptal.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowRight'){ e.preventDefault(); if(kaydet) kaydet.focus(); }
+            });
+        '''), once=True)
 
     def _ode_dialog(row):
         hesap_opts = {'__nakit__': 'Nakit Kasa'}
