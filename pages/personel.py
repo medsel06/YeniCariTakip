@@ -246,22 +246,28 @@ def personel_page():
         son_ucret = get_son_mesai_ucreti(pid)
         initial_saat_ucret = son_ucret if son_ucret and son_ucret > 0 else default_saat_ucret
 
-        with ui.dialog() as dlg, ui.card().classes('alse-dialog').style('width: 90vw; max-width: 480px'):
-            with ui.element('div').classes('alse-dialog-header'):
-                ui.icon('schedule')
-                ui.label(f'Mesai Gir - {row["ad"]}').classes('dialog-title')
+        with ui.dialog() as dlg, ui.card().classes('alse-dialog im-modal').style(
+                'width: 92vw; max-width: 520px; max-height: 92vh; display: flex; flex-direction: column; padding:0;'):
+            with ui.element('div').classes('im-head'):
+                ui.icon('more_time').classes('im-ic')
+                ui.label(f'Mesai Gir — {row["ad"]}').classes('im-title')
 
-            with ui.column().classes('w-full q-mt-sm gap-sm'):
-                inp_tarih_m = ui.input('Mesai Tarihi', value=date.today().isoformat()).props('outlined dense').classes('w-full')
-                with inp_tarih_m.add_slot('append'):
-                    icon_m = ui.icon('event').classes('cursor-pointer')
-                    with ui.menu() as menu_m:
-                        ui.date(on_change=lambda e: (inp_tarih_m.set_value(e.value), menu_m.close()))
-                    icon_m.on('click', menu_m.open)
-
-                with ui.row().classes('w-full gap-md no-wrap'):
-                    inp_ucret = ui.number('Saat Ücreti (TL)', value=round(initial_saat_ucret, 2), format='%.2f').props('outlined dense').classes('col')
-                    inp_saat = ui.number('Mesai Saat', value=0, format='%.1f').props('outlined dense').classes('col')
+            with ui.column().classes('w-full im-body gap-1').style(
+                    'overflow-y:auto;flex:1 1 auto;min-height:0;'):
+                # Satir 1: Tarih + Saat Ucreti + Mesai Saat
+                with ui.row().classes('w-full gap-sm no-wrap'):
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('MESAİ TARİHİ').classes('im-flabel')
+                        inp_tarih_m = ui.input(value=date.today().isoformat()).props(
+                            'outlined dense type=date').classes('w-full ms-tarih')
+                    with ui.element('div').classes('im-field').style('flex:0 0 130px'):
+                        ui.label('SAAT ÜCRETİ (TL)').classes('im-flabel')
+                        inp_ucret = ui.number(value=round(initial_saat_ucret, 2), format='%.2f').props(
+                            'outlined dense input-class=text-right').classes('w-full ms-ucret')
+                    with ui.element('div').classes('im-field').style('flex:0 0 110px'):
+                        ui.label('MESAİ SAAT').classes('im-flabel')
+                        inp_saat = ui.number(value=0, format='%.1f').props(
+                            'outlined dense input-class=text-right').classes('w-full ms-saat')
 
                 ui.label(
                     f'Standart ücret: {fmt_para(default_saat_ucret)} TL (Maaş/{saat_boleni}×1.5)'
@@ -277,10 +283,14 @@ def personel_page():
                 inp_saat.on_value_change(lambda _: recalc())
                 inp_ucret.on_value_change(lambda _: recalc())
 
-                inp_aciklama = ui.input('Açıklama').props('outlined dense').classes('w-full')
+                with ui.element('div').classes('im-field w-full'):
+                    ui.label('AÇIKLAMA').classes('im-flabel')
+                    inp_aciklama = ui.input().props('outlined dense').classes('w-full ms-acik')
 
-            with ui.row().classes('w-full justify-end q-mt-md'):
-                ui.button('İptal', on_click=dlg.close).props('flat color=grey')
+            with ui.row().classes('w-full justify-end items-center').style(
+                    'flex:0 0 auto;overflow:visible;padding:11px 16px;border-top:1px solid #eef2f6;'):
+                ui.label('⏎ Enter ilerler · F2 kaydeder').classes('im-enter-hint').style('margin-right:auto')
+                btn_iptal = ui.button('İptal', on_click=dlg.close).props('flat color=grey').classes('im-btn-iptal')
 
                 def save():
                     saat = float(inp_saat.value or 0)
@@ -305,30 +315,69 @@ def personel_page():
                     except Exception as e:
                         notify_err(f'Hata: {e}')
 
-                ui.button('Kaydet', color='primary', on_click=save).props('unelevated').classes('im-btn-kaydet')
+                btn_kaydet = ui.button('Kaydet', on_click=save, color=None).props('unelevated no-caps') \
+                    .classes('im-btn-kaydet').style(
+                    'background:#059669;color:#fff;font-weight:700;padding:7px 22px;border-radius:9px')
         dlg.open()
+        # Acilinca odak Tarih'e; Enter zinciri: tarih -> ucret -> saat -> aciklama -> Kaydet
+        ui.timer(0.2, lambda: inp_tarih_m.run_method('focus'), once=True)
+        ui.timer(0.3, lambda: ui.run_javascript('''
+            const modal = [...document.querySelectorAll('.im-modal')].pop();
+            if(!modal || modal.__msFlow) return;
+            modal.__msFlow = true;
+            const kaydet = modal.querySelector('.im-btn-kaydet');
+            const iptal = modal.querySelector('.im-btn-iptal');
+            const sira = ['.ms-tarih', '.ms-ucret', '.ms-saat', '.ms-acik'];
+            sira.forEach((cls, i) => {
+                const el = modal.querySelector(cls + ' input');
+                if(!el) return;
+                el.addEventListener('keydown', (e) => {
+                    if(e.key !== 'Enter') return;
+                    e.preventDefault();
+                    const nxt = sira[i + 1];
+                    if(nxt){ const n = modal.querySelector(nxt + ' input'); if(n){ n.focus(); if(n.select) n.select(); } }
+                    else if(kaydet){ kaydet.focus(); }
+                });
+            });
+            if(kaydet) kaydet.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowLeft'){ e.preventDefault(); if(iptal) iptal.focus(); }
+            });
+            if(iptal) iptal.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowRight'){ e.preventDefault(); if(kaydet) kaydet.focus(); }
+            });
+        '''), once=True)
 
     def open_avans_dialog(row):
         pid = row['personel_id']
-        with ui.dialog() as dlg, ui.card().classes('alse-dialog').style('width: 90vw; max-width: 420px'):
-            with ui.element('div').classes('alse-dialog-header'):
-                ui.icon('money_off')
-                ui.label(f'Avans Ver - {row["ad"]}').classes('dialog-title')
+        with ui.dialog() as dlg, ui.card().classes('alse-dialog im-modal').style(
+                'width: 92vw; max-width: 500px; max-height: 92vh; display: flex; flex-direction: column; padding:0;'):
+            with ui.element('div').classes('im-head'):
+                ui.icon('account_balance_wallet').classes('im-ic')
+                ui.label(f'Avans Ver — {row["ad"]}').classes('im-title')
 
-            with ui.column().classes('w-full q-mt-sm gap-sm'):
-                inp_tarih = ui.input('Tarih', value=date.today().isoformat()).props('outlined dense').classes('w-full')
-                with inp_tarih.add_slot('append'):
-                    icon_t = ui.icon('event').classes('cursor-pointer')
-                    with ui.menu() as menu_t:
-                        ui.date(on_change=lambda e: (inp_tarih.set_value(e.value), menu_t.close()))
-                    icon_t.on('click', menu_t.open)
+            with ui.column().classes('w-full im-body gap-1').style(
+                    'overflow-y:auto;flex:1 1 auto;min-height:0;'):
+                with ui.row().classes('w-full gap-sm no-wrap'):
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('TARİH').classes('im-flabel')
+                        inp_tarih = ui.input(value=date.today().isoformat()).props(
+                            'outlined dense type=date').classes('w-full av-tarih')
+                    with ui.element('div').classes('im-field').style('flex:0 0 130px'):
+                        ui.label('TUTAR').classes('im-flabel')
+                        inp_tutar = ui.number(value=0, format='%.2f').props(
+                            'outlined dense input-class=text-right').classes('w-full av-tutar')
+                    with ui.element('div').classes('im-field').style('flex:0 0 130px'):
+                        ui.label('ÖDEME ŞEKLİ').classes('im-flabel')
+                        inp_odeme = ui.select(options={'NAKIT': 'Nakit', 'HAVALE': 'Havale/EFT'}, value='NAKIT').props(
+                            'outlined dense').classes('w-full')
+                with ui.element('div').classes('im-field w-full'):
+                    ui.label('AÇIKLAMA').classes('im-flabel')
+                    inp_aciklama = ui.input().props('outlined dense').classes('w-full av-acik')
 
-                inp_tutar = ui.number('Tutar', value=0, format='%.2f').props('outlined dense').classes('w-full')
-                inp_odeme = ui.select(options={'NAKIT': 'Nakit', 'HAVALE': 'Havale/EFT'}, label='Ödeme Şekli', value='NAKIT').props('outlined dense').classes('w-full')
-                inp_aciklama = ui.input('Açıklama').props('outlined dense').classes('w-full')
-
-            with ui.row().classes('w-full justify-end q-mt-md'):
-                ui.button('İptal', on_click=dlg.close).props('flat color=grey')
+            with ui.row().classes('w-full justify-end items-center').style(
+                    'flex:0 0 auto;overflow:visible;padding:11px 16px;border-top:1px solid #eef2f6;'):
+                ui.label('⏎ Enter ilerler · F2 kaydeder').classes('im-enter-hint').style('margin-right:auto')
+                btn_iptal = ui.button('İptal', on_click=dlg.close).props('flat color=grey').classes('im-btn-iptal')
 
                 def save():
                     tutar = float(inp_tutar.value or 0)
@@ -350,33 +399,79 @@ def personel_page():
                     except Exception as e:
                         notify_err(f'Hata: {e}')
 
-                ui.button('Kaydet', color='primary', on_click=save).props('unelevated').classes('im-btn-kaydet')
+                btn_kaydet = ui.button('Kaydet', on_click=save, color=None).props('unelevated no-caps') \
+                    .classes('im-btn-kaydet').style(
+                    'background:#059669;color:#fff;font-weight:700;padding:7px 22px;border-radius:9px')
+
+                # Enter: odeme sekli listesi acilip secilince aciklamaya gec
+                _anav = {'odeme': False}
+
+                def _av_tutar_enter():
+                    _anav['odeme'] = True
+                    inp_odeme.run_method('focus')
+                    inp_odeme.run_method('showPopup')
+
+                def _av_odeme_hide():
+                    if _anav['odeme']:
+                        _anav['odeme'] = False
+                        inp_aciklama.run_method('focus')
+                inp_odeme.on('popup-hide', _av_odeme_hide)
         dlg.open()
+        # Enter zinciri: tarih -> tutar -> odeme listesi -> aciklama -> Kaydet
+        ui.timer(0.2, lambda: inp_tarih.run_method('focus'), once=True)
+        inp_tarih.on('keydown.enter.prevent', lambda: (inp_tutar.run_method('focus'), inp_tutar.run_method('select')))
+        inp_tutar.on('keydown.enter.prevent', _av_tutar_enter)
+        ui.timer(0.3, lambda: ui.run_javascript('''
+            const modal = [...document.querySelectorAll('.im-modal')].pop();
+            if(!modal || modal.__avFlow) return;
+            modal.__avFlow = true;
+            const kaydet = modal.querySelector('.im-btn-kaydet');
+            const iptal = modal.querySelector('.im-btn-iptal');
+            const acik = modal.querySelector('.av-acik input');
+            if(acik) acik.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter'){ e.preventDefault(); if(kaydet) kaydet.focus(); }
+            });
+            if(kaydet) kaydet.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowLeft'){ e.preventDefault(); if(iptal) iptal.focus(); }
+            });
+            if(iptal) iptal.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowRight'){ e.preventDefault(); if(kaydet) kaydet.focus(); }
+            });
+        '''), once=True)
 
     def open_odeme_dialog(row):
         pid = row['personel_id']
         kalan = row.get('kalan', 0)
-        with ui.dialog() as dlg, ui.card().classes('alse-dialog').style('width: 90vw; max-width: 420px'):
-            with ui.element('div').classes('alse-dialog-header'):
-                ui.icon('payments')
-                ui.label(f'Maaş Ödeme - {row["ad"]}').classes('dialog-title')
+        with ui.dialog() as dlg, ui.card().classes('alse-dialog im-modal').style(
+                'width: 92vw; max-width: 500px; max-height: 92vh; display: flex; flex-direction: column; padding:0;'):
+            with ui.element('div').classes('im-head'):
+                ui.icon('paid').classes('im-ic')
+                ui.label(f'Maaş Ödeme — {row["ad"]}').classes('im-title')
 
-            with ui.column().classes('w-full q-mt-sm gap-sm'):
+            with ui.column().classes('w-full im-body gap-1').style(
+                    'overflow-y:auto;flex:1 1 auto;min-height:0;'):
                 ui.label(f'Kalan: {fmt_para(kalan)} TL').classes('text-subtitle2 text-weight-bold text-negative')
+                with ui.row().classes('w-full gap-sm no-wrap'):
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('TARİH').classes('im-flabel')
+                        inp_tarih = ui.input(value=date.today().isoformat()).props(
+                            'outlined dense type=date').classes('w-full od-tarih')
+                    with ui.element('div').classes('im-field').style('flex:0 0 130px'):
+                        ui.label('TUTAR').classes('im-flabel')
+                        inp_tutar = ui.number(value=max(kalan, 0), format='%.2f').props(
+                            'outlined dense input-class=text-right').classes('w-full od-tutar')
+                    with ui.element('div').classes('im-field').style('flex:0 0 130px'):
+                        ui.label('ÖDEME ŞEKLİ').classes('im-flabel')
+                        inp_odeme = ui.select(options={'NAKIT': 'Nakit', 'HAVALE': 'Havale/EFT'}, value='NAKIT').props(
+                            'outlined dense').classes('w-full')
+                with ui.element('div').classes('im-field w-full'):
+                    ui.label('AÇIKLAMA').classes('im-flabel')
+                    inp_aciklama = ui.input().props('outlined dense').classes('w-full od-acik')
 
-                inp_tarih = ui.input('Tarih', value=date.today().isoformat()).props('outlined dense').classes('w-full')
-                with inp_tarih.add_slot('append'):
-                    icon_t = ui.icon('event').classes('cursor-pointer')
-                    with ui.menu() as menu_t:
-                        ui.date(on_change=lambda e: (inp_tarih.set_value(e.value), menu_t.close()))
-                    icon_t.on('click', menu_t.open)
-
-                inp_tutar = ui.number('Tutar', value=max(kalan, 0), format='%.2f').props('outlined dense').classes('w-full')
-                inp_odeme = ui.select(options={'NAKIT': 'Nakit', 'HAVALE': 'Havale/EFT'}, label='Ödeme Şekli', value='NAKIT').props('outlined dense').classes('w-full')
-                inp_aciklama = ui.input('Açıklama').props('outlined dense').classes('w-full')
-
-            with ui.row().classes('w-full justify-end q-mt-md'):
-                ui.button('İptal', on_click=dlg.close).props('flat color=grey')
+            with ui.row().classes('w-full justify-end items-center').style(
+                    'flex:0 0 auto;overflow:visible;padding:11px 16px;border-top:1px solid #eef2f6;'):
+                ui.label('⏎ Enter ilerler · F2 kaydeder').classes('im-enter-hint').style('margin-right:auto')
+                btn_iptal = ui.button('İptal', on_click=dlg.close).props('flat color=grey').classes('im-btn-iptal')
 
                 def save():
                     tutar = float(inp_tutar.value or 0)
@@ -398,8 +493,45 @@ def personel_page():
                     except Exception as e:
                         notify_err(f'Hata: {e}')
 
-                ui.button('Kaydet', color='primary', on_click=save).props('unelevated').classes('im-btn-kaydet')
+                btn_kaydet = ui.button('Kaydet', on_click=save, color=None).props('unelevated no-caps') \
+                    .classes('im-btn-kaydet').style(
+                    'background:#059669;color:#fff;font-weight:700;padding:7px 22px;border-radius:9px')
+
+                # Enter: odeme sekli listesi acilip secilince aciklamaya gec
+                _onav = {'odeme': False}
+
+                def _od_tutar_enter():
+                    _onav['odeme'] = True
+                    inp_odeme.run_method('focus')
+                    inp_odeme.run_method('showPopup')
+
+                def _od_odeme_hide():
+                    if _onav['odeme']:
+                        _onav['odeme'] = False
+                        inp_aciklama.run_method('focus')
+                inp_odeme.on('popup-hide', _od_odeme_hide)
         dlg.open()
+        # Enter zinciri: tarih -> tutar (dolu, tumu secili) -> odeme listesi -> aciklama -> Kaydet
+        ui.timer(0.2, lambda: inp_tarih.run_method('focus'), once=True)
+        inp_tarih.on('keydown.enter.prevent', lambda: (inp_tutar.run_method('focus'), inp_tutar.run_method('select')))
+        inp_tutar.on('keydown.enter.prevent', _od_tutar_enter)
+        ui.timer(0.3, lambda: ui.run_javascript('''
+            const modal = [...document.querySelectorAll('.im-modal')].pop();
+            if(!modal || modal.__odFlow) return;
+            modal.__odFlow = true;
+            const kaydet = modal.querySelector('.im-btn-kaydet');
+            const iptal = modal.querySelector('.im-btn-iptal');
+            const acik = modal.querySelector('.od-acik input');
+            if(acik) acik.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter'){ e.preventDefault(); if(kaydet) kaydet.focus(); }
+            });
+            if(kaydet) kaydet.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowLeft'){ e.preventDefault(); if(iptal) iptal.focus(); }
+            });
+            if(iptal) iptal.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowRight'){ e.preventDefault(); if(kaydet) kaydet.focus(); }
+            });
+        '''), once=True)
 
     def open_rapor_dialog():
         with ui.dialog() as rdlg, ui.card().classes('alse-dialog').style('width: 90vw; max-width: 520px'):
@@ -629,9 +761,15 @@ def personel_page():
 
         # --- Baslik: islem ikonlari ---
         with btns_slot:
-            ui.button(icon='more_time', on_click=lambda: open_mesai_dialog(ozet)).props('flat round dense color=blue-7').tooltip('Mesai Gir')
-            ui.button(icon='account_balance_wallet', on_click=lambda: open_avans_dialog(ozet)).props('flat round dense color=orange-8').tooltip('Avans Ver')
-            ui.button(icon='paid', on_click=lambda: open_odeme_dialog(ozet)).props('flat round dense color=green-7').tooltip('Maaş Öde')
+            with ui.element('div').style('position:relative'):
+                ui.button(icon='more_time', on_click=lambda: open_mesai_dialog(ozet)).props('flat round dense color=blue-7').tooltip('Mesai Gir')
+                ui.label('F5').classes('fkey-hint')
+            with ui.element('div').style('position:relative'):
+                ui.button(icon='account_balance_wallet', on_click=lambda: open_avans_dialog(ozet)).props('flat round dense color=orange-8').tooltip('Avans Ver')
+                ui.label('F6').classes('fkey-hint')
+            with ui.element('div').style('position:relative'):
+                ui.button(icon='paid', on_click=lambda: open_odeme_dialog(ozet)).props('flat round dense color=green-7').tooltip('Maaş Öde')
+                ui.label('F7').classes('fkey-hint')
             ui.button(icon='description', on_click=lambda: _pdf_kisi(p, ozet, hareketler)).props('flat round dense color=grey-7').tooltip('PDF')
             ui.element('div').style('width:1px;height:22px;background:#e2e8f0;margin:0 3px')
             ui.button(icon='edit', on_click=lambda: open_personel_dialog(edit_row=p)).props('flat round dense color=grey-7').tooltip('Düzenle')
@@ -747,4 +885,31 @@ def personel_page():
 
     ui.add_css(IM_MODAL_CSS)
     f2_kisayolu(lambda: open_personel_dialog())
+
+    # F5/F6/F7: SECILI personel icin Mesai Gir / Avans Ver / Maas Odeme modallari
+    def _prs_fkey(e):
+        k = (e.args or {}).get('key')
+        data = _list_data()
+        ozet = next((x for x in data if x['personel_id'] == state['secili']), None)
+        if ozet is None:
+            notify_err('Önce soldan bir personel seçin')
+            return
+        if k == 'F5':
+            open_mesai_dialog(ozet)
+        elif k == 'F6':
+            open_avans_dialog(ozet)
+        elif k == 'F7':
+            open_odeme_dialog(ozet)
+    ui.on('prs_fkey', _prs_fkey)
+    ui.run_javascript('''
+        if(!window.__prsFkeys){
+            window.__prsFkeys = true;
+            document.addEventListener('keydown', (e) => {
+                if(!['F5','F6','F7'].includes(e.key)) return;
+                e.preventDefault();
+                if(document.querySelector('.q-dialog')) return;
+                emitEvent('prs_fkey', {key: e.key});
+            }, true);
+        }
+    ''')
     _refresh()
