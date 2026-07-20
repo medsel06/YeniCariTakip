@@ -151,8 +151,8 @@ def hareketler_page():
     .im-vqbtns { display:flex; gap:5px; align-items:center; padding-bottom:3px; }
 
     /* Enter-akisi: Vadeli/Pesin sarici klavyeyle gelince belirgin kutu */
-    .im-vpwrap { border:2px dashed transparent; border-radius:10px; padding:1px 6px; outline:none; }
-    .im-vpwrap:focus { border-color:#0891b2; background:#ecfeff; }
+    .im-vpwrap { border:1px solid transparent; border-radius:10px; padding:1px 6px; outline:none; }
+    .im-vpwrap:focus { border-color:#c7dbe8; background:#f6fafd; }
     /* Kaydet/Iptal klavye odagi belirgin olsun */
     .im-modal .im-btn-kaydet:focus, .im-modal .im-btn-iptal:focus {
         outline:2px solid #0891b2; outline-offset:2px; }

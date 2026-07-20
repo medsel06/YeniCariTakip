@@ -71,8 +71,8 @@ def gelir_gider_page(focus: int = None):
     .im-modal .im-odeme .q-radio--checked { background:#e7f6ef; border-color:#059669; }
     .im-modal .im-odeme .q-radio__label { font-weight:600; font-size:12px; }
     .im-modal .im-odeme .q-radio__inner { font-size:22px; }
-    .im-vpwrap { border:2px dashed transparent; border-radius:10px; padding:1px 6px; outline:none; }
-    .im-vpwrap:focus { border-color:#0891b2; background:#ecfeff; }
+    .im-vpwrap { border:1px solid transparent; border-radius:10px; padding:1px 6px; outline:none; }
+    .im-vpwrap:focus { border-color:#c7dbe8; background:#f6fafd; }
     .im-modal .im-btn-kaydet:focus, .im-modal .im-btn-iptal:focus {
         outline:2px solid #0891b2; outline-offset:2px; }
     ''')
