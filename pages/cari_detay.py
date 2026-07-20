@@ -357,7 +357,9 @@ def cari_detay_page(firma_kod: str):
                                               prefix=f'ekstre_{firma_kod}',
                                               kisa_ad=f'{_fa} Cari')
                         if origin:
-                            pdf_satiri = f"\n\n📄 Detaylı hesap ekstreniz (15 gün geçerlidir):\n{origin}{rel}"
+                            # Cari adi + gonderen dosya adinda: "kimin ekstresi, kimden geldi" net olsun
+                            pdf_satiri = (f"\n\n📄 {firma['ad']} — detaylı cari hesap ekstreniz "
+                                          f"(15 gün geçerlidir):\n{origin}{rel}")
                     except Exception:
                         pdf_satiri = ''
                     varsayilan = (

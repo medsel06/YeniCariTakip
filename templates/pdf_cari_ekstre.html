@@ -48,16 +48,17 @@
     border-bottom: 2.5px solid #1e293b; padding-bottom: 10px; margin-bottom: 12px;
   }
   .eks-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: #475569; margin-bottom: 4px; }
-  .eks-firma { font-size: 18px; font-weight: 700; color: #0f172a; letter-spacing: -0.02em; }
+  /* BUYUK baslik = CARININ adi (ekstre kimin ise o); string-set -> sayfa 2+ running header */
+  .eks-firma { font-size: 18px; font-weight: 700; color: #0f172a; letter-spacing: -0.02em; string-set: musteri-adi content(); }
   .eks-adres { font-size: 8.5pt; color: #64748b; margin-top: 3px; }
   .eks-doc { text-align: right; font-size: 8.5pt; color: #64748b; line-height: 1.6; }
 
+  /* Duzenleyen (bizim firma) — kucuk antet kutusu */
   .eks-musteri {
     background: #f8fafc; border: 1px solid #e2e8f0; border-left: 3px solid #334155;
     padding: 5px 12px; margin-bottom: 10px; display: flex; align-items: center; gap: 16px;
   }
-  /* Musteri adini CSS string'e kopyala — running header'da kullanilacak */
-  .eks-musteri-ad { font-size: 12px; font-weight: 700; color: #0f172a; string-set: musteri-adi content(); }
+  .eks-musteri-ad { font-size: 9.5px; font-weight: 700; color: #334155; }
   .eks-musteri-vkn { font-size: 9px; color: #64748b; }
 
   /* Tablo basligi her sayfada tekrarlasin */
@@ -101,18 +102,18 @@
   <div class="eks-header">
     <div>
       <div class="eks-title">Cari Hesap Ekstresi</div>
-      <div class="eks-firma">{{ sirket.firma_adi or 'Firma Adı' }}</div>
-      {% if sirket.adres %}<div class="eks-adres">{{ sirket.adres }}</div>{% endif %}
+      <div class="eks-firma">{{ firma.ad or firma.kod }}</div>
+      {% if firma.vkn_tckn or firma.tel %}<div class="eks-adres">{% if firma.vkn_tckn %}VKN: {{ firma.vkn_tckn }}{% endif %}{% if firma.tel %}{% if firma.vkn_tckn %} · {% endif %}Tel: {{ firma.tel }}{% endif %}</div>{% endif %}
     </div>
     <div class="eks-doc">
-      {{ doc_date }}{% if sirket.vkn_tckn %}<br/>VKN: {{ sirket.vkn_tckn }}{% endif %}
+      {{ doc_date }}
     </div>
   </div>
 
   <div class="eks-musteri">
-    <span class="eks-musteri-ad">{{ firma.ad or firma.kod }}</span>
-    {% if firma.vkn_tckn %}<span class="eks-musteri-vkn">VKN: {{ firma.vkn_tckn }}</span>{% endif %}
-    {% if firma.tel %}<span class="eks-musteri-vkn">Tel: {{ firma.tel }}</span>{% endif %}
+    <span class="eks-musteri-ad">Düzenleyen: {{ sirket.firma_adi or 'Firma' }}</span>
+    {% if sirket.vkn_tckn %}<span class="eks-musteri-vkn">VKN: {{ sirket.vkn_tckn }}</span>{% endif %}
+    {% if sirket.adres %}<span class="eks-musteri-vkn">{{ sirket.adres }}</span>{% endif %}
   </div>
 
   <table class="eks-tbl">
