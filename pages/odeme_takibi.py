@@ -416,6 +416,7 @@ def odeme_takibi_page():
 
             with ui.row().classes('w-full justify-end items-center').style(
                     'flex:0 0 auto;overflow:visible;padding:11px 16px;border-top:1px solid #eef2f6;'):
+                ui.label('⏎ Enter ilerler · F2 kaydeder').classes('im-enter-hint').style('margin-right:auto')
                 btn_iptal = ui.button('İptal', on_click=dlg.close).props('flat color=grey').classes('im-btn-iptal')
 
                 def _save():
@@ -463,6 +464,9 @@ def odeme_takibi_page():
             modal.__plFlow = true;
             const kaydet = modal.querySelector('.im-btn-kaydet');
             const iptal = modal.querySelector('.im-btn-iptal');
+            modal.addEventListener('keydown', (e) => {
+                if(e.key === 'F2'){ e.preventDefault(); if(kaydet) kaydet.click(); }
+            });
             const go = (sel, selAll) => { const el = modal.querySelector(sel);
                 if(el){ el.focus(); if(selAll && el.select) el.select(); } };
             const tw = modal.querySelector('.im-vpwrap');

@@ -1639,5 +1639,7 @@ IM_MODAL_CSS = '''
     /* Evet/Hayir onay popup: secili buton belirgin */
     .im-confirm-card button.imsel { outline:3px solid #059669 !important; outline-offset:2px;
         box-shadow:0 0 0 4px rgba(5,150,105,.20) !important; }
+    /* Alt bilgi: Enter ile ilerleme ipucu */
+    .im-enter-hint { font-size:10.5px; color:#94a3b8; white-space:nowrap; }
 '''
 

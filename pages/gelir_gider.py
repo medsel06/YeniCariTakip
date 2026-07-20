@@ -75,6 +75,7 @@ def gelir_gider_page(focus: int = None):
     .im-vpwrap:focus { border-color:#c7dbe8; background:#f6fafd; }
     .im-modal .im-btn-kaydet:focus, .im-modal .im-btn-iptal:focus {
         outline:2px solid #0891b2; outline-offset:2px; }
+    .im-enter-hint { font-size:10.5px; color:#94a3b8; white-space:nowrap; }
     ''')
 
     table_ref = None
@@ -563,6 +564,7 @@ def gelir_gider_page(focus: int = None):
 
             with ui.row().classes('w-full justify-end items-center').style(
                     'flex:0 0 auto;overflow:visible;padding:11px 16px;border-top:1px solid #eef2f6;'):
+                ui.label('⏎ Enter ilerler · F2 kaydeder').classes('im-enter-hint').style('margin-right:auto')
                 btn_iptal = ui.button('İptal', on_click=dlg.close).props('flat color=grey').classes('im-btn-iptal')
 
                 def save():
@@ -735,6 +737,9 @@ def gelir_gider_page(focus: int = None):
             modal.__ggFlow = true;
             const kaydet = modal.querySelector('.im-btn-kaydet');
             const iptal = modal.querySelector('.im-btn-iptal');
+            modal.addEventListener('keydown', (e) => {
+                if(e.key === 'F2'){ e.preventDefault(); if(kaydet) kaydet.click(); }
+            });
             const go = (sel, selAll) => { const el = modal.querySelector(sel);
                 if(el){ el.focus(); if(selAll && el.select) el.select(); } };
             const dw = modal.querySelector('.im-vpwrap');

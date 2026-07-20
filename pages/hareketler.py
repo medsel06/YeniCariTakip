@@ -132,6 +132,12 @@ def hareketler_page():
     /* Hizli ekleme onay popup: SECILI buton cok belirgin (JS 'imsel' sinifi) */
     .im-confirm-card button.imsel { outline:3px solid #059669 !important; outline-offset:2px;
         box-shadow:0 0 0 4px rgba(5,150,105,.20) !important; }
+    /* Alt bilgi: Enter/F2 ipucu */
+    .im-enter-hint { font-size:10.5px; color:#94a3b8; white-space:nowrap; }
+    /* Toolbar butonu altinda F-tusu etiketi (akisa girmez -> tabloyu itmez) */
+    .hrk-fhint { position:absolute; top:100%; left:50%; transform:translateX(-50%);
+        font-size:8.5px; color:#94a3b8; font-weight:700; letter-spacing:.5px;
+        line-height:1; margin-top:2px; pointer-events:none; }
     .im-ktutar { text-align:right; font-weight:700; color:#0f766e; font-size:12.5px;
         font-variant-numeric:tabular-nums; padding-right:8px; }
 
@@ -871,6 +877,7 @@ def hareketler_page():
             with ui.row().classes('w-full justify-end items-center').style(
                     'flex:0 0 auto;overflow:visible;padding:11px 16px;'
                     'border-top:1px solid #eef2f6;'):
+                ui.label('⏎ Enter ilerler · F2 kaydeder').classes('im-enter-hint').style('margin-right:auto')
                 btn_iptal = ui.button('İptal', on_click=dlg.close).props('flat color=grey').classes('im-btn-iptal')
 
                 def save():
@@ -1174,39 +1181,56 @@ def hareketler_page():
         baslik = ('Tahsilat Düzenle' if tur_default == 'GELIR' else 'Ödeme Düzenle') if is_edit else \
                  ('Yeni Tahsilat' if tur_default == 'GELIR' else 'Yeni Ödeme')
 
-        with ui.dialog() as dlg, ui.card().classes('alse-dialog').style('width: 90vw; max-width: 560px'):
-            with ui.element('div').classes('alse-dialog-header'):
-                ui.icon('payments' if tur_default == 'GELIR' else 'shopping_cart_checkout')
-                ui.label(baslik).classes('dialog-title')
+        with ui.dialog() as dlg, ui.card().classes('alse-dialog im-modal').style(
+                'width: 92vw; max-width: 600px; max-height: 92vh; display: flex; flex-direction: column; padding:0;'):
+            with ui.element('div').classes('im-head'):
+                ui.icon('payments' if tur_default == 'GELIR' else 'shopping_cart_checkout').classes('im-ic')
+                ui.label(baslik).classes('im-title')
 
-            with ui.row().classes('w-full q-mt-sm gap-2'):
-                inp_tarih = ui.input('Tarih', value=tarih_default).props('outlined dense type=date').classes('col')
-                inp_tur = ui.select(
-                    options={'GELIR': 'Tahsilat', 'GIDER': 'Ödeme'},
-                    value=tur_default, label='Tür'
-                ).props('outlined dense').classes('col')
+            with ui.column().classes('w-full im-body gap-1').style(
+                    'overflow-y:auto;flex:1 1 auto;min-height:0;'):
+                # Satir 1: Tarih + Tur
+                with ui.row().classes('w-full gap-sm no-wrap'):
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('TARİH').classes('im-flabel')
+                        inp_tarih = ui.input(value=tarih_default).props(
+                            'outlined dense type=date').classes('w-full')
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('TÜR').classes('im-flabel')
+                        inp_tur = ui.select(
+                            options={'GELIR': 'Tahsilat', 'GIDER': 'Ödeme'}, value=tur_default
+                        ).props('outlined dense').classes('w-full')
 
-            inp_firma = ui.select(
-                options=firma_opts, value=firma_kod_default if firma_kod_default in firma_opts else '',
-                label='Firma', with_input=True,
-            ).classes('w-full q-mt-sm').props('outlined dense')
+                # Firma
+                with ui.element('div').classes('im-field w-full'):
+                    ui.label('FİRMA').classes('im-flabel')
+                    inp_firma = ui.select(
+                        options=firma_opts, value=firma_kod_default if firma_kod_default in firma_opts else '',
+                        with_input=True,
+                    ).props('outlined dense').classes('w-full kd-firma')
 
-            with ui.row().classes('w-full q-mt-sm gap-2'):
-                inp_tutar = ui.number('Tutar (TL)', value=tutar_default, format='%.2f').props('outlined dense').classes('col')
-                inp_odeme = ui.select(
-                    options=['NAKIT', 'HAVALE', 'EFT', 'KK', 'CEK', 'DIGER'],
-                    value=odeme_default if odeme_default in ['NAKIT', 'HAVALE', 'EFT', 'KK', 'CEK', 'DIGER'] else 'NAKIT',
-                    label='Ödeme Şekli',
-                ).props('outlined dense').classes('col')
+                # Satir: Tutar + Odeme Sekli + Banka
+                with ui.row().classes('w-full gap-sm no-wrap'):
+                    with ui.element('div').classes('im-field').style('flex:0 0 140px'):
+                        ui.label('TUTAR (TL)').classes('im-flabel')
+                        inp_tutar = ui.number(value=tutar_default, format='%.2f').props(
+                            'outlined dense input-class=text-right').classes('w-full kd-tutar')
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('ÖDEME ŞEKLİ').classes('im-flabel')
+                        inp_odeme = ui.select(
+                            options=['NAKIT', 'HAVALE', 'EFT', 'KK', 'CEK', 'DIGER'],
+                            value=odeme_default if odeme_default in ['NAKIT', 'HAVALE', 'EFT', 'KK', 'CEK', 'DIGER'] else 'NAKIT',
+                        ).props('outlined dense').classes('w-full')
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('BANKA').classes('im-flabel')
+                        inp_banka = ui.select(
+                            options=banka_opts,
+                            value=banka_sel_default,
+                            on_change=lambda e: (inp_odeme.set_value('HAVALE')
+                                                 if (e.value and inp_odeme.value == 'NAKIT') else None),
+                        ).props('outlined dense').classes('w-full')
 
-            with ui.row().classes('w-full q-mt-sm gap-2'):
-                inp_banka = ui.select(
-                    options=banka_opts,
-                    value=banka_sel_default,
-                    label='Banka',
-                    on_change=lambda e: (inp_odeme.set_value('HAVALE')
-                                         if (e.value and inp_odeme.value == 'NAKIT') else None),
-                ).props('outlined dense').classes('col')
+                # Kategori
                 _db_kats = get_kasa_kategoriler()
 
                 def _kat_opts(tur):
@@ -1219,10 +1243,12 @@ def hareketler_page():
                         out.append(kategori_default)
                     return out
 
-                inp_kategori = ui.select(
-                    options=_kat_opts(tur_default), value=kategori_default or None,
-                    label='Kategori', with_input=True,
-                ).props('outlined dense new-value-mode=add-unique').classes('col')
+                with ui.element('div').classes('im-field w-full'):
+                    ui.label('KATEGORİ').classes('im-flabel')
+                    inp_kategori = ui.select(
+                        options=_kat_opts(tur_default), value=kategori_default or None,
+                        with_input=True,
+                    ).props('outlined dense new-value-mode=add-unique clearable').classes('w-full kd-kategori')
 
                 def _sync_kat_opts(_=None):
                     opts = _kat_opts(inp_tur.value)
@@ -1232,10 +1258,16 @@ def hareketler_page():
                     inp_kategori.set_options(opts)
                 inp_tur.on_value_change(_sync_kat_opts)
 
-            inp_aciklama = ui.input('Açıklama', value=aciklama_default).classes('w-full q-mt-sm').props('outlined dense')
+                # Aciklama
+                with ui.element('div').classes('im-field w-full'):
+                    ui.label('AÇIKLAMA').classes('im-flabel')
+                    inp_aciklama = ui.input(value=aciklama_default).props(
+                        'outlined dense').classes('w-full kd-aciklama')
 
-            with ui.row().classes('w-full justify-end q-mt-md'):
-                ui.button('İptal', on_click=dlg.close).props('flat color=grey')
+            with ui.row().classes('w-full justify-end items-center').style(
+                    'flex:0 0 auto;overflow:visible;padding:11px 16px;border-top:1px solid #eef2f6;'):
+                ui.label('⏎ Enter ilerler · F2 kaydeder').classes('im-enter-hint').style('margin-right:auto')
+                btn_iptal = ui.button('İptal', on_click=dlg.close).props('flat color=grey').classes('im-btn-iptal')
 
                 def save():
                     if not inp_tarih.value:
@@ -1272,8 +1304,74 @@ def hareketler_page():
                     except Exception as e:
                         notify_err(f'Hata: {e}')
 
-                ui.button('Kaydet', color='primary', on_click=save).props('unelevated')
+                btn_kaydet = ui.button('Kaydet', on_click=save, color=None).props('unelevated no-caps') \
+                    .classes('im-btn-kaydet').style(
+                    'background:#059669;color:#fff;font-weight:700;padding:7px 22px;border-radius:9px')
+
+                # Enter akisi (sunucu: popup zinciri): Tarih -> Tur -> Firma -> Tutar
+                # -> Odeme Sekli -> (HAVALE/EFT: Banka) -> Kategori -> Aciklama -> Kaydet
+                _knav = {'tur': False, 'odeme': False, 'banka': False}
+
+                def _kac(sel, flag):
+                    _knav[flag] = True
+                    sel.run_method('focus')
+                    sel.run_method('showPopup')
+
+                inp_tarih.on('keydown.enter.prevent', lambda: _kac(inp_tur, 'tur'))
+
+                def _ktur_hide():
+                    if _knav['tur']:
+                        _knav['tur'] = False
+                        inp_firma.run_method('focus')
+                inp_tur.on('popup-hide', _ktur_hide)
+
+                inp_tutar.on('keydown.enter.prevent', lambda: _kac(inp_odeme, 'odeme'))
+
+                def _kodeme_hide():
+                    if _knav['odeme']:
+                        _knav['odeme'] = False
+                        if inp_odeme.value in ('HAVALE', 'EFT'):
+                            _kac(inp_banka, 'banka')
+                        else:
+                            inp_kategori.run_method('focus')
+                inp_odeme.on('popup-hide', _kodeme_hide)
+
+                def _kbanka_hide():
+                    if _knav['banka']:
+                        _knav['banka'] = False
+                        inp_kategori.run_method('focus')
+                inp_banka.on('popup-hide', _kbanka_hide)
         dlg.open()
+        # Acilinca odak Tarih'e
+        ui.timer(0.2, lambda: inp_tarih.run_method('focus'), once=True)
+        # Klavye akisi (CLIENT-SIDE): firma->tutar, kategori->aciklama, aciklama->Kaydet
+        ui.timer(0.3, lambda: ui.run_javascript('''
+            const modal = [...document.querySelectorAll('.im-modal')].pop();
+            if(!modal || modal.__kdFlow) return;
+            modal.__kdFlow = true;
+            const kaydet = modal.querySelector('.im-btn-kaydet');
+            const iptal = modal.querySelector('.im-btn-iptal');
+            const go = (sel, selAll) => { const el = modal.querySelector(sel);
+                if(el){ el.focus(); if(selAll && el.select) el.select(); } };
+            const firma = modal.querySelector('.kd-firma input');
+            if(firma) firma.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter'){ setTimeout(() => go('.kd-tutar input', true), 80); }
+            });
+            const kat = modal.querySelector('.kd-kategori input');
+            if(kat) kat.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter'){ setTimeout(() => go('.kd-aciklama input'), 80); }
+            });
+            const acik = modal.querySelector('.kd-aciklama input');
+            if(acik) acik.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter'){ e.preventDefault(); if(kaydet) kaydet.focus(); }
+            });
+            if(kaydet) kaydet.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowLeft'){ e.preventDefault(); if(iptal) iptal.focus(); }
+            });
+            if(iptal) iptal.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowRight'){ e.preventDefault(); if(kaydet) kaydet.focus(); }
+            });
+        '''), once=True)
 
     def do_edit_kasa(row):
         open_kasa_dialog(edit_row=row)
@@ -1662,12 +1760,47 @@ def hareketler_page():
             )
 
             ui.space()
-            ui.button('TAHSİLAT', icon='account_balance_wallet', color='positive',
-                      on_click=lambda: open_kasa_dialog(default_tur='GELIR')).props('unelevated dense no-caps')
-            ui.button('ÖDEME', icon='credit_card', color='warning',
-                      on_click=lambda: open_kasa_dialog(default_tur='GIDER')).props('unelevated dense no-caps')
-            ui.button('İŞLEM', icon='receipt_long', color='primary',
-                      on_click=lambda: open_hareket_dialog()).props('unelevated dense no-caps')
+            with ui.element('div').style('position:relative'):
+                ui.button('TAHSİLAT', icon='account_balance_wallet', color='positive',
+                          on_click=lambda: open_kasa_dialog(default_tur='GELIR')).props('unelevated dense no-caps')
+                ui.label('F6').classes('hrk-fhint')
+            with ui.element('div').style('position:relative'):
+                ui.button('ÖDEME', icon='credit_card', color='warning',
+                          on_click=lambda: open_kasa_dialog(default_tur='GIDER')).props('unelevated dense no-caps')
+                ui.label('F7').classes('hrk-fhint')
+            with ui.element('div').style('position:relative'):
+                ui.button('İŞLEM', icon='receipt_long', color='primary',
+                          on_click=lambda: open_hareket_dialog()).props('unelevated dense no-caps')
+                ui.label('F5').classes('hrk-fhint')
+
+        # F-tusu kisayollari: F5=Yeni Islem, F6=Yeni Tahsilat, F7=Yeni Odeme,
+        # F2=acik modalda Kaydet (client-side tiklanir, cift kayit olmaz)
+        def _fkey(e):
+            k = (e.args or {}).get('key')
+            if k == 'F5':
+                open_hareket_dialog()
+            elif k == 'F6':
+                open_kasa_dialog(default_tur='GELIR')
+            elif k == 'F7':
+                open_kasa_dialog(default_tur='GIDER')
+        ui.on('hrk_fkey', _fkey)
+        ui.run_javascript('''
+            if(!window.__hrkFkeys){
+                window.__hrkFkeys = true;
+                document.addEventListener('keydown', (e) => {
+                    if(e.key === 'F2'){
+                        const b = [...document.querySelectorAll('.q-dialog .im-btn-kaydet')].pop();
+                        if(b){ e.preventDefault(); b.click(); }
+                        return;
+                    }
+                    if(['F5','F6','F7'].includes(e.key)){
+                        e.preventDefault();
+                        if(document.querySelector('.q-dialog')) return;
+                        emitEvent('hrk_fkey', {key: e.key});
+                    }
+                }, true);
+            }
+        ''')
 
         # Tablo
         table_ref = ui.table(
