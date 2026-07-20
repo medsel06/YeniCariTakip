@@ -178,17 +178,40 @@ def banka_page():
     def _form(h=None):
         duzenle = h is not None
         is_kart = state['tip'] == 'KREDI_KARTI'
-        with ui.dialog() as dlg, ui.card().classes('q-pa-md').style('min-width: 380px'):
-            ui.label(('Kart' if is_kart else 'Hesap') + (' Düzenle' if duzenle else ' Ekle')).classes('text-h6')
-            inp_ad = ui.input('Ad', value=h['ad'] if duzenle else '').props('outlined dense').classes('w-full')
-            inp_iban = ui.input('IBAN' if not is_kart else 'Kart No (son 4)', value=h.get('iban', '') if duzenle else '').props('outlined dense').classes('w-full')
-            inp_acilis = ui.number('Açılış Bakiyesi', value=float(h['acilis_bakiye']) if duzenle else 0, format='%.2f').props('outlined dense').classes('w-full')
-            inp_limit = None
-            if is_kart:
-                inp_limit = ui.number('Kart Limiti', value=float(h.get('kart_limiti', 0)) if duzenle else 0, format='%.2f').props('outlined dense').classes('w-full')
-            inp_aktif = ui.switch('Aktif', value=bool(h['aktif']) if duzenle else True)
-            with ui.row().classes('w-full justify-end q-mt-md'):
-                ui.button('İptal', on_click=dlg.close).props('flat color=grey')
+        with ui.dialog() as dlg, ui.card().classes('alse-dialog im-modal').style(
+                'width: 92vw; max-width: 520px; max-height: 92vh; display: flex; flex-direction: column; padding:0;'):
+            with ui.element('div').classes('im-head'):
+                ui.icon('credit_card' if is_kart else 'account_balance').classes('im-ic')
+                ui.label(('Kart' if is_kart else 'Hesap') + (' Düzenle' if duzenle else ' Ekle')).classes('im-title')
+
+            with ui.column().classes('w-full im-body gap-1').style(
+                    'overflow-y:auto;flex:1 1 auto;min-height:0;'):
+                # Satir 1: Ad + IBAN/Kart No
+                with ui.row().classes('w-full gap-sm no-wrap'):
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('AD').classes('im-flabel')
+                        inp_ad = ui.input(value=h['ad'] if duzenle else '').props('outlined dense').classes('w-full bk-ad')
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('IBAN' if not is_kart else 'KART NO (SON 4)').classes('im-flabel')
+                        inp_iban = ui.input(value=h.get('iban', '') if duzenle else '').props('outlined dense').classes('w-full bk-iban')
+                # Satir 2: Acilis Bakiyesi + (kart ise) Limit + Aktif
+                with ui.row().classes('w-full gap-sm no-wrap items-end'):
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('AÇILIŞ BAKİYESİ').classes('im-flabel')
+                        inp_acilis = ui.number(value=float(h['acilis_bakiye']) if duzenle else 0, format='%.2f').props(
+                            'outlined dense input-class=text-right').classes('w-full bk-acilis')
+                    inp_limit = None
+                    if is_kart:
+                        with ui.element('div').classes('im-field col'):
+                            ui.label('KART LİMİTİ').classes('im-flabel')
+                            inp_limit = ui.number(value=float(h.get('kart_limiti', 0)) if duzenle else 0, format='%.2f').props(
+                                'outlined dense input-class=text-right').classes('w-full bk-limit')
+                    inp_aktif = ui.switch('Aktif', value=bool(h['aktif']) if duzenle else True).props('dense')
+
+            with ui.row().classes('w-full justify-end items-center').style(
+                    'flex:0 0 auto;overflow:visible;padding:11px 16px;border-top:1px solid #eef2f6;'):
+                ui.label('⏎ Enter ilerler · F2 kaydeder').classes('im-enter-hint').style('margin-right:auto')
+                btn_iptal = ui.button('İptal', on_click=dlg.close).props('flat color=grey').classes('im-btn-iptal')
 
                 def _save():
                     if not inp_ad.value or not inp_ad.value.strip():
@@ -204,8 +227,41 @@ def banka_page():
                         dlg.close(); _refresh()
                     except Exception as e:
                         notify_err(f'Hata: {e}')
-                ui.button('Kaydet', color='primary', on_click=_save).props('unelevated').classes('im-btn-kaydet')
+
+                btn_kaydet = ui.button('Kaydet', on_click=_save, color=None).props('unelevated no-caps') \
+                    .classes('im-btn-kaydet').style(
+                    'background:#059669;color:#fff;font-weight:700;padding:7px 22px;border-radius:9px')
         dlg.open()
+        # Acilinca odak Ad'a
+        ui.timer(0.2, lambda: inp_ad.run_method('focus'), once=True)
+        # Enter zinciri (CLIENT-SIDE): ad -> iban -> acilis -> (limit) -> Kaydet
+        ui.timer(0.3, lambda: ui.run_javascript('''
+            const modal = [...document.querySelectorAll('.im-modal')].pop();
+            if(!modal || modal.__bkFlow) return;
+            modal.__bkFlow = true;
+            const kaydet = modal.querySelector('.im-btn-kaydet');
+            const iptal = modal.querySelector('.im-btn-iptal');
+            const sira = ['.bk-ad', '.bk-iban', '.bk-acilis', '.bk-limit'];
+            sira.forEach((cls, i) => {
+                const el = modal.querySelector(cls + ' input');
+                if(!el) return;
+                el.addEventListener('keydown', (e) => {
+                    if(e.key !== 'Enter') return;
+                    e.preventDefault();
+                    for(let j = i + 1; j < sira.length; j++){
+                        const n = modal.querySelector(sira[j] + ' input');
+                        if(n){ n.focus(); if(n.select) n.select(); return; }
+                    }
+                    if(kaydet) kaydet.focus();
+                });
+            });
+            if(kaydet) kaydet.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowLeft'){ e.preventDefault(); if(iptal) iptal.focus(); }
+            });
+            if(iptal) iptal.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowRight'){ e.preventDefault(); if(kaydet) kaydet.focus(); }
+            });
+        '''), once=True)
 
     def _sil(h):
         def _ok():
@@ -222,20 +278,41 @@ def banka_page():
         opts = {'__nakit__': 'NAKİT KASA'}
         for hh in list_banka_hesaplari(sadece_aktif=True):
             opts[str(hh['id'])] = hh['ad']
-        with ui.dialog() as dlg, ui.card().classes('q-pa-md').style('min-width: 400px'):
-            ui.label('Hesaplar Arası Transfer').classes('text-h6')
-            ik = ui.select(opts, label='Kaynak (çıkan)', value='__nakit__').props('outlined dense').classes('w-full')
-            ih = ui.select(opts, label='Hedef (giren)').props('outlined dense').classes('w-full')
-            it = ui.number('Tutar', value=0, format='%.2f').props('outlined dense').classes('w-full')
-            itar = ui.input('Tarih', value=date.today().isoformat()).props('outlined dense').classes('w-full')
-            with itar.add_slot('append'):
-                ic = ui.icon('event').classes('cursor-pointer')
-                with ui.menu() as m:
-                    ui.date(on_change=lambda e: (itar.set_value(e.value), m.close()))
-                ic.on('click', m.open)
-            ia = ui.input('Açıklama').props('outlined dense').classes('w-full')
-            with ui.row().classes('w-full justify-end q-mt-md'):
-                ui.button('İptal', on_click=dlg.close).props('flat color=grey')
+        with ui.dialog() as dlg, ui.card().classes('alse-dialog im-modal').style(
+                'width: 92vw; max-width: 520px; max-height: 92vh; display: flex; flex-direction: column; padding:0;'):
+            with ui.element('div').classes('im-head'):
+                ui.icon('swap_horiz').classes('im-ic')
+                ui.label('Hesaplar Arası Transfer').classes('im-title')
+
+            with ui.column().classes('w-full im-body gap-1').style(
+                    'overflow-y:auto;flex:1 1 auto;min-height:0;'):
+                # Satir 1: Kaynak + Hedef
+                with ui.row().classes('w-full gap-sm no-wrap'):
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('KAYNAK (ÇIKAN)').classes('im-flabel')
+                        ik = ui.select(opts, value='__nakit__').props('outlined dense').classes('w-full')
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('HEDEF (GİREN)').classes('im-flabel')
+                        ih = ui.select(opts).props('outlined dense').classes('w-full')
+                # Satir 2: Tutar + Tarih
+                with ui.row().classes('w-full gap-sm no-wrap'):
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('TUTAR').classes('im-flabel')
+                        it = ui.number(value=0, format='%.2f').props(
+                            'outlined dense input-class=text-right').classes('w-full tr-tutar')
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('TARİH').classes('im-flabel')
+                        itar = ui.input(value=date.today().isoformat()).props(
+                            'outlined dense type=date').classes('w-full tr-tarih')
+                # Aciklama
+                with ui.element('div').classes('im-field w-full'):
+                    ui.label('AÇIKLAMA').classes('im-flabel')
+                    ia = ui.input().props('outlined dense').classes('w-full tr-aciklama')
+
+            with ui.row().classes('w-full justify-end items-center').style(
+                    'flex:0 0 auto;overflow:visible;padding:11px 16px;border-top:1px solid #eef2f6;'):
+                ui.label('⏎ Enter ilerler · F2 kaydeder').classes('im-enter-hint').style('margin-right:auto')
+                btn_iptal = ui.button('İptal', on_click=dlg.close).props('flat color=grey').classes('im-btn-iptal')
 
                 def _save():
                     try:
@@ -245,8 +322,61 @@ def banka_page():
                         notify_ok('Transfer kaydedildi'); dlg.close(); _refresh()
                     except Exception as e:
                         notify_err(f'{e}')
-                ui.button('Transfer Et', color='primary', on_click=_save).props('unelevated')
+
+                btn_kaydet = ui.button('Transfer Et', on_click=_save, color=None).props('unelevated no-caps') \
+                    .classes('im-btn-kaydet').style(
+                    'background:#059669;color:#fff;font-weight:700;padding:7px 22px;border-radius:9px')
+
+                # Enter akisi (sunucu): Kaynak listesi -> Hedef listesi -> Tutar
+                _tnav = {'kaynak': False, 'hedef': False}
+
+                def _tac(sel, flag):
+                    _tnav[flag] = True
+                    sel.run_method('focus')
+                    sel.run_method('showPopup')
+
+                def _ik_hide():
+                    if _tnav['kaynak']:
+                        _tnav['kaynak'] = False
+                        _tac(ih, 'hedef')
+                ik.on('popup-hide', _ik_hide)
+
+                def _ih_hide():
+                    if _tnav['hedef']:
+                        _tnav['hedef'] = False
+                        ui.run_javascript(
+                            "const el=[...document.querySelectorAll('.im-modal .tr-tutar input')].pop();"
+                            "if(el){el.focus();el.select();}")
+                ih.on('popup-hide', _ih_hide)
         dlg.open()
+        # Acilinca Kaynak listesi acilir (Enter secer -> Hedef -> Tutar ...)
+        ui.timer(0.25, lambda: _tac(ik, 'kaynak'), once=True)
+        # Klavye akisi (CLIENT-SIDE): tutar -> tarih -> aciklama -> Transfer Et
+        ui.timer(0.35, lambda: ui.run_javascript('''
+            const modal = [...document.querySelectorAll('.im-modal')].pop();
+            if(!modal || modal.__trFlow) return;
+            modal.__trFlow = true;
+            const kaydet = modal.querySelector('.im-btn-kaydet');
+            const iptal = modal.querySelector('.im-btn-iptal');
+            const sira = ['.tr-tutar', '.tr-tarih', '.tr-aciklama'];
+            sira.forEach((cls, i) => {
+                const el = modal.querySelector(cls + ' input');
+                if(!el) return;
+                el.addEventListener('keydown', (e) => {
+                    if(e.key !== 'Enter') return;
+                    e.preventDefault();
+                    const nxt = sira[i + 1];
+                    if(nxt){ const n = modal.querySelector(nxt + ' input'); if(n) n.focus(); }
+                    else if(kaydet){ kaydet.focus(); }
+                });
+            });
+            if(kaydet) kaydet.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowLeft'){ e.preventDefault(); if(iptal) iptal.focus(); }
+            });
+            if(iptal) iptal.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowRight'){ e.preventDefault(); if(kaydet) kaydet.focus(); }
+            });
+        '''), once=True)
 
     def _tab_degis(tip):
         state['tip'] = tip

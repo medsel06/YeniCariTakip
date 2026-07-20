@@ -1,7 +1,7 @@
 """Söküm Verimi — parti bazlı ayrıştırma kâr/verim takibi (hurda)."""
 from datetime import date
 from nicegui import ui
-from layout import create_layout, fmt_para, notify_ok
+from layout import create_layout, fmt_para, notify_ok, IM_MODAL_CSS, f2_kisayolu
 from services.sokum_service import (
     get_sokum_partileri, add_sokum_parti, update_sokum_parti, delete_sokum_parti, get_sokum_ozet,
 )
@@ -21,6 +21,8 @@ def sokum_page():
         return
 
     container = ui.column().classes('w-full q-pa-sm gap-3')
+    ui.add_css(IM_MODAL_CSS)
+    f2_kisayolu(lambda: _dialog())
 
     def _do_delete(pid):
         delete_sokum_parti(pid)
@@ -60,6 +62,41 @@ def sokum_page():
                         f"Kâr: {fmt_para(kar)} TL   •   Fire: {_kg(fire)}")
                     lbl_kar.style(f"color:{'#16a34a' if kar >= 0 else '#dc2626'};font-size:13px;font-weight:700")
 
+                def _malzeme_soru():
+                    """Son cikti satirinda Enter: yeni malzeme satiri? Enter=Hayir(notlara), sag ok=Evet."""
+                    with ui.dialog() as sdlg, ui.card().classes('q-pa-md im-confirm-card').style(
+                            'min-width:360px;border-radius:12px'):
+                        ui.label('Yeni malzeme satırı eklensin mi?').classes('text-subtitle2 text-weight-bold').style('color:#0f766e')
+                        ui.label('Enter = Hayır (notlara geçer)   ·   → ile Evet').classes('text-caption text-grey-6 q-mb-sm')
+
+                        def _evet():
+                            sdlg.close()
+                            _add_cikti()
+                            cikti_rows[-1]['malzeme'].run_method('focus')
+
+                        def _hayir():
+                            sdlg.close()
+                            inp_notlar.run_method('focus')
+
+                        with ui.row().classes('w-full justify-end gap-2'):
+                            ui.button('Hayır', on_click=_hayir).props('flat color=grey')
+                            ui.button('Evet', on_click=_evet).props('unelevated color=positive')
+                    sdlg.open()
+                    ui.timer(0.12, lambda: ui.run_javascript('''
+                        const card = [...document.querySelectorAll('.im-confirm-card')].pop();
+                        if(!card) return;
+                        const btns = card.querySelectorAll('button');
+                        if(btns.length < 2) return;
+                        const noBtn = btns[0], yesBtn = btns[1];
+                        const mark = (b) => { noBtn.classList.remove('imsel'); yesBtn.classList.remove('imsel');
+                                              b.classList.add('imsel'); b.focus(); };
+                        mark(noBtn);
+                        card.addEventListener('keydown', (e) => {
+                            if(e.key === 'ArrowLeft'){ mark(noBtn); e.preventDefault(); }
+                            else if(e.key === 'ArrowRight'){ mark(yesBtn); e.preventDefault(); }
+                        });
+                    '''), once=True)
+
                 def _add_cikti(m='', kg=0, t=0):
                     with cikti_box:
                         with ui.row().classes('w-full items-center no-wrap').style('gap:6px') as rw:
@@ -69,6 +106,23 @@ def sokum_page():
                             row_d = {'malzeme': mi, 'miktar': mk, 'tutar': tu}
                             tu.on('blur', lambda: _kar_guncelle())
                             mk.on('blur', lambda: _kar_guncelle())
+
+                            # Enter zinciri (satir ici): malzeme -> kg -> TL -> sonraki satir / soru
+                            mi.on('keydown.enter.prevent', lambda mk=mk: (mk.run_method('focus'), mk.run_method('select')))
+                            mk.on('keydown.enter.prevent', lambda tu=tu: (tu.run_method('focus'), tu.run_method('select')))
+
+                            def _tu_enter(row_d=row_d):
+                                _kar_guncelle()
+                                try:
+                                    idx = cikti_rows.index(row_d)
+                                except ValueError:
+                                    return
+                                if idx + 1 < len(cikti_rows):
+                                    nxt = cikti_rows[idx + 1]['malzeme']
+                                    nxt.run_method('focus')
+                                else:
+                                    _malzeme_soru()
+                            tu.on('keydown.enter.prevent', _tu_enter)
 
                             def _sil():
                                 if row_d in cikti_rows:
@@ -86,6 +140,17 @@ def sokum_page():
                 inp_notlar = ui.textarea('Notlar', value=(parti.get('notlar', '') if is_edit else '')).props(
                     'outlined dense autogrow').classes('w-full')
 
+                # Enter zinciri (ust alanlar): tarih -> aciklama -> giris kg -> maliyet -> ilk malzeme
+                inp_tarih.on('keydown.enter.prevent', lambda: inp_acik.run_method('focus'))
+                inp_acik.on('keydown.enter.prevent', lambda: (inp_gkg.run_method('focus'), inp_gkg.run_method('select')))
+                inp_gkg.on('keydown.enter.prevent', lambda: (inp_gmal.run_method('focus'), inp_gmal.run_method('select')))
+
+                def _gmal_enter():
+                    _kar_guncelle()
+                    if cikti_rows:
+                        cikti_rows[0]['malzeme'].run_method('focus')
+                inp_gmal.on('keydown.enter.prevent', _gmal_enter)
+
                 if is_edit:
                     for c in parti.get('ciktilar_list', []):
                         _add_cikti(c.get('malzeme', ''), c.get('miktar', 0), c.get('tutar', 0))
@@ -94,7 +159,8 @@ def sokum_page():
                     _add_cikti()
                 _kar_guncelle()
 
-                with ui.row().classes('w-full justify-end q-mt-sm').style('gap:8px'):
+                with ui.row().classes('w-full justify-end items-center q-mt-sm').style('gap:8px'):
+                    ui.label('⏎ Enter ilerler · F2 kaydeder').classes('im-enter-hint').style('margin-right:auto')
                     if is_edit:
                         ui.button('Sil', icon='delete', color='negative',
                                   on_click=lambda: (dlg.close(), _do_delete(parti['id']))).props('flat')
@@ -120,9 +186,11 @@ def sokum_page():
                         dlg.close()
                         notify_ok('Parti kaydedildi')
                         _reload()
-                    ui.button('Kaydet', color=None, on_click=_save).props('unelevated').style(
+                    ui.button('Kaydet', color=None, on_click=_save).props('unelevated').classes('im-btn-kaydet').style(
                         'background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff')
         dlg.open()
+        # Acilinca odak Tarih'e
+        ui.timer(0.2, lambda: inp_tarih.run_method('focus'), once=True)
 
     def _reload():
         container.clear()
@@ -146,8 +214,10 @@ def sokum_page():
             with ui.row().classes('w-full items-center'):
                 ui.label('Söküm Partileri').classes('text-subtitle2 text-weight-bold')
                 ui.space()
-                ui.button('Yeni Parti', icon='add', color=None, on_click=lambda: _dialog()).props('unelevated').style(
-                    'background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff')
+                with ui.element('div').style('position:relative'):
+                    ui.button('Yeni Parti', icon='add', color=None, on_click=lambda: _dialog()).props('unelevated').style(
+                        'background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff')
+                    ui.label('F2').classes('fkey-hint')
 
             cols = [
                 {'name': 'tarih', 'label': 'Tarih', 'field': 'tarih', 'align': 'left'},

@@ -122,37 +122,51 @@ def personel_page():
     def open_personel_dialog(edit_row=None):
         is_edit = edit_row is not None
         title = 'Personel Düzenle' if is_edit else 'Yeni Personel'
-        with ui.dialog() as dlg, ui.card().classes('alse-dialog').style('width: 90vw; max-width: 500px'):
-            with ui.element('div').classes('alse-dialog-header'):
-                ui.icon('badge' if not is_edit else 'edit')
-                ui.label(title).classes('dialog-title')
+        with ui.dialog() as dlg, ui.card().classes('alse-dialog im-modal').style(
+                'width: 92vw; max-width: 540px; max-height: 92vh; display: flex; flex-direction: column; padding:0;'):
+            with ui.element('div').classes('im-head'):
+                ui.icon('badge' if not is_edit else 'drive_file_rename_outline').classes('im-ic')
+                ui.label(title).classes('im-title')
 
-            with ui.column().classes('w-full q-mt-sm gap-sm'):
-                inp_ad = ui.input('Ad Soyad', value=edit_row.get('ad', '') if is_edit else '').props('outlined dense').classes('w-full')
-                inp_maas = ui.number('Maaş', value=edit_row.get('maas', 0) if is_edit else 0, format='%.2f').props('outlined dense').classes('w-full')
-                inp_durum = ui.select(
-                    options={'AKTIF': 'Aktif', 'PASIF': 'Pasif'},
-                    label='Durum', value=edit_row.get('durum', 'AKTIF') if is_edit else 'AKTIF'
-                ).props('outlined dense').classes('w-full')
+            with ui.column().classes('w-full im-body gap-1').style(
+                    'overflow-y:auto;flex:1 1 auto;min-height:0;'):
+                # Satir 1: Ad Soyad + Durum
+                with ui.row().classes('w-full gap-sm no-wrap'):
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('AD SOYAD').classes('im-flabel')
+                        inp_ad = ui.input(value=edit_row.get('ad', '') if is_edit else '').props(
+                            'outlined dense').classes('w-full pr-ad')
+                    with ui.element('div').classes('im-field').style('flex:0 0 110px'):
+                        ui.label('DURUM').classes('im-flabel')
+                        inp_durum = ui.select(
+                            options={'AKTIF': 'Aktif', 'PASIF': 'Pasif'},
+                            value=edit_row.get('durum', 'AKTIF') if is_edit else 'AKTIF'
+                        ).props('outlined dense').classes('w-full')
+                # Satir 2: Maas + Giris + Cikis
+                with ui.row().classes('w-full gap-sm no-wrap'):
+                    with ui.element('div').classes('im-field').style('flex:0 0 130px'):
+                        ui.label('MAAŞ').classes('im-flabel')
+                        inp_maas = ui.number(value=edit_row.get('maas', 0) if is_edit else 0, format='%.2f').props(
+                            'outlined dense input-class=text-right').classes('w-full pr-maas')
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('GİRİŞ TARİHİ').classes('im-flabel')
+                        inp_giris = ui.input(
+                            value=edit_row.get('giris_tarih', '') if is_edit else date.today().isoformat()
+                        ).props('outlined dense type=date').classes('w-full pr-giris')
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('ÇIKIŞ TARİHİ').classes('im-flabel')
+                        inp_cikis = ui.input(value=edit_row.get('cikis_tarih', '') if is_edit else '').props(
+                            'outlined dense type=date clearable').classes('w-full pr-cikis')
+                # Telefon
+                with ui.element('div').classes('im-field w-full'):
+                    ui.label('TELEFON').classes('im-flabel')
+                    inp_tel = ui.input(value=edit_row.get('telefon', '') if is_edit else '').props(
+                        'outlined dense').classes('w-full pr-tel')
 
-                inp_giris = ui.input('Giriş Tarihi', value=edit_row.get('giris_tarih', '') if is_edit else date.today().isoformat()).props('outlined dense').classes('w-full')
-                with inp_giris.add_slot('append'):
-                    icon_g = ui.icon('event').classes('cursor-pointer')
-                    with ui.menu() as menu_g:
-                        ui.date(on_change=lambda e: (inp_giris.set_value(e.value), menu_g.close()))
-                    icon_g.on('click', menu_g.open)
-
-                inp_cikis = ui.input('Çıkış Tarihi', value=edit_row.get('cikis_tarih', '') if is_edit else '').props('outlined dense').classes('w-full')
-                with inp_cikis.add_slot('append'):
-                    icon_c = ui.icon('event').classes('cursor-pointer')
-                    with ui.menu() as menu_c:
-                        ui.date(on_change=lambda e: (inp_cikis.set_value(e.value), menu_c.close()))
-                    icon_c.on('click', menu_c.open)
-
-                inp_tel = ui.input('Telefon', value=edit_row.get('telefon', '') if is_edit else '').props('outlined dense').classes('w-full')
-
-            with ui.row().classes('w-full justify-end q-mt-md'):
-                ui.button('İptal', on_click=dlg.close).props('flat color=grey')
+            with ui.row().classes('w-full justify-end items-center').style(
+                    'flex:0 0 auto;overflow:visible;padding:11px 16px;border-top:1px solid #eef2f6;'):
+                ui.label('⏎ Enter ilerler · F2 kaydeder').classes('im-enter-hint').style('margin-right:auto')
+                btn_iptal = ui.button('İptal', on_click=dlg.close).props('flat color=grey').classes('im-btn-iptal')
 
                 def save():
                     ad = inp_ad.value.strip() if inp_ad.value else ''
@@ -179,8 +193,38 @@ def personel_page():
                     except Exception as e:
                         notify_err(f'Hata: {e}')
 
-                ui.button('Kaydet', color='primary', on_click=save).props('unelevated').classes('im-btn-kaydet')
+                btn_kaydet = ui.button('Kaydet', on_click=save, color=None).props('unelevated no-caps') \
+                    .classes('im-btn-kaydet').style(
+                    'background:#059669;color:#fff;font-weight:700;padding:7px 22px;border-radius:9px')
         dlg.open()
+        # Acilinca odak Ad Soyad'a
+        ui.timer(0.2, lambda: inp_ad.run_method('focus'), once=True)
+        # Enter zinciri (CLIENT-SIDE): ad -> maas -> giris -> cikis -> telefon -> Kaydet
+        ui.timer(0.3, lambda: ui.run_javascript('''
+            const modal = [...document.querySelectorAll('.im-modal')].pop();
+            if(!modal || modal.__prFlow) return;
+            modal.__prFlow = true;
+            const kaydet = modal.querySelector('.im-btn-kaydet');
+            const iptal = modal.querySelector('.im-btn-iptal');
+            const sira = ['.pr-ad', '.pr-maas', '.pr-giris', '.pr-cikis', '.pr-tel'];
+            sira.forEach((cls, i) => {
+                const el = modal.querySelector(cls + ' input');
+                if(!el) return;
+                el.addEventListener('keydown', (e) => {
+                    if(e.key !== 'Enter') return;
+                    e.preventDefault();
+                    const nxt = sira[i + 1];
+                    if(nxt){ const n = modal.querySelector(nxt + ' input'); if(n){ n.focus(); if(n.select) n.select(); } }
+                    else if(kaydet){ kaydet.focus(); }
+                });
+            });
+            if(kaydet) kaydet.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowLeft'){ e.preventDefault(); if(iptal) iptal.focus(); }
+            });
+            if(iptal) iptal.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowRight'){ e.preventDefault(); if(kaydet) kaydet.focus(); }
+            });
+        '''), once=True)
 
     def do_delete_personel(pid):
         def confirmed():

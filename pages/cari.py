@@ -182,26 +182,43 @@ def cari_page():
 
         table.on('edit', handle_edit)
 
-    # --- Yeni Firma Dialog ---
+    # --- Yeni Firma Dialog (kompakt im-modal + Enter zinciri) ---
     def open_new_firma_dialog():
         auto_kod = generate_firma_kod()
-        ad_input = None
-        tel_input = None
-        adres_input = None
 
-        with ui.dialog() as dlg, ui.card().classes('q-pa-md').style('min-width: 400px'):
-            ui.label('Yeni Firma Ekle').classes('text-h6 q-mb-md')
-            ui.input(label='Firma Kodu', value=auto_kod).classes('w-full').props('outlined dense readonly')
-            ad_input = ui.input(label='Firma Ad\u0131').classes('w-full').props('outlined dense')
-            tel_input = ui.input(label='Telefon').classes('w-full').props('outlined dense')
-            adres_input = ui.textarea(label='Adres').classes('w-full').props('outlined dense')
+        with ui.dialog() as dlg, ui.card().classes('alse-dialog im-modal').style(
+                'width: 92vw; max-width: 520px; max-height: 92vh; display: flex; flex-direction: column; padding:0;'):
+            with ui.element('div').classes('im-head'):
+                ui.icon('add_business').classes('im-ic')
+                ui.label('Yeni Firma Ekle').classes('im-title')
 
-            with ui.row().classes('w-full justify-end q-mt-md'):
-                ui.button('\u0130ptal', on_click=dlg.close).props('flat')
+            with ui.column().classes('w-full im-body gap-1').style(
+                    'overflow-y:auto;flex:1 1 auto;min-height:0;'):
+                # Satir 1: Kod (readonly) + Firma Adi
+                with ui.row().classes('w-full gap-sm no-wrap'):
+                    with ui.element('div').classes('im-field').style('flex:0 0 110px'):
+                        ui.label('KOD').classes('im-flabel')
+                        ui.input(value=auto_kod).props('outlined dense readonly').classes('w-full')
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('F\u0130RMA ADI').classes('im-flabel')
+                        ad_input = ui.input().props('outlined dense').classes('w-full cr-ad')
+                # Telefon
+                with ui.element('div').classes('im-field w-full'):
+                    ui.label('TELEFON').classes('im-flabel')
+                    tel_input = ui.input().props('outlined dense').classes('w-full cr-tel')
+                # Adres
+                with ui.element('div').classes('im-field w-full'):
+                    ui.label('ADRES').classes('im-flabel')
+                    adres_input = ui.input().props('outlined dense').classes('w-full cr-adres')
+
+            with ui.row().classes('w-full justify-end items-center').style(
+                    'flex:0 0 auto;overflow:visible;padding:11px 16px;border-top:1px solid #eef2f6;'):
+                ui.label('\u23ce Enter ilerler \u00b7 F2 kaydeder').classes('im-enter-hint').style('margin-right:auto')
+                btn_iptal = ui.button('\u0130ptal', on_click=dlg.close).props('flat color=grey').classes('im-btn-iptal')
 
                 def save():
                     kod = auto_kod
-                    ad = ad_input.value.strip()
+                    ad = (ad_input.value or '').strip()
                     if not ad:
                         notify_err('Ad alani zorunludur')
                         return
@@ -209,8 +226,8 @@ def cari_page():
                         add_firma({
                             'kod': kod,
                             'ad': ad,
-                            'tel': tel_input.value.strip(),
-                            'adres': adres_input.value.strip(),
+                            'tel': (tel_input.value or '').strip(),
+                            'adres': (adres_input.value or '').strip(),
                         })
                         notify_ok(f'Firma eklendi: {ad}')
                         dlg.close()
@@ -218,9 +235,39 @@ def cari_page():
                     except Exception as ex:
                         notify_err(f'Hata: {ex}')
 
-                ui.button('Kaydet', color='primary', on_click=save).classes('im-btn-kaydet')
+                btn_kaydet = ui.button('Kaydet', on_click=save, color=None).props('unelevated no-caps') \
+                    .classes('im-btn-kaydet').style(
+                    'background:#059669;color:#fff;font-weight:700;padding:7px 22px;border-radius:9px')
 
         dlg.open()
+        # Acilinca odak Firma Adi'na
+        ui.timer(0.2, lambda: ad_input.run_method('focus'), once=True)
+        # Enter zinciri (CLIENT-SIDE): ad -> tel -> adres -> Kaydet; ok tuslari Kaydet<->Iptal
+        ui.timer(0.3, lambda: ui.run_javascript('''
+            const modal = [...document.querySelectorAll('.im-modal')].pop();
+            if(!modal || modal.__crFlow) return;
+            modal.__crFlow = true;
+            const kaydet = modal.querySelector('.im-btn-kaydet');
+            const iptal = modal.querySelector('.im-btn-iptal');
+            const sira = ['.cr-ad', '.cr-tel', '.cr-adres'];
+            sira.forEach((cls, i) => {
+                const el = modal.querySelector(cls + ' input');
+                if(!el) return;
+                el.addEventListener('keydown', (e) => {
+                    if(e.key !== 'Enter') return;
+                    e.preventDefault();
+                    const nxt = sira[i + 1];
+                    if(nxt){ const n = modal.querySelector(nxt + ' input'); if(n) n.focus(); }
+                    else if(kaydet){ kaydet.focus(); }
+                });
+            });
+            if(kaydet) kaydet.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowLeft'){ e.preventDefault(); if(iptal) iptal.focus(); }
+            });
+            if(iptal) iptal.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowRight'){ e.preventDefault(); if(kaydet) kaydet.focus(); }
+            });
+        '''), once=True)
 
     # --- Edit Firma Dialog ---
     def open_edit_firma_dialog(row):

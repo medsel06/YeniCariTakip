@@ -1,6 +1,6 @@
 """Cari Takip - Stok Sayfasi"""
 from nicegui import ui
-from layout import create_layout, fmt_miktar, MIKTAR_SLOT, PARA_SLOT, TARIH_SLOT, notify_ok, notify_err, confirm_dialog, normalize_search
+from layout import create_layout, fmt_miktar, MIKTAR_SLOT, PARA_SLOT, TARIH_SLOT, notify_ok, notify_err, confirm_dialog, normalize_search, IM_MODAL_CSS, f2_kisayolu
 from services.stok_service import get_stok_list, get_urun_list, add_urun, update_urun, delete_urun, generate_urun_kod, get_kategori_list
 from services.settings_service import get_company_settings
 from services.pdf_service import generate_stok_raporu_pdf, save_pdf_preview
@@ -39,39 +39,53 @@ def stok_page():
         auto_kod = generate_urun_kod()
         kategoriler = get_kategori_list()
 
-        with ui.dialog() as dlg, ui.card().classes('alse-dialog').style('width: 90vw; max-width: 500px'):
-            with ui.element('div').classes('alse-dialog-header'):
-                ui.icon('add_circle')
-                ui.label('Yeni Ürün Ekle').classes('dialog-title')
+        with ui.dialog() as dlg, ui.card().classes('alse-dialog im-modal').style(
+                'width: 92vw; max-width: 520px; max-height: 92vh; display: flex; flex-direction: column; padding:0;'):
+            with ui.element('div').classes('im-head'):
+                ui.icon('inventory_2').classes('im-ic')
+                ui.label('Yeni Ürün Ekle').classes('im-title')
 
-            inp_kod = ui.input('Ürün Kodu', value=auto_kod).classes('w-full q-mt-sm').props('outlined dense readonly')
-            inp_ad = ui.input('Ürün Adı').classes('w-full').props('outlined dense')
-            inp_kat = ui.select(
-                options=kategoriler, label='Kategori', with_input=True,
-                new_value_mode='add-unique'
-            ).classes('w-full').props('outlined dense')
-            # Quasar bug fix: kullanici yeni kategori yazip Enter basmadan Kaydet'e
-            # tiklarsa input-value commit edilmiyor. input-value event'i ile son
-            # yazilan text'i yakaliyoruz, save'de fallback olarak kullaniyoruz.
-            _kat_pending = {'text': ''}
-            inp_kat.on('input-value', lambda e: _kat_pending.update({'text': str(e.args or '').strip()}))
-            inp_birim = ui.select(
-                options=['KG', 'ADET', 'METRE', 'LITRE', 'PAKET', 'M3'],
-                value='KG', label='Birim'
-            ).classes('w-full').props('outlined dense')
+            with ui.column().classes('w-full im-body gap-1').style(
+                    'overflow-y:auto;flex:1 1 auto;min-height:0;'):
+                # Satir 1: Kod (readonly) + Urun Adi
+                with ui.row().classes('w-full gap-sm no-wrap'):
+                    with ui.element('div').classes('im-field').style('flex:0 0 110px'):
+                        ui.label('ÜRÜN KODU').classes('im-flabel')
+                        inp_kod = ui.input(value=auto_kod).props('outlined dense readonly').classes('w-full')
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('ÜRÜN ADI').classes('im-flabel')
+                        inp_ad = ui.input().props('outlined dense').classes('w-full st-ad')
+                # Satir 2: Kategori + Birim
+                with ui.row().classes('w-full gap-sm no-wrap'):
+                    with ui.element('div').classes('im-field col'):
+                        ui.label('KATEGORİ').classes('im-flabel')
+                        inp_kat = ui.select(
+                            options=kategoriler, with_input=True, new_value_mode='add-unique'
+                        ).props('outlined dense clearable').classes('w-full st-kat')
+                    with ui.element('div').classes('im-field').style('flex:0 0 130px'):
+                        ui.label('BİRİM').classes('im-flabel')
+                        inp_birim = ui.select(
+                            options=['KG', 'ADET', 'METRE', 'LITRE', 'PAKET', 'M3'], value='KG'
+                        ).props('outlined dense').classes('w-full')
+                # Quasar bug fix: kullanici yeni kategori yazip Enter basmadan Kaydet'e
+                # tiklarsa input-value commit edilmiyor. input-value event'i ile son
+                # yazilan text'i yakaliyoruz, save'de fallback olarak kullaniyoruz.
+                _kat_pending = {'text': ''}
+                inp_kat.on('input-value', lambda e: _kat_pending.update({'text': str(e.args or '').strip()}))
 
-            # DESİ alani (sadece uretim takibi aciksa)
-            _ayar = get_company_settings()
-            inp_desi = None
-            if _ayar.get('uretim_takibi'):
-                with ui.card().classes('w-full q-pa-sm').style('background: #FFF8E1; border: 1px solid #FFE082; border-radius: 8px'):
-                    with ui.row().classes('items-center gap-1'):
-                        ui.icon('straighten', color='orange-8').style('font-size: 18px')
-                        ui.label('Üretim / DESİ Bilgisi').classes('text-caption text-weight-bold text-orange-9')
-                    inp_desi = ui.number('DESİ Değeri (birim başına hammadde)', value=0, format='%.2f').classes('w-full').props('outlined dense')
+                # DESİ alani (sadece uretim takibi aciksa)
+                _ayar = get_company_settings()
+                inp_desi = None
+                if _ayar.get('uretim_takibi'):
+                    with ui.element('div').classes('im-field w-full'):
+                        ui.label('DESİ DEĞERİ (BİRİM BAŞINA HAMMADDE)').classes('im-flabel')
+                        inp_desi = ui.number(value=0, format='%.2f').props(
+                            'outlined dense input-class=text-right').classes('w-full st-desi')
 
-            with ui.row().classes('w-full justify-end q-mt-md'):
-                ui.button('İptal', on_click=dlg.close).props('flat color=grey')
+            with ui.row().classes('w-full justify-end items-center').style(
+                    'flex:0 0 auto;overflow:visible;padding:11px 16px;border-top:1px solid #eef2f6;'):
+                ui.label('⏎ Enter ilerler · F2 kaydeder').classes('im-enter-hint').style('margin-right:auto')
+                btn_iptal = ui.button('İptal', on_click=dlg.close).props('flat color=grey').classes('im-btn-iptal')
 
                 def save():
                     if not inp_ad.value:
@@ -99,8 +113,57 @@ def stok_page():
                     except Exception as e:
                         notify_err(f'Hata: {e}')
 
-                ui.button('Kaydet', color='primary', on_click=save).props('unelevated')
+                btn_kaydet = ui.button('Kaydet', on_click=save, color=None).props('unelevated no-caps') \
+                    .classes('im-btn-kaydet').style(
+                    'background:#059669;color:#fff;font-weight:700;padding:7px 22px;border-radius:9px')
+
+                # Enter akisi (sunucu): kategori secilince Birim listesi acilir
+                _nav = {'birim': False}
+
+                def _kat_enter():
+                    _nav['birim'] = True
+                    inp_birim.run_method('focus')
+                    inp_birim.run_method('showPopup')
+                inp_kat.on('keydown.enter', _kat_enter)  # prevent YOK: yeni kategori commit'i bozulmasin
+
+                def _birim_hide():
+                    if _nav['birim']:
+                        _nav['birim'] = False
+                        if inp_desi is not None:
+                            ui.run_javascript(
+                                "const el=[...document.querySelectorAll('.im-modal .st-desi input')].pop();"
+                                "if(el){el.focus();el.select();}")
+                        else:
+                            ui.run_javascript(
+                                "const b=[...document.querySelectorAll('.im-modal .im-btn-kaydet')].pop();"
+                                "if(b)b.focus();")
+                inp_birim.on('popup-hide', _birim_hide)
         dlg.open()
+        # Acilinca odak Urun Adi'na
+        ui.timer(0.2, lambda: inp_ad.run_method('focus'), once=True)
+        # Klavye akisi (CLIENT-SIDE): ad -> kategori; desi -> Kaydet; ok tuslari Kaydet<->Iptal
+        ui.timer(0.3, lambda: ui.run_javascript('''
+            const modal = [...document.querySelectorAll('.im-modal')].pop();
+            if(!modal || modal.__stFlow) return;
+            modal.__stFlow = true;
+            const kaydet = modal.querySelector('.im-btn-kaydet');
+            const iptal = modal.querySelector('.im-btn-iptal');
+            const ad = modal.querySelector('.st-ad input');
+            if(ad) ad.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter'){ e.preventDefault();
+                    const k = modal.querySelector('.st-kat input'); if(k) k.focus(); }
+            });
+            const desi = modal.querySelector('.st-desi input');
+            if(desi) desi.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter'){ e.preventDefault(); if(kaydet) kaydet.focus(); }
+            });
+            if(kaydet) kaydet.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowLeft'){ e.preventDefault(); if(iptal) iptal.focus(); }
+            });
+            if(iptal) iptal.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowRight'){ e.preventDefault(); if(kaydet) kaydet.focus(); }
+            });
+        '''), once=True)
 
     def open_edit_dialog(row):
         try:
@@ -225,7 +288,11 @@ def stok_page():
             ).props('outlined dense clearable').classes('w-64')
             ui.space()
             ui.button('PDF', icon='picture_as_pdf', color='primary', on_click=_pdf_stok_listesi).props('dense')
-            ui.button('EKLE', icon='inventory_2', color='primary', on_click=open_add_dialog).props('dense no-caps')
+            with ui.element('div').style('position:relative'):
+                ui.button('EKLE', icon='inventory_2', color='primary', on_click=open_add_dialog).props('dense no-caps')
+                ui.label('F2').classes('fkey-hint')
+        ui.add_css(IM_MODAL_CSS)
+        f2_kisayolu(open_add_dialog)
 
         table_ref = ui.table(
             columns=columns, rows=all_rows, row_key='kod',
