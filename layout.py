@@ -841,7 +841,7 @@ tr:hover .tarihsiz-cell { background: #fecaca !important; }
    (Cek/Senet, Uretim, Sokum Verimi) tasip gorunmez oluyordu. Item/baslik
    yuksekliklerini viewport yuksekligine gore kucult; yine sigmayan durumda
    orta bolge (alse-nav-scroll) zaten kayar. !important inline stilleri ezer. */
-@media (max-height: 1020px) {
+@media (max-height: 900px) {
   .alse-drawer .alse-drawer-brand { height: 52px !important; }
   .alse-drawer .active-nav-modern, .alse-drawer .inactive-nav-modern { height: 32px !important; }
   .alse-drawer .alse-nav-scroll { gap: 2px !important; padding-bottom: 8px !important; }
@@ -849,14 +849,14 @@ tr:hover .tarihsiz-cell { background: #fecaca !important; }
   .alse-group .q-expansion-item__container > .q-item { min-height: 32px !important; height: 32px !important; }
   .alse-user-foot { padding: 10px 14px !important; }
 }
-@media (max-height: 880px) {
+@media (max-height: 800px) {
   .alse-drawer .alse-drawer-brand { height: 48px !important; }
   .alse-drawer .active-nav-modern, .alse-drawer .inactive-nav-modern { height: 30px !important; }
   .alse-drawer .nicegui-expansion-content { gap: 4px !important; row-gap: 4px !important; }
   .alse-group .q-expansion-item__container > .q-item { min-height: 30px !important; height: 30px !important; }
   .alse-user-foot { padding: 8px 12px !important; }
 }
-@media (max-height: 760px) {
+@media (max-height: 700px) {
   .alse-drawer .alse-drawer-brand { height: 42px !important; }
   .alse-drawer .active-nav-modern, .alse-drawer .inactive-nav-modern { height: 27px !important; }
   .alse-drawer .nav-item-label { font-size: 12.5px !important; }
