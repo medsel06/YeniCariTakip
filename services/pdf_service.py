@@ -849,7 +849,19 @@ def save_shared_pdf(pdf_bytes, prefix='ekstre', gecerlilik_gun=15, kisa_ad=None)
     except Exception:
         pass
     if kisa_ad:
-        final_name = f"{_ascii_slug(kisa_ad)}_{uuid.uuid4().hex[:6]}.pdf"
+        # 2 haneli kisa kod (b7, 3k gibi); ayni isim varsa yeni kod dene (ustune yazma!)
+        import random
+        import string
+        slug = _ascii_slug(kisa_ad)
+        alfabe = string.ascii_lowercase + string.digits
+        final_name = None
+        for _ in range(60):
+            aday = f"{slug}_{''.join(random.choices(alfabe, k=2))}.pdf"
+            if not (d / aday).exists():
+                final_name = aday
+                break
+        if final_name is None:  # 60 denemede bos kod kalmadi -> uzun token'a dus
+            final_name = f"{slug}_{uuid.uuid4().hex[:6]}.pdf"
         (d / final_name).write_bytes(pdf_bytes)
         return f"/{final_name}"
     safe_prefix = ''.join(c for c in (prefix or 'ekstre') if c.isalnum() or c in ('_', '-')) or 'ekstre'
