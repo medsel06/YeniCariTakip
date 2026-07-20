@@ -842,20 +842,27 @@ tr:hover .tarihsiz-cell { background: #fecaca !important; }
    yuksekliklerini viewport yuksekligine gore kucult; yine sigmayan durumda
    orta bolge (alse-nav-scroll) zaten kayar. !important inline stilleri ezer. */
 @media (max-height: 1020px) {
+  .alse-drawer .alse-drawer-brand { height: 52px !important; }
+  .alse-drawer .active-nav-modern, .alse-drawer .inactive-nav-modern { height: 32px !important; }
+  .alse-drawer .alse-nav-scroll { gap: 2px !important; padding-bottom: 8px !important; }
+  .alse-drawer .nicegui-expansion-content { gap: 5px !important; row-gap: 5px !important; }
+  .alse-group .q-expansion-item__container > .q-item { min-height: 32px !important; height: 32px !important; }
+  .alse-user-foot { padding: 10px 14px !important; }
+}
+@media (max-height: 880px) {
   .alse-drawer .alse-drawer-brand { height: 48px !important; }
   .alse-drawer .active-nav-modern, .alse-drawer .inactive-nav-modern { height: 30px !important; }
-  .alse-drawer .alse-nav-scroll { gap: 1px !important; padding-bottom: 8px !important; }
-  .alse-drawer .nicegui-expansion-content { gap: 3px !important; row-gap: 3px !important; }
+  .alse-drawer .nicegui-expansion-content { gap: 4px !important; row-gap: 4px !important; }
   .alse-group .q-expansion-item__container > .q-item { min-height: 30px !important; height: 30px !important; }
   .alse-user-foot { padding: 8px 12px !important; }
 }
-@media (max-height: 880px) {
+@media (max-height: 760px) {
   .alse-drawer .alse-drawer-brand { height: 42px !important; }
-  .alse-drawer .active-nav-modern, .alse-drawer .inactive-nav-modern { height: 26px !important; }
-  .alse-drawer .nav-item-label { font-size: 12px !important; }
+  .alse-drawer .active-nav-modern, .alse-drawer .inactive-nav-modern { height: 27px !important; }
+  .alse-drawer .nav-item-label { font-size: 12.5px !important; }
   .alse-drawer .nav-item-icon { font-size: 16px !important; }
   .alse-drawer .nicegui-expansion-content { gap: 2px !important; row-gap: 2px !important; }
-  .alse-group .q-expansion-item__container > .q-item { min-height: 26px !important; height: 26px !important; }
+  .alse-group .q-expansion-item__container > .q-item { min-height: 27px !important; height: 27px !important; }
   .alse-user-foot { padding: 5px 10px !important; }
 }
 '''
