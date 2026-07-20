@@ -76,6 +76,10 @@ def gelir_gider_page(focus: int = None):
     .im-modal .im-btn-kaydet:focus, .im-modal .im-btn-iptal:focus {
         outline:2px solid #0891b2; outline-offset:2px; }
     .im-enter-hint { font-size:10.5px; color:#94a3b8; white-space:nowrap; }
+    /* Buton altinda F-tusu etiketi (akisa girmez -> tabloyu itmez) */
+    .gg-fhint { position:absolute; top:100%; left:50%; transform:translateX(-50%);
+        font-size:8.5px; color:#94a3b8; font-weight:700; letter-spacing:.5px;
+        line-height:1; margin-top:2px; pointer-events:none; }
     ''')
 
     table_ref = None
@@ -737,9 +741,6 @@ def gelir_gider_page(focus: int = None):
             modal.__ggFlow = true;
             const kaydet = modal.querySelector('.im-btn-kaydet');
             const iptal = modal.querySelector('.im-btn-iptal');
-            modal.addEventListener('keydown', (e) => {
-                if(e.key === 'F2'){ e.preventDefault(); if(kaydet) kaydet.click(); }
-            });
             const go = (sel, selAll) => { const el = modal.querySelector(sel);
                 if(el){ el.focus(); if(selAll && el.select) el.select(); } };
             const dw = modal.querySelector('.im-vpwrap');
@@ -983,7 +984,28 @@ def gelir_gider_page(focus: int = None):
                     'Kategori', icon='donut_small', color='primary', on_click=_toggle_kategori_view,
                 ).props('dense outline no-caps')
                 ui.button('PDF', icon='picture_as_pdf', color='primary', on_click=_open_pdf_dialog).props('dense')
-                ui.button('YENİ', icon='swap_vert', color='primary', on_click=lambda: open_dialog()).props('dense no-caps')
+                with ui.element('div').style('position:relative'):
+                    ui.button('YENİ', icon='swap_vert', color='primary', on_click=lambda: open_dialog()).props('dense no-caps')
+                    ui.label('F2').classes('gg-fhint')
+
+        # F2 kisayolu: modal kapaliysa Yeni Gelir/Gider acar; acik modalda Kaydet'e tiklar
+        def _gg_fkey(e):
+            if (e.args or {}).get('key') == 'F2':
+                open_dialog()
+        ui.on('gg_fkey', _gg_fkey)
+        ui.run_javascript('''
+            if(!window.__ggFkeys){
+                window.__ggFkeys = true;
+                document.addEventListener('keydown', (e) => {
+                    if(e.key !== 'F2') return;
+                    const b = [...document.querySelectorAll('.q-dialog .im-btn-kaydet')].pop();
+                    if(b){ e.preventDefault(); b.click(); return; }
+                    if(document.querySelector('.q-dialog')) return;
+                    e.preventDefault();
+                    emitEvent('gg_fkey', {key: 'F2'});
+                }, true);
+            }
+        ''')
 
         with ui.row().classes('w-full items-center gap-2 q-mb-xs').style('min-height: 32px'):
             back_button = ui.button(
