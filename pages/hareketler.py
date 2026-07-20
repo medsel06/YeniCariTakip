@@ -506,7 +506,7 @@ def hareketler_page():
                     """KDV secildikten sonra Enter: yeni kalem eklensin mi? Enter=Evet, ←=Hayır(açıklamaya)."""
                     with ui.dialog() as kdlg, ui.card().classes('q-pa-md im-confirm-card').style('min-width:360px;border-radius:12px'):
                         ui.label('Yeni kalem eklensin mi?').classes('text-subtitle2 text-weight-bold').style('color:#0f766e')
-                        ui.label('Enter = Evet   ·   ← ile Hayır (açıklamaya geçer)').classes('text-caption text-grey-6 q-mb-sm')
+                        ui.label('Enter = Hayır (açıklamaya geçer)   ·   → ile Evet').classes('text-caption text-grey-6 q-mb-sm')
 
                         def _evet():
                             kdlg.close()
@@ -529,7 +529,7 @@ def hareketler_page():
                         const noBtn = btns[0], yesBtn = btns[1];
                         const mark = (b) => { noBtn.classList.remove('imsel'); yesBtn.classList.remove('imsel');
                                               b.classList.add('imsel'); b.focus(); };
-                        mark(yesBtn);
+                        mark(noBtn);
                         card.addEventListener('keydown', (e) => {
                             if(e.key === 'ArrowLeft'){ mark(noBtn); e.preventDefault(); }
                             else if(e.key === 'ArrowRight'){ mark(yesBtn); e.preventDefault(); }
@@ -731,7 +731,7 @@ def hareketler_page():
                     with ui.element('div').classes('im-octx') as vadeli_box:
                         with ui.element('div').classes('im-field').style('flex:0 0 160px'):
                             ui.label('VADE TARİHİ').classes('im-flabel')
-                            inp_vade = ui.input().props('outlined dense type=date clearable').classes('w-full')
+                            inp_vade = ui.input().props('outlined dense type=date clearable').classes('w-full im-vade')
 
                         def _set_vade_gun(gun):
                             from datetime import datetime as _dt, timedelta as _td
@@ -999,14 +999,13 @@ def hareketler_page():
                     .classes('im-btn-kaydet').style(
                     'background:#059669;color:#fff;font-weight:700;padding:7px 22px;border-radius:9px')
 
-                # --- Enter-akisi kablolari: aciklama -> Vadeli/Peşin -> (vade | kasa/odeme/tutar) -> Kaydet ---
+                # --- Enter-akisi kablolari (sunucu tarafi): aciklama -> Vadeli/Peşin -> pesin zinciri ---
+                # Ok tuslari + Enter->Kaydet odaklari gecikmesiz olsun diye CLIENT-SIDE JS'te
+                # (dlg.open() sonrasi kurulur); burada sadece popup/logic gerektirenler var.
                 def _js_focus(sel_css, select_all=False):
                     ui.run_javascript(
                         f"const el=[...document.querySelectorAll('{sel_css}')].pop();"
                         "if(el){el.focus();" + ("if(el.select)el.select();" if select_all else "") + "}")
-
-                def _focus_kaydet():
-                    _js_focus('.im-modal .im-btn-kaydet')
 
                 def _aciklama_enter():
                     if is_edit:
@@ -1015,9 +1014,6 @@ def hareketler_page():
                         _js_focus('.im-vpwrap')
                 inp_aciklama.on('keydown.enter.prevent', _aciklama_enter)
 
-                # Vadeli/Peşin kutusu: ← Vadeli, → Peşin, Enter secili olanla devam
-                vp_wrap.on('keydown.arrowleft.prevent', lambda: inp_odeme_mod.set_value('vadeli'))
-                vp_wrap.on('keydown.arrowright.prevent', lambda: inp_odeme_mod.set_value('pesin'))
                 _pesin_nav = {'hesap': False, 'odeme': False}
 
                 def _vp_enter():
@@ -1028,9 +1024,6 @@ def hareketler_page():
                     else:
                         inp_vade.run_method('focus')
                 vp_wrap.on('keydown.enter.prevent', _vp_enter)
-
-                # Vadeli: tarih girildi, Enter -> Kaydet'e odak
-                inp_vade.on('keydown.enter.prevent', _focus_kaydet)
 
                 # Pesin zinciri: kasa/banka secilince odeme sekli acilir, o secilince tutara gecilir
                 def _hesap_hide():
@@ -1047,15 +1040,40 @@ def hareketler_page():
                         # Tutar dolu gelir; tumu secili odaklanir (yazinca ustune yazar, Enter ile gecer)
                         _js_focus('.im-modal .im-ptutar input', select_all=True)
                 inp_pesin_odeme.on('popup-hide', _odeme_hide)
-
-                inp_pesin_tutar.on('keydown.enter.prevent', _focus_kaydet)
-
-                # Kaydet/Iptal: Enter odaklanan butona tiklar; ← Iptal, → Kaydet
-                btn_kaydet.on('keydown.arrowleft.prevent', lambda: _js_focus('.im-modal .im-btn-iptal'))
-                btn_iptal.on('keydown.arrowright.prevent', lambda: _js_focus('.im-modal .im-btn-kaydet'))
         dlg.open()
         # Modal acilinca odak dogrudan Tarih'e
         ui.timer(0.2, lambda: inp_tarih.run_method('focus'), once=True)
+        # Klavye akisi (CLIENT-SIDE, sunucu gecikmesi yok):
+        # - Vadeli/Pesin kutusunda ← → radio degistirir (click ile sunucuya da senkron olur)
+        # - Vade/Tutar'da Enter aninda Kaydet'e odaklanir (tek Enter ile kaydeder)
+        # - Kaydet ← Iptal, Iptal → Kaydet
+        ui.timer(0.3, lambda: ui.run_javascript('''
+            const modal = [...document.querySelectorAll('.im-modal')].pop();
+            if(!modal || modal.__enterFlow) return;
+            modal.__enterFlow = true;
+            const kaydet = modal.querySelector('.im-btn-kaydet');
+            const iptal = modal.querySelector('.im-btn-iptal');
+            const vp = modal.querySelector('.im-vpwrap');
+            if(vp) vp.addEventListener('keydown', (e) => {
+                const r = vp.querySelectorAll('.q-radio');
+                if(e.key === 'ArrowLeft'){ e.preventDefault(); if(r[0]) r[0].click(); vp.focus(); }
+                else if(e.key === 'ArrowRight'){ e.preventDefault(); if(r[1]) r[1].click(); vp.focus(); }
+            });
+            const vadeInp = modal.querySelector('.im-vade input');
+            if(vadeInp) vadeInp.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter'){ e.preventDefault(); if(kaydet) kaydet.focus(); }
+            });
+            const tutarInp = modal.querySelector('.im-ptutar input');
+            if(tutarInp) tutarInp.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter'){ e.preventDefault(); if(kaydet) kaydet.focus(); }
+            });
+            if(kaydet) kaydet.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowLeft'){ e.preventDefault(); if(iptal) iptal.focus(); }
+            });
+            if(iptal) iptal.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowRight'){ e.preventDefault(); if(kaydet) kaydet.focus(); }
+            });
+        '''), once=True)
 
     def do_edit(row):
         open_hareket_dialog(edit_row=row)
