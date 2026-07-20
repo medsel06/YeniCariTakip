@@ -1,4 +1,5 @@
 """ALSE Plastik Hammadde - Alis/Satis Hareketleri Sayfasi"""
+import re as _re
 from datetime import date, datetime
 from nicegui import ui
 from layout import (
@@ -447,6 +448,10 @@ def hareketler_page():
                         return 0.0
                     if ',' in s:  # TR giris: nokta binlik, virgul ondalik
                         s = s.replace('.', '').replace(',', '.')
+                    elif _re.fullmatch(r'-?\d{1,3}(\.\d{3})+', s):
+                        # Virgul yok ama binlik desenli nokta(lar) var: "1.000" -> 1000
+                        # (blur'daki _fmt_miktar binlik noktali yazar; float("1.000")=1.0 hatasini onler)
+                        s = s.replace('.', '')
                     try:
                         return float(s)
                     except ValueError:

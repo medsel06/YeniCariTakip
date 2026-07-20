@@ -541,11 +541,16 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
     """)
 
     # CIRO_EDILDI: ciro firmasina ek satir (alinan cek -> ciro firmasi borcunu kapatti)
+    # Tarih = ciro islem tarihi (cek_hareketleri'ndeki CIRO_EDILDI gecisinin tarihi);
+    # log yoksa (eski/migre veri) kesim/vade fallback. Cek detay sayfasi da ayni kaynagi kullanir.
+    _ciro_trh = ("COALESCE((SELECT MAX(h.tarih) FROM cek_hareketleri h "
+                 "WHERE h.cek_id = cekler.id AND h.yeni_durum='CIRO_EDILDI'), "
+                 "NULLIF(kesim_tarih, ''), vade_tarih)")
     period_subqueries.append(f"""
         SELECT
             ciro_firma_kod AS firma_kod,
-            COALESCE(NULLIF(kesim_tarih, ''), vade_tarih, '') || ' 00:00:00.000000' AS sort_ts,
-            COALESCE(NULLIF(kesim_tarih, ''), vade_tarih) AS tarih,
+            COALESCE({_ciro_trh}, '') || ' 00:00:00.000000' AS sort_ts,
+            {_ciro_trh} AS tarih,
             'CIRO' AS tip, 'C' AS kaynak, id AS ref_id,
             0 AS borc,
             tutar AS alacak,
@@ -556,9 +561,9 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
         WHERE durum='CIRO_EDILDI'
           AND ciro_firma_kod IS NOT NULL AND ciro_firma_kod != ''
           {firma_clause.replace('firma_kod', 'ciro_firma_kod')}
-          AND COALESCE(NULLIF(kesim_tarih, ''), vade_tarih) IS NOT NULL
-          AND COALESCE(NULLIF(kesim_tarih, ''), vade_tarih) != ''
-          {date_flt.replace('tarih', "COALESCE(NULLIF(kesim_tarih, ''), vade_tarih)")}
+          AND {_ciro_trh} IS NOT NULL
+          AND {_ciro_trh} != ''
+          {date_flt.replace('tarih', _ciro_trh)}
     """)
 
     period_sql = " UNION ALL ".join(period_subqueries)
@@ -609,9 +614,9 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
             WHERE durum='CIRO_EDILDI'
               AND ciro_firma_kod IS NOT NULL AND ciro_firma_kod != ''
               {firma_clause.replace('firma_kod', 'ciro_firma_kod')}
-              AND COALESCE(NULLIF(kesim_tarih, ''), vade_tarih) IS NOT NULL
-              AND COALESCE(NULLIF(kesim_tarih, ''), vade_tarih) != ''
-              {cek_devir_flt}
+              AND {_ciro_trh} IS NOT NULL
+              AND {_ciro_trh} != ''
+              {devir_flt.replace('tarih', _ciro_trh)}
             GROUP BY ciro_firma_kod
         """)
 
