@@ -1,7 +1,7 @@
 """ALSE Plastik Hammadde - Kasa Sayfası"""
 from datetime import date, datetime
 from nicegui import ui
-from layout import create_layout, fmt_para, ozet_pill, PARA_SLOT, BAKIYE_SLOT, TARIH_SLOT, notify_ok, notify_err, confirm_dialog, normalize_search, donem_popover_btn, odeme_banka_secici, IM_MODAL_CSS
+from layout import create_layout, fmt_para, ozet_pill, PARA_SLOT, BAKIYE_SLOT, TARIH_SLOT, notify_ok, notify_err, confirm_dialog, normalize_search, donem_popover_btn, odeme_banka_secici, IM_MODAL_CSS, f2_kisayolu
 from services.kasa_service import get_kasa_list, get_kasa_bakiye, add_kasa, delete_kasa, update_kasa, get_kasa_by_id
 from services.banka_service import list_banka_hesaplari
 from services.cari_service import get_firma_list
@@ -388,9 +388,6 @@ def kasa_page():
             modal.__ksFlow = true;
             const kaydet = modal.querySelector('.im-btn-kaydet');
             const iptal = modal.querySelector('.im-btn-iptal');
-            modal.addEventListener('keydown', (e) => {
-                if(e.key === 'F2'){ e.preventDefault(); if(kaydet) kaydet.click(); }
-            });
             const go = (sel, selAll) => { const el = modal.querySelector(sel);
                 if(el){ el.focus(); if(selAll && el.select) el.select(); } };
             const firma = modal.querySelector('.ks-firma input');
@@ -639,7 +636,10 @@ def kasa_page():
                 _open_pdf(pdf_bytes, 'kasa_hizli_rapor.pdf')
 
             ui.button('PDF', icon='picture_as_pdf', color='primary', on_click=_download_pdf).props('dense')
-            ui.button('YENİ', icon='account_balance_wallet', color='primary', on_click=open_add_dialog).props('dense no-caps')
+            with ui.element('div').style('position:relative'):
+                ui.button('YENİ', icon='account_balance_wallet', color='primary', on_click=open_add_dialog).props('dense no-caps')
+                ui.label('F2').classes('fkey-hint')
+        f2_kisayolu(open_add_dialog)
 
         # Table
         table_ref = ui.table(

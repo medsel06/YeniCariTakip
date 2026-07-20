@@ -1,7 +1,7 @@
 """Ödeme / Tahsilat Takibi — vade planı sayfası."""
 from datetime import date, datetime
 from nicegui import ui
-from layout import create_layout, fmt_para, ozet_pill, notify_ok, notify_err, confirm_dialog, segment_group, donem_popover_btn, IM_MODAL_CSS
+from layout import create_layout, fmt_para, ozet_pill, notify_ok, notify_err, confirm_dialog, segment_group, donem_popover_btn, IM_MODAL_CSS, f2_kisayolu
 from services.odeme_takibi_service import (
     list_odeme_takibi, get_ozet, add_odeme_takibi, update_odeme_takibi,
     delete_odeme_takibi, ode, ode_toplu, get_vadeli_cari, get_cek_vadeleri,
@@ -464,9 +464,6 @@ def odeme_takibi_page():
             modal.__plFlow = true;
             const kaydet = modal.querySelector('.im-btn-kaydet');
             const iptal = modal.querySelector('.im-btn-iptal');
-            modal.addEventListener('keydown', (e) => {
-                if(e.key === 'F2'){ e.preventDefault(); if(kaydet) kaydet.click(); }
-            });
             const go = (sel, selAll) => { const el = modal.querySelector(sel);
                 if(el){ el.focus(); if(selAll && el.select) el.select(); } };
             const tw = modal.querySelector('.im-vpwrap');
@@ -724,7 +721,11 @@ def odeme_takibi_page():
                 ui.button('İpucu', icon='help_outline', on_click=_ipucu_dialog).props('flat dense no-caps size=sm color=primary')
                 ui.button('Toplu Ödeme', icon='checklist',
                           on_click=lambda: (mode.update(secim=True), _refresh())).props('outline dense no-caps size=sm color=deep-purple')
-                ui.button('YENİ PLAN', icon='event', on_click=lambda: _form(), color='primary').props('unelevated dense no-caps')
+                with ui.element('div').style('position:relative'):
+                    ui.button('YENİ PLAN', icon='event', on_click=lambda: _form(), color='primary').props('unelevated dense no-caps')
+                    ui.label('F2').classes('fkey-hint')
+        ui.add_css(IM_MODAL_CSS)
+        f2_kisayolu(lambda: _form())
 
         # --- Filtre cubugu: bagli segmentler + tek pill donem + ozet (sagda) ---
         with ui.row().classes('w-full items-center gap-3 q-row-mobile-wrap odeme-filtre'):

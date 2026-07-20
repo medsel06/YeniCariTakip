@@ -4,6 +4,7 @@ from datetime import date, datetime, timedelta
 from nicegui import ui
 from layout import (
     create_layout, fmt_para, notify_ok, notify_err, confirm_dialog,
+    IM_MODAL_CSS, f2_kisayolu,
 )
 from services.personel_service import (
     get_donem_ozet, add_personel, update_personel, delete_personel,
@@ -178,7 +179,7 @@ def personel_page():
                     except Exception as e:
                         notify_err(f'Hata: {e}')
 
-                ui.button('Kaydet', color='primary', on_click=save).props('unelevated')
+                ui.button('Kaydet', color='primary', on_click=save).props('unelevated').classes('im-btn-kaydet')
         dlg.open()
 
     def do_delete_personel(pid):
@@ -260,7 +261,7 @@ def personel_page():
                     except Exception as e:
                         notify_err(f'Hata: {e}')
 
-                ui.button('Kaydet', color='primary', on_click=save).props('unelevated')
+                ui.button('Kaydet', color='primary', on_click=save).props('unelevated').classes('im-btn-kaydet')
         dlg.open()
 
     def open_avans_dialog(row):
@@ -305,7 +306,7 @@ def personel_page():
                     except Exception as e:
                         notify_err(f'Hata: {e}')
 
-                ui.button('Kaydet', color='primary', on_click=save).props('unelevated')
+                ui.button('Kaydet', color='primary', on_click=save).props('unelevated').classes('im-btn-kaydet')
         dlg.open()
 
     def open_odeme_dialog(row):
@@ -353,7 +354,7 @@ def personel_page():
                     except Exception as e:
                         notify_err(f'Hata: {e}')
 
-                ui.button('Kaydet', color='primary', on_click=save).props('unelevated')
+                ui.button('Kaydet', color='primary', on_click=save).props('unelevated').classes('im-btn-kaydet')
         dlg.open()
 
     def open_rapor_dialog():
@@ -682,9 +683,11 @@ def personel_page():
                 ozet_box = ui.column().classes('pers-ozet w-full gap-0')
                 menu_box = ui.column().classes('pers-list w-full gap-0')
                 with ui.row().classes('pers-foot w-full no-wrap'):
-                    ui.button('Yeni', icon='person_add', on_click=lambda: open_personel_dialog()) \
-                        .props('unelevated dense no-caps') \
-                        .style('flex:1;height:34px;font-size:12px;background:#0f172a;color:#fff;border-radius:9px')
+                    with ui.element('div').style('position:relative;flex:1;display:flex'):
+                        ui.button('Yeni', icon='person_add', on_click=lambda: open_personel_dialog()) \
+                            .props('unelevated dense no-caps') \
+                            .style('flex:1;height:34px;font-size:12px;background:#0f172a;color:#fff;border-radius:9px')
+                        ui.label('F2').classes('fkey-hint')
                     ui.button(icon='assessment', on_click=open_rapor_dialog).props('flat dense round color=grey-7') \
                         .tooltip('Personel raporu')
             # SAG: baslik (isim | donem pill | islem ikonlari) + govde
@@ -698,4 +701,6 @@ def personel_page():
                             btns_slot = ui.row().classes('items-center no-wrap gap-1')
                     body_box = ui.column().classes('w-full gap-0')
 
+    ui.add_css(IM_MODAL_CSS)
+    f2_kisayolu(lambda: open_personel_dialog())
     _refresh()

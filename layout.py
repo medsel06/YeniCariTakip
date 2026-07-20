@@ -1641,5 +1641,33 @@ IM_MODAL_CSS = '''
         box-shadow:0 0 0 4px rgba(5,150,105,.20) !important; }
     /* Alt bilgi: Enter ile ilerleme ipucu */
     .im-enter-hint { font-size:10.5px; color:#94a3b8; white-space:nowrap; }
+    /* Buton altinda F-tusu etiketi (akisa girmez -> tabloyu itmez) */
+    .fkey-hint { position:absolute; top:100%; left:50%; transform:translateX(-50%);
+        font-size:8.5px; color:#94a3b8; font-weight:700; letter-spacing:.5px;
+        line-height:1; margin-top:2px; pointer-events:none; }
 '''
+
+
+def f2_kisayolu(ac_fonksiyonu):
+    """Sayfa geneli F2 kisayolu: modal KAPALIYSA ac_fonksiyonu cagrilir (Yeni ... modali),
+    modal ACIKSA icindeki Kaydet'e tiklar (butonun 'im-btn-kaydet' sinifi tasimasi gerekir).
+
+    Cift kayit olmamasi icin ayni sayfada modal-ici F2 dinleyicisi OLMAMALI.
+    Kullanim: sayfa kurulumunda `f2_kisayolu(open_dialog)`; butona da `.fkey-hint`
+    etiketli 'F2' yazisi eklenebilir (IM_MODAL_CSS gerekli).
+    """
+    ui.on('f2_yeni', lambda e: ac_fonksiyonu())
+    ui.run_javascript('''
+        if(!window.__f2Kisayol){
+            window.__f2Kisayol = true;
+            document.addEventListener('keydown', (e) => {
+                if(e.key !== 'F2') return;
+                const b = [...document.querySelectorAll('.q-dialog .im-btn-kaydet')].pop();
+                if(b){ e.preventDefault(); b.click(); return; }
+                if(document.querySelector('.q-dialog')) return;
+                e.preventDefault();
+                emitEvent('f2_yeni', {});
+            }, true);
+        }
+    ''')
 

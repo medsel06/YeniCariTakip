@@ -1,7 +1,7 @@
 """ALSE Plastik Hammadde - Uretim Kayitlari Sayfasi"""
 from datetime import date
 from nicegui import ui
-from layout import create_layout, fmt_miktar, MIKTAR_SLOT, TARIH_SLOT, notify_ok, notify_err, confirm_dialog, IM_MODAL_CSS
+from layout import create_layout, fmt_miktar, MIKTAR_SLOT, TARIH_SLOT, notify_ok, notify_err, confirm_dialog, IM_MODAL_CSS, f2_kisayolu
 from db import get_db
 from services.stok_service import get_urun_list
 
@@ -477,9 +477,6 @@ def uretim_page():
             modal.__urFlow = true;
             const kaydet = modal.querySelector('.im-btn-kaydet');
             const iptal = modal.querySelector('.im-btn-iptal');
-            modal.addEventListener('keydown', (e) => {
-                if(e.key === 'F2'){ e.preventDefault(); if(kaydet) kaydet.click(); }
-            });
             const tarih = modal.querySelector('.ur-tarih input');
             if(tarih) tarih.addEventListener('keydown', (e) => {
                 if(e.key === 'Enter'){ e.preventDefault();
@@ -509,7 +506,11 @@ def uretim_page():
     # --- PAGE CONTENT ---
     with ui.column().classes('w-full q-pa-sm'):
         with ui.row().classes('w-full items-center justify-end q-mb-xs'):
-            ui.button('Yeni Üretim', icon='add', color='primary', on_click=open_new_dialog)
+            with ui.element('div').style('position:relative'):
+                ui.button('Yeni Üretim', icon='add', color='primary', on_click=open_new_dialog)
+                ui.label('F2').classes('fkey-hint')
+        ui.add_css(IM_MODAL_CSS)
+        f2_kisayolu(open_new_dialog)
 
         rows = _load_uretim_list()
         table_ref = ui.table(

@@ -1,7 +1,7 @@
 """ALSE Plastik Hammadde - Cari Hesaplar Sayfasi"""
 from datetime import datetime
 from nicegui import ui
-from layout import create_layout, fmt_para, notify_ok, notify_err, confirm_dialog, PARA_SLOT, normalize_search, donem_popover_btn, segment_group
+from layout import create_layout, fmt_para, notify_ok, notify_err, confirm_dialog, PARA_SLOT, normalize_search, donem_popover_btn, segment_group, IM_MODAL_CSS, f2_kisayolu
 from services.cari_service import (
     get_cari_bakiye_list, get_firma_list, add_firma, update_firma, generate_firma_kod
 )
@@ -76,8 +76,12 @@ def cari_page():
             ui.space()
             # Tek parca ozet panel (butonlarin saginda, ayni satirda)
             ozet_box = ui.row().classes('items-center no-wrap')
-            ui.button('YENİ', icon='add_business', on_click=lambda: open_new_firma_dialog()) \
-                .props('color=primary dense no-caps')
+            with ui.element('div').style('position:relative'):
+                ui.button('YENİ', icon='add_business', on_click=lambda: open_new_firma_dialog()) \
+                    .props('color=primary dense no-caps')
+                ui.label('F2').classes('fkey-hint')
+        ui.add_css(IM_MODAL_CSS)
+        f2_kisayolu(lambda: open_new_firma_dialog())
 
         def _render_ozet():
             ozet_box.clear()
@@ -214,7 +218,7 @@ def cari_page():
                     except Exception as ex:
                         notify_err(f'Hata: {ex}')
 
-                ui.button('Kaydet', color='primary', on_click=save)
+                ui.button('Kaydet', color='primary', on_click=save).classes('im-btn-kaydet')
 
         dlg.open()
 
@@ -251,6 +255,6 @@ def cari_page():
                     except Exception as ex:
                         notify_err(f'Hata: {ex}')
 
-                ui.button('Kaydet', color='primary', on_click=save_edit)
+                ui.button('Kaydet', color='primary', on_click=save_edit).classes('im-btn-kaydet')
 
         dlg.open()
