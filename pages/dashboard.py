@@ -147,10 +147,7 @@ def dashboard_page():
                 background-color: #ffffff !important;
                 transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             }
-            .modern-card:hover {
-                transform: translateY(-4px);
-                box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.08), 0 8px 8px -5px rgba(0, 0, 0, 0.04) !important;
-            }
+            /* Hover efekti kaldirildi — kartlar sabit */
             
             /* Gradient Card Net Profit (Positive) */
             .gradient-card-profit {
@@ -159,10 +156,6 @@ def dashboard_page():
                 border-radius: 16px !important;
                 box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.3) !important;
                 transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            }
-            .gradient-card-profit:hover {
-                transform: translateY(-4px);
-                box-shadow: 0 16px 28px -5px rgba(16, 185, 129, 0.45) !important;
             }
 
             /* Gradient Card Net Loss (Negative) */
@@ -173,10 +166,6 @@ def dashboard_page():
                 box-shadow: 0 10px 20px -5px rgba(244, 63, 94, 0.3) !important;
                 transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             }
-            .gradient-card-loss:hover {
-                transform: translateY(-4px);
-                box-shadow: 0 16px 28px -5px rgba(244, 63, 94, 0.45) !important;
-            }
 
             /* Gradient Card Kasa (Liquidity) */
             .gradient-card-kasa {
@@ -185,10 +174,6 @@ def dashboard_page():
                 border-radius: 16px !important;
                 box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.3) !important;
                 transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            }
-            .gradient-card-kasa:hover {
-                transform: translateY(-4px);
-                box-shadow: 0 16px 28px -5px rgba(59, 130, 246, 0.45) !important;
             }
             
             /* Custom Table Look inside Dashboard */
@@ -607,7 +592,7 @@ def dashboard_page():
                         return ''
                     return f'{len(items)} kayıt · Toplam: {fmt_para(sum(float(x["kalan"] or 0) for x in items))} TL'
                 _osum = {'geciken': _ozet_txt(_geciken), 'yaklasan': _ozet_txt(_yaklasan)}
-                _ilk_tab = 'geciken' if _geciken else 'yaklasan'
+                _ilk_tab = 'yaklasan'  # varsayilan odak: Yaklasan sekmesi
 
                 with ui.card().classes('modern-card yk-card').style('flex: 2; border-radius: 14px; min-width: 0;'):
                     # Baslik + ozet + sekmeler AYNI satirda (sekmeler en sagda)
@@ -628,19 +613,19 @@ def dashboard_page():
                         with ui.tab_panel('yaklasan').classes('q-pa-none'):
                             _odeme_tablo(_yaklasan, 'Önümüzdeki 7 günde vadesi gelen açık kayıt yok.')
 
-                # Sağ: Vade Uyarıları (flex-1, Compact Liste)
-                with ui.card().classes('modern-card q-pa-md').style('flex: 1; border-radius: 16px; min-width: 0;'):
-                    with ui.row().classes('w-full justify-between items-center no-wrap q-mb-md'):
+                # Sağ: Vade Uyarıları (flex-1, kompakt — Yaklasan Odeme kartiyla ayni yapi)
+                with ui.card().classes('modern-card yk-card').style('flex: 1; border-radius: 14px; min-width: 0;'):
+                    with ui.row().classes('w-full justify-between items-center no-wrap').style('margin-bottom:5px;'):
                         with ui.row().classes('items-center gap-2'):
-                            ui.icon('notification_important', color='primary').style('font-size: 20px; color: #2563eb !important;')
-                            ui.label('Çek / Senet Vade Uyarıları').classes('text-subtitle1 text-weight-bold text-slate-800').style('font-size: 15px;')
+                            ui.icon('notification_important', color='primary').style('font-size: 18px; color: #2563eb !important;')
+                            ui.label('Çek / Senet Vade Uyarıları').classes('text-subtitle1 text-weight-bold text-slate-800').style('font-size: 13.5px;')
                         if tum_uyarilar:
-                            with ui.row().classes('items-center q-px-sm q-py-xs').style('background: #fee2e2; color: #b91c1c; border-radius: 20px; font-size: 11px; font-weight: 600;'):
+                            with ui.row().classes('items-center q-px-sm').style('background: #fee2e2; color: #b91c1c; border-radius: 20px; font-size: 10.5px; font-weight: 600; padding-top: 2px; padding-bottom: 2px;'):
                                 ui.label(f'{len(tum_uyarilar)} Bildirim')
                     if not tum_uyarilar:
                         ui.label('Yaklaşan vade uyarısı bulunmuyor.').classes('text-caption text-grey-6 q-pa-sm')
                     else:
-                        with ui.column().classes('w-full gap-2'):
+                        with ui.column().classes('w-full gap-1'):
                             for item in tum_uyarilar[:5]:
                                 aciliyet = item.get('aciliyet', '90_GUN')
                                 tip = 'Senet' if item.get('evrak_tipi') == 'SENET' else 'Çek'
@@ -652,7 +637,7 @@ def dashboard_page():
                                 border_color = '#ef4444' if aciliyet in ('GECMİS', 'BUGUN') else ('#f59e0b' if aciliyet in ('3_GUN', '7_GUN') else '#3b82f6')
                                 bg_color = '#f8fafc'
                                 
-                                with ui.row().classes('w-full justify-between items-center q-pa-sm').style(f'border-left: 4px solid {border_color}; border-radius: 8px; background: {bg_color}; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;'):
+                                with ui.row().classes('w-full justify-between items-center').style(f'padding: 4px 10px; border-left: 4px solid {border_color}; border-radius: 8px; background: {bg_color}; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;'):
                                     with ui.column().classes('gap-0'):
                                         ui.label(f'{yon} {tip} • No: {check_no}').classes('text-weight-bold text-slate-800').style('font-size: 12px; line-height: 1.25;')
                                         urgency_lbl = 'Vade Geçmiş' if aciliyet == 'GECMİS' else ('Bugün' if aciliyet == 'BUGUN' else f'{aciliyet.replace("_", " ")} Kaldı')
