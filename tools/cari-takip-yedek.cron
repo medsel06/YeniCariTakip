@@ -1,0 +1,7 @@
+# Cari Takip (kolaymuhasebe.site) - haftalik otomatik yedek
+# Her firma AYRI dosyaya yedeklenir: backups/cari_takip_<schema>_<tarih>.sql.gz
+# Zaman: cumartesiyi pazara baglayan gece saat 02:00 (Pazar 02:00)
+# Log:   /var/log/cari-takip-yedek.log
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+0 2 * * 0 root cd /var/www/cari-takip && ./venv/bin/python3 tools/haftalik_yedek.py >> /var/log/cari-takip-yedek.log 2>&1
