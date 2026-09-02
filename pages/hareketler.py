@@ -4,7 +4,7 @@ from datetime import date, datetime
 from nicegui import ui
 from layout import (
     create_layout, PARA_SLOT, MIKTAR_SLOT, TARIH_SLOT,
-    notify_ok, notify_err, confirm_dialog, normalize_search, donem_secici, segment_group,
+    notify_ok, notify_err, confirm_dialog, normalize_search, donem_secici, donem_popover_btn, segment_group,
     fmt_para, fmt_miktar
 )
 from services.kasa_service import (
@@ -179,7 +179,9 @@ def hareketler_page():
 
     table_ref = None
     all_rows = []
-    state = {'yil': None, 'ay': None}
+    # Varsayilan: bu yil (Kasa sayfasiyla ayni). Eskiden tum zamanlar cekilip
+    # ~2000 satir her acilista tarayiciya gidiyordu; kullanici 'Tumu'ye gecebilir.
+    state = {'yil': datetime.now().year, 'ay': None}
 
     columns = [
         {'name': 'tarih', 'label': 'TARİH', 'field': 'tarih', 'align': 'center', 'sortable': True},
@@ -254,7 +256,7 @@ def hareketler_page():
 
     def load_data():
         nonlocal all_rows
-        all_rows = _grupla(get_hareketler(yil=None, ay=None))
+        all_rows = _grupla(get_hareketler(yil=state['yil'], ay=state['ay']))
         apply_filters()
 
     def hesapla(miktar, birim_fiyat, kdv_orani, tevkifat_str='0'):
@@ -1731,7 +1733,7 @@ def hareketler_page():
 
     # --- PAGE CONTENT ---
     with ui.column().classes('w-full q-pa-sm'):
-        all_rows = _grupla(get_hareketler(yil=None, ay=None))
+        all_rows = _grupla(get_hareketler(yil=state['yil'], ay=state['ay']))
 
         def on_tur_change(new_tur):
             tur_filter['value'] = new_tur
@@ -1746,6 +1748,13 @@ def hareketler_page():
                 placeholder='Ara (firma, ürün, tür)...',
                 on_change=on_search_change,
             ).props('outlined dense clearable').classes('w-64')
+
+            def _donem_changed(yil, ay):
+                state['yil'] = yil
+                state['ay'] = ay
+                load_data()
+
+            donem_popover_btn(_donem_changed, default_mode='YIL')
             ui.element('div').style('width:8px')
 
             segment_group(

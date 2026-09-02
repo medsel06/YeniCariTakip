@@ -384,7 +384,6 @@ body, html, .q-page-container, .q-page, .q-layout,
 '''
 
 MODERN_BRAND_CSS = '''
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
 body, html, .q-page-container, .q-page, .q-layout,
 .q-tab-panels, .q-tab-panel,
@@ -880,6 +879,12 @@ ui.add_head_html('''
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1c4461">
     <link rel="manifest" href="/assets/manifest.json">
+    <!-- Font: render'i ENGELLEMEDEN yukle (media=print -> yuklenince all). Eskiden @import ile
+         MODERN_BRAND_CSS icindeydi ve Google'dan cevap gelene kadar sayfa bos kaliyordu. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"></noscript>
 ''', shared=True)
 ui.add_body_html('''
     <script>
@@ -887,6 +892,16 @@ ui.add_body_html('''
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/assets/sw.js').catch(()=>{});
     }
+    /* Header saati tarayicida calisir (eskiden ui.timer ile sunucu her saniye
+       her sekmeye mesaj yolluyordu; "parent slot deleted" hatalarinin kaynagiydi). */
+    (function(){
+      function tik(){
+        var d=new Date(), p=function(n){return String(n).padStart(2,'0')};
+        var s=p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear()+'  '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());
+        document.querySelectorAll('.alse-clock').forEach(function(e){e.textContent=s});
+      }
+      setTimeout(tik,150); setTimeout(tik,600); setInterval(tik,1000);
+    })();
     </script>
 ''', shared=True)
 
@@ -943,8 +958,7 @@ def create_layout(active_path='/', page_title=''):
             ui.button(on_click=lambda: drawer.toggle(), icon='menu').props('flat color=white round')
             ui.label(page_title).classes('text-subtitle1 text-weight-medium text-white q-ml-sm')
             ui.space()
-            lbl_clock = ui.label('').classes('text-caption text-white').style('opacity:0.7;letter-spacing:0.5px;')
-            ui.timer(1.0, lambda: lbl_clock.set_text(datetime.now().strftime('%d.%m.%Y  %H:%M:%S')))
+            ui.element('span').classes('alse-clock text-caption text-white').style('opacity:0.7;letter-spacing:0.5px;white-space:pre;')
 
             # Vade uyari bildirimi (zil ikonu + dropdown)
             toplam_uyari = 0
@@ -1222,10 +1236,19 @@ AY_ISIMLERI = {
 }
 
 
+_MIN_YEAR_CACHE = {}          # {tenant_schema: (yil, zaman)}
+_MIN_YEAR_TTL_SN = 600        # 10 dk — en erken yil pratikte degismez
+
+
 def _get_min_year():
-    """DB'den en erken yili bul."""
+    """DB'den en erken yili bul (firma bazli 10 dk onbellek).
+    Sorgu 4 tabloyu indexsiz tarar ve her donem secicide calisiyordu."""
     try:
-        from db import get_db
+        from db import get_db, get_tenant_schema
+        _key = get_tenant_schema() or app.storage.user.get('tenant_schema') or '_'
+        _c = _MIN_YEAR_CACHE.get(_key)
+        if _c and (datetime.now() - _c[1]).total_seconds() < _MIN_YEAR_TTL_SN:
+            return _c[0]
         with get_db() as conn:
             row = conn.execute('''
                 SELECT MIN(y) as min_y FROM (
@@ -1239,6 +1262,7 @@ def _get_min_year():
                 ) sub WHERE y > 2000
             ''').fetchone()
             if row and row['min_y']:
+                _MIN_YEAR_CACHE[_key] = (int(row['min_y']), datetime.now())
                 return int(row['min_y'])
     except Exception:
         pass
