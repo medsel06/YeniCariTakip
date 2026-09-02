@@ -868,6 +868,29 @@ tr:hover .tarihsiz-cell { background: #fecaca !important; }
 '''
 
 
+# --- PWA + Mobile meta / body script (MODUL SEVIYESI - SADECE BIR KEZ) ---
+# DIKKAT: shared=True icerigi NiceGUI'de global bir string'e (Client.shared_head_html)
+# EKLENIR ve hicbir zaman temizlenmez. Bu cagrilar create_layout() icinde durdugunda
+# her sayfa acilisinda ayni HTML tekrar tekrar birikip sayfa boyutunu MB'lara
+# sisiriyordu (uygulama zamanla yavasliyordu). Bu yuzden import aninda bir kez calisir.
+ui.add_head_html('''
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1c4461">
+    <link rel="manifest" href="/assets/manifest.json">
+''', shared=True)
+ui.add_body_html('''
+    <script>
+    document.documentElement.lang = 'tr';  /* CSS text-transform:uppercase Turkce olsun (YENI -> YENİ) */
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/assets/sw.js').catch(()=>{});
+    }
+    </script>
+''', shared=True)
+
+
 def create_layout(active_path='/', page_title=''):
     if active_path != '/login':
         auth_user = app.storage.user.get('auth_user')
@@ -886,23 +909,6 @@ def create_layout(active_path='/', page_title=''):
     ui.add_css(MODERN_BRAND_CSS)
     ui.colors(primary='#2563eb', secondary='#4f46e5', positive='#10b981',
               negative='#ef4444', warning='#f59e0b')
-    # PWA + Mobile meta
-    ui.add_head_html('''
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-        <meta name="mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-        <meta name="theme-color" content="#1c4461">
-        <link rel="manifest" href="/assets/manifest.json">
-    ''', shared=True)
-    ui.add_body_html('''
-        <script>
-        document.documentElement.lang = 'tr';  /* CSS text-transform:uppercase Turkce olsun (YENI -> YENİ) */
-        if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.register('/assets/sw.js').catch(()=>{});
-        }
-        </script>
-    ''', shared=True)
 
     # Firma adini ayarlardan al (tenant bazli)
     _header_firma = 'CARİ TAKİP'
