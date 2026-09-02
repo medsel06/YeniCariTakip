@@ -4,11 +4,11 @@ from datetime import date, datetime
 from nicegui import ui
 from layout import (
     create_layout, PARA_SLOT, MIKTAR_SLOT, TARIH_SLOT,
-    notify_ok, notify_err, confirm_dialog, normalize_search, donem_secici, donem_popover_btn, segment_group,
+    notify_ok, notify_err, confirm_dialog, donem_secici, donem_popover_btn, segment_group,
     fmt_para, fmt_miktar
 )
 from services.kasa_service import (
-    get_hareketler, delete_hareket,
+    get_hareketler_sayfa, delete_hareket,
     get_hareket_grup, save_hareket_grup, delete_hareket_grup,
     get_kasa_by_id, add_kasa, update_kasa, delete_kasa, get_kasa_silme_etkisi,
     get_kasa_kategoriler,
@@ -178,7 +178,8 @@ def hareketler_page():
     ''')
 
     table_ref = None
-    all_rows = []
+    # Sunucu tarafli sayfalama durumu (Quasar pagination nesnesiyle ayni anahtarlar)
+    pag_state = {'page': 1, 'rowsPerPage': 50, 'sortBy': 'tarih', 'descending': True}
     # Varsayilan: bu yil (Kasa sayfasiyla ayni). Eskiden tum zamanlar cekilip
     # ~2000 satir her acilista tarayiciya gidiyordu; kullanici 'Tumu'ye gecebilir.
     state = {'yil': datetime.now().year, 'ay': None}
@@ -204,59 +205,42 @@ def hareketler_page():
     search_text = {'value': ''}
     tur_filter = {'value': None}
 
-    def _grupla(rows):
-        """Ayni grup_id'li STOK satirlarini tek gorunum satirinda birlestir (kalemler ile).
-        Toplamlar gruba gore toplanir; tek kalemli/kasa satirlari aynen kalir."""
-        out = []
-        gmap = {}
-        for r in rows:
-            gid = (r.get('grup_id') or '') if r.get('source') == 'STOK' else ''
-            if not gid:
-                out.append(r)
-                continue
-            kalem = {
-                'urun_ad': r.get('urun_ad', ''),
-                'miktar': r.get('miktar'),
-                'birim_fiyat': r.get('birim_fiyat'),
-                'kdvli_toplam': r.get('kdvli_toplam', 0),
-            }
-            if gid in gmap:
-                p = gmap[gid]
-                p['kalemler'].append(kalem)
-                p['miktar'] = None
-                p['birim_fiyat'] = None
-                p['toplam'] = (p['toplam'] or 0) + (r.get('toplam') or 0)
-                p['kdv_tutar'] = (p['kdv_tutar'] or 0) + (r.get('kdv_tutar') or 0)
-                p['kdvli_toplam'] = (p['kdvli_toplam'] or 0) + (r.get('kdvli_toplam') or 0)
-                p['tevkifat_tutar'] = (p['tevkifat_tutar'] or 0) + (r.get('tevkifat_tutar') or 0)
-                p['urun_ad'] = f"{len(p['kalemler'])} kalem: {p['kalemler'][0]['urun_ad']} +{len(p['kalemler']) - 1}"
-                continue
-            p = dict(r)
-            p['kalemler'] = [kalem]
-            gmap[gid] = p
-            out.append(p)
-        return out
+    def _sayfa_getir():
+        """Mevcut donem/arama/tur/siralama/sayfa icin SADECE o sayfayi DB'den cek.
+        (Eskiden tum liste cekilip Python'da filtreleniyor ve hepsi tarayiciya gidiyordu.)"""
+        sort_by = pag_state.get('sortBy') or 'tarih'
+        descending = bool(pag_state.get('descending')) if pag_state.get('sortBy') else True
+        kw = dict(yil=state['yil'], ay=state['ay'], q=search_text['value'], tur=tur_filter['value'],
+                  sort_by=sort_by, descending=descending, per_page=pag_state['rowsPerPage'])
+        r = get_hareketler_sayfa(page=pag_state['page'], **kw)
+        if not r['rows'] and r['total'] > 0 and pag_state['page'] > 1:
+            # Sayfa bosaldi (orn. son kayit silindi) -> son dolu sayfaya cek
+            per = pag_state['rowsPerPage'] if pag_state['rowsPerPage'] > 0 else r['total']
+            pag_state['page'] = max(1, -(-r['total'] // max(1, per)))
+            r = get_hareketler_sayfa(page=pag_state['page'], **kw)
+        return r
 
-    def apply_filters():
-        rows = all_rows
-        q = search_text['value']
-        if q:
-            qn = normalize_search(q)
-            rows = [r for r in rows if
-                    qn in normalize_search(r.get('firma_ad', '')) or
-                    qn in normalize_search(r.get('urun_ad', '')) or
-                    any(qn in normalize_search(k.get('urun_ad', ''))
-                        for k in (r.get('kalemler') or [])) or
-                    qn in normalize_search(r.get('tur', ''))]
-        if tur_filter['value']:
-            rows = [r for r in rows if r.get('tur') == tur_filter['value']]
+    def apply_filters(reset_page=False):
+        if reset_page:
+            pag_state['page'] = 1
+        r = _sayfa_getir()
         if table_ref:
-            table_ref.rows = rows
+            table_ref.rows = r['rows']
+            table_ref.pagination = {**pag_state, 'rowsNumber': r['total']}
             table_ref.update()
 
     def load_data():
-        nonlocal all_rows
-        all_rows = _grupla(get_hareketler(yil=state['yil'], ay=state['ay']))
+        apply_filters()
+
+    def _on_table_request(e):
+        """Quasar 'request' olayi: sayfa / sayfa boyutu / siralama degisti."""
+        a = e.args
+        if isinstance(a, list) and a:
+            a = a[0]
+        pag = a.get('pagination', a) if isinstance(a, dict) else {}
+        for k in ('page', 'rowsPerPage', 'sortBy', 'descending'):
+            if k in pag:
+                pag_state[k] = pag[k]
         apply_filters()
 
     def hesapla(miktar, birim_fiyat, kdv_orani, tevkifat_str='0'):
@@ -1733,21 +1717,21 @@ def hareketler_page():
 
     # --- PAGE CONTENT ---
     with ui.column().classes('w-full q-pa-sm'):
-        all_rows = _grupla(get_hareketler(yil=state['yil'], ay=state['ay']))
+        ilk_sayfa = _sayfa_getir()
 
         def on_tur_change(new_tur):
             tur_filter['value'] = new_tur
-            apply_filters()
+            apply_filters(reset_page=True)
 
         def on_search_change(e):
             search_text['value'] = e.value or ''
-            apply_filters()
+            apply_filters(reset_page=True)
 
         with ui.row().classes('w-full items-center gap-2 q-mb-xs'):
             search_input = ui.input(
                 placeholder='Ara (firma, ürün, tür)...',
                 on_change=on_search_change,
-            ).props('outlined dense clearable').classes('w-64')
+            ).props('outlined dense clearable debounce=250').classes('w-64')
 
             def _donem_changed(yil, ay):
                 state['yil'] = yil
@@ -1812,11 +1796,14 @@ def hareketler_page():
         ''')
 
         # Tablo
+        # rowsNumber verildiginde Quasar sunucu tarafli moda gecer: sayfa/siralama
+        # degisince 'request' olayi yayar, satirlari biz doldururuz.
         table_ref = ui.table(
-            columns=columns, rows=all_rows, row_key='id',
-            pagination={'rowsPerPage': 50, 'sortBy': 'tarih', 'descending': True}
+            columns=columns, rows=ilk_sayfa['rows'], row_key='id',
+            pagination={**pag_state, 'rowsNumber': ilk_sayfa['total']}
         ).classes('w-full hrk-table').style('--table-extra-rows: 3;')
         table_ref.props('flat bordered dense')
+        table_ref.on('request', _on_table_request)
 
         # Slot: tek body (hucreler + akordeon kalem satiri)
         table_ref.add_slot('body', body_slot)

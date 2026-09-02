@@ -46,6 +46,24 @@ import pages.haftalik_bilanco
 import services.api_routes  # noqa: F401
 
 
+# --- Yavas istek gozlemi -----------------------------------------------------
+# Sayfa uretimi YAVAS_ISTEK_MS'i asan HTTP istekleri stdout'a (PM2 out.log) yazilir.
+# Amac: 2026-09 "shared head html birikmesi" gibi zamanla buyuyen yavasliklari
+# kullanici sikayet etmeden once gormek. Statik/socket.io istekleri loglanmaz.
+YAVAS_ISTEK_MS = int(os.environ.get('YAVAS_ISTEK_MS', '500'))
+
+
+@app.middleware('http')
+async def _yavas_istek_logu(request, call_next):
+    t0 = time.perf_counter()
+    response = await call_next(request)
+    sure_ms = (time.perf_counter() - t0) * 1000
+    yol = request.url.path
+    if sure_ms >= YAVAS_ISTEK_MS and not yol.startswith(('/_nicegui/', '/assets', '/pdf-', '/v3/')):
+        print(f'[YAVAS] {sure_ms:.0f} ms {request.method} {yol}', flush=True)
+    return response
+
+
 _orig_run_setup = nicegui_run.setup
 
 
