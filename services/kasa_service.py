@@ -340,11 +340,16 @@ _HRK_NORM = "lower(translate(COALESCE({c}, ''), 'ÇĞİÖŞÜÂÎÛçğıöşü�
 
 # Siralanabilir kolon -> grup bazli SQL ifadesi (g CTE'si uzerinde)
 # Metin kolonlari Turkce-normalize anahtarla siralanir (c/ç, s/ş, i/ı ayni kabul);
-# aksi halde PG collation 'Arçimed'i 'Arz'dan SONRA koyar.
+# aksi halde PG collation 'Arçimed'i 'Arz'dan SONRA koyar. NULLIF: bos/NULL degerler
+# NULLS LAST ile her iki yonde de listenin SONUNA gider (kasa satirlarinin firmasi yok).
+def _hrk_metin_sirala(c):
+    return f"NULLIF({_HRK_NORM.format(c=c)}, '')"
+
+
 _HRK_SORT_COLS = {
     'tarih': 'tarih',
-    'belge_no': _HRK_NORM.format(c='belge_no'), 'firma_ad': _HRK_NORM.format(c='firma_ad'),
-    'tur': _HRK_NORM.format(c='tur'), 'urun_ad': _HRK_NORM.format(c='urun_ad'),
+    'belge_no': _hrk_metin_sirala('belge_no'), 'firma_ad': _hrk_metin_sirala('firma_ad'),
+    'tur': _hrk_metin_sirala('tur'), 'urun_ad': _hrk_metin_sirala('urun_ad'),
     'miktar': 'miktar', 'birim_fiyat': 'birim_fiyat',
     'toplam': 'toplam', 'kdvli_toplam': 'kdvli_toplam', 'tevkifat_orani': 'tevkifat_orani',
 }
