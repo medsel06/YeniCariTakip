@@ -797,17 +797,49 @@ def generate_gelir_gider_pdf(gg_data, donem_label=None):
     return generate_table_pdf(title, headers, rows)
 
 
+def _preview_temizle(gun=7):
+    """Onizleme klasorundeki eski dosyalari sil (birikip acikta durmasinlar)."""
+    import time
+    try:
+        kesim = time.time() - gun * 86400
+        for f in get_pdf_preview_dir().glob('*.pdf'):
+            try:
+                if f.stat().st_mtime < kesim:
+                    f.unlink()
+            except OSError:
+                pass
+    except Exception:
+        pass
+
+
 def save_pdf_preview(pdf_bytes, filename):
-    """PDF'i preview klasorune yazar ve tarayicida acilacak URL dondurur."""
+    """PDF'i preview klasorune yazar ve tarayicida acilacak URL dondurur.
+
+    Dosya adi: <tenant>__<ad>_<token>.pdf
+    - <tenant> oneki: /pdf-preview ucu dosyayi SADECE ayni firmanin oturumuna verir.
+    - <token>: 16 haneli rastgele (eskiden zaman damgasiydi; tahmin edilebiliyordu
+      ve klasor giris gerekmeden servis ediliyordu).
+    """
+    import secrets
+    from db import get_tenant_schema
     safe_name = ''.join(c for c in filename if c.isalnum() or c in ('_', '-', '.')).strip('.')
     if not safe_name.lower().endswith('.pdf'):
         safe_name += '.pdf'
-    ts = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
-    final_name = f"{Path(safe_name).stem}_{ts}.pdf"
+    tenant = get_tenant_schema() or 'yok'
+    tenant = ''.join(c for c in tenant if c.isalnum() or c == '_') or 'yok'
+    final_name = f"{tenant}__{Path(safe_name).stem}_{secrets.token_hex(8)}.pdf"
     out_dir = get_pdf_preview_dir()
     out_path = out_dir / final_name
     out_path.write_bytes(pdf_bytes)
+    _preview_temizle()
     return f"/pdf-preview/{final_name}"
+
+
+def preview_dosya_tenant(fname):
+    """Onizleme dosya adindaki tenant oneki ('t_3__rapor_ab12.pdf' -> 't_3').
+    Onek yoksa None (eski dosyalar) -> ucta reddedilir."""
+    ad = str(fname or '')
+    return ad.split('__', 1)[0] if '__' in ad else None
 
 
 def get_pdf_share_dir() -> Path:
@@ -849,19 +881,23 @@ def save_shared_pdf(pdf_bytes, prefix='ekstre', gecerlilik_gun=15, kisa_ad=None)
     except Exception:
         pass
     if kisa_ad:
-        # 2 haneli kisa kod (b7, 3k gibi); ayni isim varsa yeni kod dene (ustune yazma!)
-        import random
+        # KOD UZUNLUGU = GUVENLIK. Bu link GIRIS GEREKMEDEN acilir ve dosya adinda
+        # firma adi gecer; kod kisa olursa baskasinin ekstresi deneme-yanilma ile
+        # bulunur. Eskiden 2 haneydi (36^2 = 1.296 kombinasyon, saniyeler icinde
+        # taranabilir). Simdi 8 hane + secrets (36^8 ~ 2,8 trilyon).
+        import secrets
         import string
         slug = _ascii_slug(kisa_ad)
         alfabe = string.ascii_lowercase + string.digits
         final_name = None
-        for _ in range(60):
-            aday = f"{slug}_{''.join(random.choices(alfabe, k=2))}.pdf"
+        for _ in range(20):
+            kod = ''.join(secrets.choice(alfabe) for _ in range(8))
+            aday = f"{slug}_{kod}.pdf"
             if not (d / aday).exists():
                 final_name = aday
                 break
-        if final_name is None:  # 60 denemede bos kod kalmadi -> uzun token'a dus
-            final_name = f"{slug}_{uuid.uuid4().hex[:6]}.pdf"
+        if final_name is None:
+            final_name = f"{slug}_{secrets.token_hex(8)}.pdf"
         (d / final_name).write_bytes(pdf_bytes)
         return f"/{final_name}"
     safe_prefix = ''.join(c for c in (prefix or 'ekstre') if c.isalnum() or c in ('_', '-')) or 'ekstre'

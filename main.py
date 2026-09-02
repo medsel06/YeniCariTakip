@@ -159,7 +159,35 @@ def startup():
 
 # startup() main blokta dogrudan cagirilir, on_startup gereksiz
 pdf_preview_dir = str(get_pdf_preview_dir())
-app.add_static_files('/pdf-preview', pdf_preview_dir)
+
+
+# PDF onizleme: GIRIS ZORUNLU + dosya SADECE kendi firmasina verilir.
+# (Eskiden app.add_static_files ile acikta servis ediliyordu: dosya adini bilen
+#  herkes, giris yapmadan baska firmanin raporunu indirebiliyordu.)
+@app.get('/pdf-preview/{fname}')
+def _pdf_onizleme(fname: str):
+    import re as _re_pv
+    from fastapi import HTTPException
+    from fastapi.responses import FileResponse as _FRpv
+    from services.pdf_service import preview_dosya_tenant
+    try:
+        if not app.storage.user.get('auth_user'):
+            raise HTTPException(status_code=401)
+        oturum_tenant = app.storage.user.get('tenant_schema')
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=401)
+    if not oturum_tenant:
+        raise HTTPException(status_code=401)
+    if not _re_pv.fullmatch(r'[A-Za-z0-9_.-]{1,200}\.pdf', fname or ''):
+        raise HTTPException(status_code=404)
+    if preview_dosya_tenant(fname) != oturum_tenant:
+        raise HTTPException(status_code=404)
+    p_pv = os.path.join(pdf_preview_dir, fname)
+    if not os.path.isfile(p_pv):
+        raise HTTPException(status_code=404)
+    return _FRpv(p_pv, media_type='application/pdf')
 # Paylasilabilir (WhatsApp vb. ile disariya link olarak gonderilen) PDF'ler - login gerekmez
 app.add_static_files('/pdf-share', str(get_pdf_share_dir()))
 
