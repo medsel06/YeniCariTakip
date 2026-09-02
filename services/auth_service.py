@@ -73,27 +73,68 @@ def ensure_default_admin():
                     )
 
 
-def list_users(tenant_id=None):
-    """Kullanici listesi. tenant_id verilirse sadece o tenant'in kullanicilarini getirir."""
+# --- TENANT COZUMLEME (kullanici yonetimi izolasyonu) -------------------------
+# public.users TUM firmalarin kullanicilarini tutar. Bu dosyadaki fonksiyonlar
+# tenant filtresi olmadan calisirsa bir firmanin yoneticisi digerlerinin
+# hesaplarini gorur, sifresini degistirir ve silebilir. Bu yuzden her kullanici
+# islemi bir tenant_id'ye baglanir; cozulemezse islem YAPILMAZ (fail-safe).
+# NOT: tenant.id ile schema adi ORTUSMEZ (orn. id=5 -> 't_3'), bu yuzden schema
+# adindan id turetilmez, tenants tablosundan okunur.
+
+def _tenant_id_from_schema(schema):
+    if not schema:
+        return None
     with get_public_db() as conn:
-        if tenant_id:
-            rows = conn.execute(
-                "SELECT id, username, full_name, role, is_active, tenant_id, created_at, updated_at, last_login_at "
-                "FROM users WHERE tenant_id=%s ORDER BY username",
-                (tenant_id,)
-            ).fetchall()
-        else:
-            rows = conn.execute(
-                "SELECT id, username, full_name, role, is_active, tenant_id, created_at, updated_at, last_login_at "
-                "FROM users ORDER BY username"
-            ).fetchall()
+        row = conn.execute('SELECT id FROM tenants WHERE schema_name=%s', (schema,)).fetchone()
+        return row['id'] if row else None
+
+
+def current_tenant_id():
+    """Aktif oturumun tenant_id'si. Sayfalarda NiceGUI session'dan, API/script
+    baglaminda contextvar'daki schema uzerinden cozulur. Bulunamazsa None."""
+    try:
+        from nicegui import app as _app
+        user = _app.storage.user.get('auth_user') or {}
+        tid = user.get('tenant_id')
+        if tid:
+            return int(tid)
+    except Exception:
+        pass
+    try:
+        from db import get_tenant_schema
+        return _tenant_id_from_schema(get_tenant_schema())
+    except Exception:
+        return None
+
+
+def _zorunlu_tenant_id(tenant_id=None):
+    tid = tenant_id if tenant_id else current_tenant_id()
+    if not tid:
+        raise PermissionError('Firma (tenant) belirlenemedi - kullanici islemi reddedildi')
+    return int(tid)
+
+
+def list_users(tenant_id=None):
+    """Kullanici listesi - SADECE aktif firmanin kullanicilari.
+    tenant_id verilmezse oturumdan cozulur; cozulemezse bos liste doner."""
+    tid = tenant_id if tenant_id else current_tenant_id()
+    if not tid:
+        return []
+    with get_public_db() as conn:
+        rows = conn.execute(
+            "SELECT id, username, full_name, role, is_active, tenant_id, created_at, updated_at, last_login_at "
+            "FROM users WHERE tenant_id=%s ORDER BY username",
+            (tid,)
+        ).fetchall()
         return [dict(r) for r in rows]
 
 
 def add_user(data):
-    """Yeni kullanici ekle. data['tenant_id'] zorunlu."""
+    """Yeni kullanici ekle. Firma oturumdan alinir (data['tenant_id'] ile ezilebilir).
+    Eskiden varsayilan 1 idi: Ayarlar sayfasi tenant_id gondermedigi icin her yeni
+    kullanici 'Varsayilan Firma'ya yaziliyor ve kendi firmasina giris yapamiyordu."""
     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    tenant_id = data.get('tenant_id', 1)
+    tenant_id = _zorunlu_tenant_id(data.get('tenant_id'))
     with get_public_db() as conn:
         cur = conn.execute(
             "INSERT INTO users (username, full_name, password_hash, role, is_active, tenant_id, created_at, updated_at) "
@@ -112,33 +153,49 @@ def add_user(data):
         return cur.fetchone()['id']
 
 
-def update_user(user_id, data):
+def update_user(user_id, data, tenant_id=None):
+    """Kullanici guncelle - sadece AYNI firmanin kullanicisi."""
+    tid = _zorunlu_tenant_id(tenant_id)
     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     with get_public_db() as conn:
-        conn.execute(
-            "UPDATE users SET full_name=%s, role=%s, is_active=%s, updated_at=%s WHERE id=%s",
+        cur = conn.execute(
+            "UPDATE users SET full_name=%s, role=%s, is_active=%s, updated_at=%s "
+            "WHERE id=%s AND tenant_id=%s",
             (
                 data.get('full_name', '').strip(),
                 data.get('role', 'user'),
                 1 if data.get('is_active', True) else 0,
                 now,
                 user_id,
+                tid,
             ),
         )
+        if cur.rowcount == 0:
+            raise PermissionError('Kullanici bulunamadi veya baska bir firmaya ait')
 
 
-def set_user_password(user_id, new_password):
+def set_user_password(user_id, new_password, tenant_id=None):
+    """Sifre degistir - sadece AYNI firmanin kullanicisi.
+    (Tenant kontrolu olmadan bir firma yoneticisi baska firmanin hesabinin
+    sifresini degistirip o hesapla giris yapabiliyordu.)"""
+    tid = _zorunlu_tenant_id(tenant_id)
     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     with get_public_db() as conn:
-        conn.execute(
-            'UPDATE users SET password_hash=%s, updated_at=%s WHERE id=%s',
-            (hash_password(new_password), now, user_id),
+        cur = conn.execute(
+            'UPDATE users SET password_hash=%s, updated_at=%s WHERE id=%s AND tenant_id=%s',
+            (hash_password(new_password), now, user_id, tid),
         )
+        if cur.rowcount == 0:
+            raise PermissionError('Kullanici bulunamadi veya baska bir firmaya ait')
 
 
-def delete_user(user_id):
+def delete_user(user_id, tenant_id=None):
+    """Kullanici sil - sadece AYNI firmanin kullanicisi."""
+    tid = _zorunlu_tenant_id(tenant_id)
     with get_public_db() as conn:
-        conn.execute('DELETE FROM users WHERE id=%s', (user_id,))
+        cur = conn.execute('DELETE FROM users WHERE id=%s AND tenant_id=%s', (user_id, tid))
+        if cur.rowcount == 0:
+            raise PermissionError('Kullanici bulunamadi veya baska bir firmaya ait')
 
 
 def authenticate(username: str, password: str, tenant_id: int = None):

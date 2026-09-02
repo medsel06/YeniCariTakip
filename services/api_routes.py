@@ -763,6 +763,7 @@ async def api_hareket_detay(request: Request, rec_id: int):
 @app.get('/api/users')
 @api_admin
 async def api_users(request: Request):
+    """SADECE oturumdaki firmanin kullanicilari (auth_service tenant'a gore filtreler)."""
     from services import auth_service
     return _json(auth_service.list_users())
 
