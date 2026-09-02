@@ -339,9 +339,13 @@ _HRK_UNION_SQL = """
 _HRK_NORM = "lower(translate(COALESCE({c}, ''), 'ÇĞİÖŞÜÂÎÛçğıöşüâîû', 'CGIOSUAIUcgiosuaiu'))"
 
 # Siralanabilir kolon -> grup bazli SQL ifadesi (g CTE'si uzerinde)
+# Metin kolonlari Turkce-normalize anahtarla siralanir (c/ç, s/ş, i/ı ayni kabul);
+# aksi halde PG collation 'Arçimed'i 'Arz'dan SONRA koyar.
 _HRK_SORT_COLS = {
-    'tarih': 'tarih', 'belge_no': 'belge_no', 'firma_ad': 'firma_ad', 'tur': 'tur',
-    'urun_ad': 'urun_ad', 'miktar': 'miktar', 'birim_fiyat': 'birim_fiyat',
+    'tarih': 'tarih',
+    'belge_no': _HRK_NORM.format(c='belge_no'), 'firma_ad': _HRK_NORM.format(c='firma_ad'),
+    'tur': _HRK_NORM.format(c='tur'), 'urun_ad': _HRK_NORM.format(c='urun_ad'),
+    'miktar': 'miktar', 'birim_fiyat': 'birim_fiyat',
     'toplam': 'toplam', 'kdvli_toplam': 'kdvli_toplam', 'tevkifat_orani': 'tevkifat_orani',
 }
 
