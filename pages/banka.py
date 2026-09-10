@@ -41,6 +41,7 @@ def banka_page():
         .bnk-htbl{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12.5px;}
         .bnk-htbl thead th{position:sticky;top:0;z-index:2;background:#1e293b;color:#fff;padding:9px 12px;font-size:11px;font-weight:700;letter-spacing:.2px;}
         .bnk-htbl td{padding:8px 12px;border-bottom:1px solid #e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#334155;}
+        .bnk-htbl td:first-child{font-variant-numeric:tabular-nums;}  /* tarih: rakam genisligi sabit, 08 vs 09 farki yok */
         .bnk-htbl tbody tr:nth-child(even){background:#f1f5f9;}
         .bnk-htbl tbody tr:hover{background:#eef2ff;}
         .bnk-htbl .c-empty{text-align:center;color:#94a3b8;padding:44px 12px;}
@@ -167,7 +168,7 @@ def banka_page():
                 _tr = '<tr><td colspan="5" class="c-empty">Bu hesapta henüz hareket yok.</td></tr>'
             ui.html(
                 '<div class="bnk-scroll w-full"><table class="bnk-htbl"><thead><tr>'
-                '<th style="width:96px;text-align:left;">Tarih</th>'
+                '<th style="width:108px;text-align:left;">Tarih</th>'
                 '<th style="width:84px;text-align:center;">G/Ç</th>'
                 '<th style="width:135px;text-align:right;">Tutar</th>'
                 '<th style="width:135px;text-align:right;">Bakiye</th>'
