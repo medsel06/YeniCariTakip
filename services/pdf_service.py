@@ -821,11 +821,14 @@ def save_pdf_preview(pdf_bytes, filename):
       ve klasor giris gerekmeden servis ediliyordu).
     """
     import secrets
-    from db import get_tenant_schema
+    # get_db() ile ayni cozumleme: once oturum, sonra contextvar. (Buton
+    # handler'larinda contextvar bos oldugu icin dosya 'yok__' onekiyle
+    # yaziliyor, uc ise oturum tenant'iyla eslesmeyince 404 veriyordu.)
+    from db import _resolve_tenant_schema
     safe_name = ''.join(c for c in filename if c.isalnum() or c in ('_', '-', '.')).strip('.')
     if not safe_name.lower().endswith('.pdf'):
         safe_name += '.pdf'
-    tenant = get_tenant_schema() or 'yok'
+    tenant = _resolve_tenant_schema() or 'yok'
     tenant = ''.join(c for c in tenant if c.isalnum() or c == '_') or 'yok'
     final_name = f"{tenant}__{Path(safe_name).stem}_{secrets.token_hex(8)}.pdf"
     out_dir = get_pdf_preview_dir()
