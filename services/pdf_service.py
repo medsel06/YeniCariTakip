@@ -543,6 +543,100 @@ def generate_table_pdf(title, headers, rows):
     return buf.getvalue()
 
 
+def generate_personel_dokum_pdf(personel, ozet, hareketler, donem_label=''):
+    """Personel donem dokumu (kisi bazli). WeasyPrint varsa v3 sablonu (pdf_personel.html),
+    yoksa reportlab: ozet seridi + hareket tablosu, Turkce para/tarih formati.
+    (Eskiden generate_table_pdf'e ozet ve hareketler tek tabloya sikistirilip ham
+    '70000.00 TL' / '2026-08-26' bicimiyle basiliyordu.)"""
+    try:
+        from services import pdf_v3_service
+        if pdf_v3_service.WEASYPRINT_AVAILABLE:
+            from services.settings_service import get_company_settings
+            try:
+                sirket = get_company_settings()
+            except Exception:
+                sirket = {}
+            return pdf_v3_service.render_personel_dokum(personel, ozet, hareketler, sirket, donem_label)
+    except Exception:
+        pass  # reportlab fallback
+
+    def _dt(s):
+        s = (s or '')[:10]
+        return '.'.join(reversed(s.split('-'))) if len(s) == 10 and s[4] == '-' else s
+
+    tip = {'MESAI': ('Mesai', False), 'AVANS': ('Avans', True), 'MAAS_ODEME': ('Maaş Ödeme', True)}
+    o = {k: float(ozet.get(k) or 0) for k in
+         ('maas', 'mesai_saat', 'mesai_tutar', 'hakedis', 'avans_toplam', 'odenen', 'kalan')}
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=PDF_TOP_MARGIN_MM * mm, bottomMargin=20 * mm,
+                            leftMargin=15 * mm, rightMargin=15 * mm)
+    styles = _styles()
+    title = f"Personel Dökümü - {personel.get('ad', '')} - {donem_label}".strip(' -')
+    elements = [Spacer(1, 2 * mm)]
+    bilgi = []
+    if personel.get('giris_tarih'):
+        bilgi.append('Giriş: ' + _dt(personel['giris_tarih']))
+    if personel.get('cikis_tarih'):
+        bilgi.append('Çıkış: ' + _dt(personel['cikis_tarih']))
+    if bilgi:
+        elements.append(Paragraph(' · '.join(bilgi), styles['TRSmall']))
+        elements.append(Spacer(1, 2 * mm))
+
+    # Ozet seridi (ekrandaki KPI sirasi)
+    kpi = Table([
+        ['Maaş', 'Mesai', 'Hak Ediş', 'Avans', 'Ödenen', 'Kalan'],
+        [_fmt(o['maas']) + ' ₺',
+         _fmt(o['mesai_tutar']) + ' ₺' + (f" ({o['mesai_saat']:g} sa)" if o['mesai_saat'] else ''),
+         _fmt(o['hakedis']) + ' ₺', _fmt(o['avans_toplam']) + ' ₺', _fmt(o['odenen']) + ' ₺', _fmt(o['kalan']) + ' ₺'],
+    ], colWidths=[30 * mm] * 6)
+    kpi.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, 0), 'ArialTRB'), ('FONTNAME', (0, 1), (-1, 1), 'ArialTRB'),
+        ('FONTSIZE', (0, 0), (-1, 0), 7), ('FONTSIZE', (0, 1), (-1, 1), 9),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#94a3b8')),
+        ('TEXTCOLOR', (5, 1), (5, 1), colors.HexColor('#dc2626')),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
+        ('LINEAFTER', (0, 0), (-2, -1), 0.5, colors.HexColor('#e2e8f0')),
+        ('BACKGROUND', (5, 0), (5, 1), colors.HexColor('#fef2f2')),
+        ('TOPPADDING', (0, 0), (-1, -1), 3), ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+    ]))
+    elements += [kpi, Spacer(1, 5 * mm)]
+
+    # Hareketler (eskiden yeniye)
+    data = [['Tarih', 'Tür', 'Saat', 'Tutar', 'Açıklama']]
+    for h in sorted(hareketler or [], key=lambda x: ((x.get('tarih') or ''), x.get('id') or 0)):
+        lbl, kesinti = tip.get(h.get('tur'), (h.get('tur') or '-', False))
+        saat = float(h.get('saat') or 0)
+        data.append([_dt(h.get('tarih')), lbl, f'{saat:g}' if saat > 0 else '',
+                     ('-' if kesinti else '+') + _fmt(float(h.get('tutar') or 0)) + ' ₺',
+                     Paragraph(str(h.get('aciklama') or ''), styles['TRSmall'])])
+    if len(data) == 1:
+        data.append(['', '', '', '', Paragraph('Bu dönemde hareket yok.', styles['TRSmall'])])
+    data.append([f'{max(len(data) - 1, 0)} kayıt', '', f"{o['mesai_saat']:g} sa" if o['mesai_saat'] else '',
+                 _fmt(o['mesai_tutar']) + ' ₺', Paragraph(
+                     f"Avans {_fmt(o['avans_toplam'])} ₺ · Ödenen {_fmt(o['odenen'])} ₺ · "
+                     f"<b>Kalan {_fmt(o['kalan'])} ₺</b>", styles['TRSmall'])])
+    t = Table(data, colWidths=[24 * mm, 26 * mm, 16 * mm, 32 * mm, 82 * mm], repeatRows=1)
+    t.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, 0), 'ArialTRB'), ('FONTNAME', (0, 1), (-1, -1), 'ArialTR'),
+        ('FONTNAME', (0, -1), (-1, -1), 'ArialTRB'),
+        ('FONTSIZE', (0, 0), (-1, -1), 8),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#37474F')), ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.white, colors.HexColor('#F5F5F5')]),
+        ('ALIGN', (2, 1), (3, -1), 'RIGHT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, -1), 3), ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+    ]))
+    elements.append(t)
+
+    doc.build(elements,
+              onFirstPage=lambda c, d: _header_footer(c, d, title),
+              onLaterPages=lambda c, d: _header_footer(c, d, title))
+    buf.seek(0)
+    return buf.getvalue()
+
+
 def generate_gelir_gider_kategori_pdf(kategori_data, baslik, tur_filtre='HEPSI', detay=False):
     """Kategori bazli Gelir/Gider raporu.
     kategori_data: gelir_gider_service.kategori_ozet() ciktisi {'GIDER':[...], 'GELIR':[...]}

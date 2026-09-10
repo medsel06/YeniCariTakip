@@ -1,0 +1,190 @@
+{% extends "pdf_base.html" %}
+{% block content %}
+
+<style>
+  /* Sayfa 2+ running header: personel adi + dokuman tipi (cari ekstre ile ayni desen) */
+  @page {
+    margin: 13mm 0 10mm 0;
+    @top-center {
+      content: string(personel-adi) "  ·  Personel Dökümü";
+      font-family: 'Lato', 'DejaVu Sans', 'Liberation Sans', 'Arial', sans-serif;
+      font-size: 8.5pt; color: #475569; font-weight: 500;
+      width: 186mm;
+      padding-bottom: 4px; padding-top: 6px;
+      border-bottom: 1px solid #e2e8f0;
+      letter-spacing: 0.02em;
+    }
+    @top-right {
+      content: "Sayfa " counter(page) " / " counter(pages);
+      font-family: 'Lato', 'DejaVu Sans', 'Liberation Sans', 'Arial', sans-serif;
+      font-size: 8pt; color: #94a3b8; font-weight: 500;
+      padding-bottom: 4px; padding-top: 6px;
+      padding-right: 12mm;
+    }
+  }
+  @page :first {
+    margin: 10mm 0;
+    @top-center { content: ""; border-bottom: none; }
+    @top-right { content: ""; }
+  }
+
+  .prs-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    border-bottom: 2.5px solid #1e293b; padding-bottom: 10px; margin-bottom: 12px;
+  }
+  .prs-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: #475569; margin-bottom: 4px; }
+  .prs-ad { font-size: 18px; font-weight: 700; color: #0f172a; letter-spacing: -0.02em; string-set: personel-adi content(); }
+  .prs-bilgi { font-size: 8.5pt; color: #64748b; margin-top: 3px; }
+  .prs-doc { text-align: right; font-size: 8.5pt; color: #64748b; line-height: 1.6; }
+  .prs-doc .donem { font-size: 11pt; font-weight: 700; color: #0f172a; white-space: nowrap; }
+
+  .prs-duzenleyen {
+    background: #f8fafc; border: 1px solid #e2e8f0; border-left: 3px solid #334155;
+    padding: 5px 12px; margin-bottom: 12px; display: flex; align-items: center; gap: 16px;
+  }
+  .prs-duzenleyen-ad { font-size: 9.5px; font-weight: 700; color: #334155; white-space: nowrap; }
+  .prs-duzenleyen-vkn { font-size: 9px; color: #64748b; white-space: nowrap; }
+  .prs-duzenleyen-adres { font-size: 9px; color: #64748b; }
+
+  /* Ozet seridi: ekrandaki KPI kutulariyla ayni sira */
+  .prs-kpi { display: flex; border: 1px solid #e2e8f0; margin-bottom: 14px; }
+  .prs-kpi > div { flex: 1; padding: 7px 10px; border-right: 1px solid #e2e8f0; }
+  .prs-kpi > div:last-child { border-right: none; }
+  .prs-kpi .k-lbl { font-size: 7pt; color: #94a3b8; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+  .prs-kpi .k-val { font-size: 10.5pt; font-weight: 700; color: #0f172a; white-space: nowrap; margin-top: 1px; font-variant-numeric: tabular-nums; }
+  .prs-kpi .k-sub { font-size: 7.5pt; color: #64748b; }
+  .prs-kpi .kalan { background: #fef2f2; }
+  .prs-kpi .kalan .k-val { color: #dc2626; }
+  .prs-kpi .kalan.sifir { background: #f0fdf4; }
+  .prs-kpi .kalan.sifir .k-val { color: #15803d; }
+  .prs-kpi .avans .k-val { color: #b45309; }
+  .prs-kpi .odenen .k-val { color: #15803d; }
+
+  .prs-tbl thead { display: table-header-group; }
+  .prs-tbl tr { page-break-inside: avoid; }
+  .prs-tbl { width: 100%; border-collapse: collapse; font-size: 8.5pt; table-layout: fixed; }
+  .prs-tbl thead th {
+    background: #f1f5f9; color: #334155; border-bottom: 1.5px solid #94a3b8;
+    padding: 5px 6px; font-size: 7.5pt; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; white-space: nowrap; text-align: left;
+  }
+  .prs-tbl thead th.r { text-align: right; }
+  .prs-tbl tbody td {
+    padding: 4px 6px; border-bottom: 0.5px solid #e2e8f0; vertical-align: middle;
+    font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis;
+  }
+  .prs-tbl tbody tr:nth-child(even) td { background: #fafbfc; }
+  .prs-tbl tbody td.dt { font-size: 8pt; color: #475569; white-space: nowrap; }
+  .prs-tbl tbody td.tip { font-size: 8pt; font-weight: 600; }
+  .prs-tbl tbody td.num { text-align: right; white-space: nowrap; }
+  .prs-tbl tbody td.ack { white-space: normal; word-wrap: break-word; line-height: 1.25; color: #1e293b; }
+  .prs-tbl tbody td.bos { text-align: center; color: #94a3b8; padding: 22px 6px; }
+  .tip-mesai { color: #1d4ed8; }
+  .tip-avans { color: #b45309; }
+  .tip-odeme { color: #15803d; }
+  .tut-eksi { color: #dc2626; }
+  .tut-arti { color: #1e293b; }
+
+  .prs-tbl tfoot td {
+    padding: 6px 6px; border-top: 1.5px solid #334155; font-weight: 700; font-size: 8.5pt; white-space: nowrap;
+  }
+  .prs-tbl tfoot td.r { text-align: right; }
+
+  .prs-hesap-wrap { display: flex; justify-content: flex-end; margin-top: 12px; page-break-inside: avoid; }
+  .prs-hesap {
+    display: inline-block; min-width: 72mm; padding: 8px 12px; border: 1px solid #e2e8f0; background: #f8fafc;
+    font-size: 8.5pt; color: #334155;
+  }
+  .prs-hesap table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .prs-hesap td { padding: 2px 10px 2px 0; white-space: nowrap; }
+  .prs-hesap td.r { text-align: right; padding-left: 18px; }
+  .prs-hesap tr.toplam td { border-top: 1px solid #94a3b8; font-weight: 700; padding-top: 4px; }
+  .prs-hesap tr.toplam td.r { color: #dc2626; }
+</style>
+
+<section class="sheet">
+  <div class="prs-header">
+    <div>
+      <div class="prs-title">Personel Dökümü</div>
+      <div class="prs-ad">{{ personel.ad }}</div>
+      <div class="prs-bilgi">
+        {% if personel.giris_tarih %}Giriş: {{ format_date(personel.giris_tarih) }}{% endif %}
+        {% if personel.cikis_tarih %} · Çıkış: {{ format_date(personel.cikis_tarih) }}{% endif %}
+        {% if personel.telefon %} · Tel: {{ personel.telefon }}{% endif %}
+      </div>
+    </div>
+    <div class="prs-doc">
+      <div class="donem">{{ donem_label }}</div>
+      {{ doc_date }}
+    </div>
+  </div>
+
+  <div class="prs-duzenleyen">
+    <span class="prs-duzenleyen-ad">Düzenleyen: {{ sirket.firma_adi or 'Firma' }}</span>
+    {% if sirket.vkn_tckn %}<span class="prs-duzenleyen-vkn">VKN: {{ sirket.vkn_tckn }}</span>{% endif %}
+    {% if sirket.adres %}<span class="prs-duzenleyen-adres">{{ sirket.adres }}</span>{% endif %}
+  </div>
+
+  <div class="prs-kpi">
+    <div><div class="k-lbl">Maaş</div><div class="k-val">{{ format_money(ozet.maas) }} ₺</div></div>
+    <div><div class="k-lbl">Mesai</div><div class="k-val">{{ format_money(ozet.mesai_tutar) }} ₺</div>
+      {% if ozet.mesai_saat %}<div class="k-sub">{{ format_qty(ozet.mesai_saat) }} saat</div>{% endif %}</div>
+    <div><div class="k-lbl">Hak Ediş</div><div class="k-val">{{ format_money(ozet.hakedis) }} ₺</div></div>
+    <div class="avans"><div class="k-lbl">Avans</div><div class="k-val">{{ format_money(ozet.avans_toplam) }} ₺</div></div>
+    <div class="odenen"><div class="k-lbl">Ödenen</div><div class="k-val">{{ format_money(ozet.odenen) }} ₺</div></div>
+    <div class="kalan {% if (ozet.kalan|abs) < 0.005 %}sifir{% endif %}"><div class="k-lbl">Kalan</div><div class="k-val">{{ format_money(ozet.kalan) }} ₺</div></div>
+  </div>
+
+  <table class="prs-tbl">
+    <colgroup>
+      <col style="width:13%;">
+      <col style="width:14%;">
+      <col style="width:9%;">
+      <col style="width:18%;">
+      <col style="width:46%;">
+    </colgroup>
+    <thead>
+      <tr>
+        <th>TARİH</th>
+        <th>TÜR</th>
+        <th class="r">SAAT</th>
+        <th class="r">TUTAR</th>
+        <th style="padding-left:10px;">AÇIKLAMA</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if not hareketler %}
+      <tr><td class="bos" colspan="5">Bu dönemde hareket yok.</td></tr>
+      {% endif %}
+      {% for h in hareketler %}
+      <tr>
+        <td class="dt">{{ format_date(h.tarih) }}</td>
+        <td class="tip {{ h.tip_class }}">{{ h.tip_label }}</td>
+        <td class="num">{% if h.saat and h.saat > 0.005 %}{{ format_qty(h.saat) }}{% endif %}</td>
+        <td class="num {% if h.kesinti %}tut-eksi{% else %}tut-arti{% endif %}">{% if h.kesinti %}-{% else %}+{% endif %}{{ format_money(h.tutar) }} ₺</td>
+        <td class="ack" style="padding-left:10px;">{{ h.aciklama or '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="2">{{ hareketler|length }} kayıt</td>
+        <td class="r">{% if ozet.mesai_saat %}{{ format_qty(ozet.mesai_saat) }} sa{% endif %}</td>
+        <td class="r">{{ format_money(ozet.mesai_tutar) }} ₺ mesai</td>
+        <td style="padding-left:10px;">Avans {{ format_money(ozet.avans_toplam) }} ₺ · Ödenen {{ format_money(ozet.odenen) }} ₺</td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <div class="prs-hesap-wrap"><div class="prs-hesap">
+    <table>
+      <tr><td>Maaş</td><td class="r">{{ format_money(ozet.maas) }} ₺</td></tr>
+      <tr><td>+ Mesai{% if ozet.mesai_saat %} ({{ format_qty(ozet.mesai_saat) }} saat){% endif %}</td><td class="r">{{ format_money(ozet.mesai_tutar) }} ₺</td></tr>
+      <tr><td>− Avans</td><td class="r">{{ format_money(ozet.avans_toplam) }} ₺</td></tr>
+      <tr><td>− Ödenen</td><td class="r">{{ format_money(ozet.odenen) }} ₺</td></tr>
+      <tr class="toplam"><td>Kalan</td><td class="r">{{ format_money(ozet.kalan) }} ₺</td></tr>
+    </table>
+  </div></div>
+</section>
+
+{% endblock %}

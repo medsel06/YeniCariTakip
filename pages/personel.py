@@ -12,7 +12,7 @@ from services.personel_service import (
     get_rapor_ozet, get_personel,
 )
 from services.settings_service import get_company_settings
-from services.pdf_service import generate_table_pdf, save_pdf_preview
+from services.pdf_service import generate_table_pdf, generate_personel_dokum_pdf, save_pdf_preview
 
 AY_ISIMLERI = {
     1: 'Ocak', 2: 'Şubat', 3: 'Mart', 4: 'Nisan', 5: 'Mayıs', 6: 'Haziran',
@@ -635,26 +635,10 @@ def personel_page():
 
     def _pdf_kisi(p, ozet, hareketler):
         try:
-            def _ft(t):
-                return {'AVANS': 'Avans', 'MESAI': 'Mesai', 'MAAS_ODEME': 'Maaş Ödeme'}.get(t, t)
-            ozet_rows = [
-                ['Maaş', '', f"{ozet['maas']:.2f} TL"],
-                ['Mesai', f"{ozet['mesai_saat']:.1f} saat", f"{ozet['mesai_tutar']:.2f} TL"],
-                ['Hak Ediş', '', f"{ozet['hakedis']:.2f} TL"],
-                ['Avans Toplam', '', f"{ozet['avans_toplam']:.2f} TL"],
-                ['Ödenen', '', f"{ozet['odenen']:.2f} TL"],
-                ['Kalan', '', f"{ozet['kalan']:.2f} TL"],
-            ]
-            hareket_rows = [
-                [h.get('tarih', ''), _ft(h.get('tur', '')), f"{h.get('tutar', 0):.2f}",
-                 f"{h.get('saat', 0):.1f}" if h.get('saat', 0) else '', h.get('aciklama', '') or '']
-                for h in hareketler
-            ]
-            all_rows_pdf = [['--- ÖZET ---', '', '', '', '']] \
-                + [[r[0], '', r[2], r[1], ''] for r in ozet_rows] \
-                + [['--- HAREKETLER ---', '', '', '', '']] + hareket_rows
-            baslik = f"Personel Detay - {p['ad']} - {AY_ISIMLERI[state['ay']]} {state['yil']}"
-            pdf_bytes = generate_table_pdf(baslik, ['Tarih / Başlık', 'Tür', 'Tutar', 'Saat/Ek', 'Açıklama'], all_rows_pdf)
+            donem = f"{AY_ISIMLERI[state['ay']]} {state['yil']}"
+            if is_haftalik and state.get('hafta'):
+                donem += f" · {state['hafta']}. Hafta"
+            pdf_bytes = generate_personel_dokum_pdf(p, ozet, hareketler, donem_label=donem)
             preview_url = save_pdf_preview(pdf_bytes, f"personel_{p['id']}_{state['yil']}_{state['ay']}.pdf")
             ui.run_javascript(f"window.open('{preview_url}', '_blank')")
         except Exception as e:

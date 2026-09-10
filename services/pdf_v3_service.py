@@ -290,3 +290,36 @@ def render_gelir_gider(rows: list, sirket: dict, donem_label: str = '') -> bytes
         },
     })
     return _render('pdf_gelir_gider.html', ctx)
+
+
+def render_personel_dokum(personel: dict, ozet: dict, hareketler: list, sirket: dict, donem_label: str = '') -> bytes:
+    """Personel donem dokumu PDF (kisi bazli: ozet seridi + hareket tablosu + kalan hesabi).
+    personel: {ad, giris_tarih, cikis_tarih, telefon}
+    ozet: get_donem_ozet satiri ({maas, mesai_saat, mesai_tutar, hakedis, avans_toplam, odenen, kalan})
+    hareketler: get_hareketler ciktisi ({tarih, tur, tutar, saat, aciklama}) — eskiden yeniye siralanir
+    """
+    tip = {
+        'MESAI': ('Mesai', 'tip-mesai', False),
+        'AVANS': ('Avans', 'tip-avans', True),
+        'MAAS_ODEME': ('Maaş Ödeme', 'tip-odeme', True),
+    }
+    rows = []
+    for h in sorted(hareketler or [], key=lambda x: ((x.get('tarih') or ''), x.get('id') or 0)):
+        lbl, cls, kesinti = tip.get(h.get('tur'), (h.get('tur') or '-', '', False))
+        rows.append({
+            'tarih': h.get('tarih'),
+            'tip_label': lbl, 'tip_class': cls, 'kesinti': kesinti,
+            'saat': float(h.get('saat') or 0),
+            'tutar': float(h.get('tutar') or 0),
+            'aciklama': h.get('aciklama') or '',
+        })
+    ctx = _common_ctx(sirket)
+    ctx.update({
+        'personel': personel or {},
+        'ozet': {k: float(ozet.get(k) or 0) for k in
+                 ('maas', 'mesai_saat', 'mesai_tutar', 'hakedis', 'avans_toplam', 'odenen', 'kalan')},
+        'hareketler': rows,
+        'donem_label': donem_label or '',
+        'doc_no': _doc_no('PRS'),
+    })
+    return _render('pdf_personel.html', ctx)
