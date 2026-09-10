@@ -828,8 +828,12 @@ def save_pdf_preview(pdf_bytes, filename):
     safe_name = ''.join(c for c in filename if c.isalnum() or c in ('_', '-', '.')).strip('.')
     if not safe_name.lower().endswith('.pdf'):
         safe_name += '.pdf'
-    tenant = _resolve_tenant_schema() or 'yok'
-    tenant = ''.join(c for c in tenant if c.isalnum() or c == '_') or 'yok'
+    tenant = _resolve_tenant_schema()
+    if not tenant:
+        # Sessiz 'yok' varsayilani hatayi 8 gun gizledi (her onizleme 404 verdi).
+        # Tenant cozulemiyorsa dosya yazilmaz, hata gorunur olsun.
+        raise RuntimeError('PDF onizleme: firma (tenant) belirlenemedi, oturum yok')
+    tenant = ''.join(c for c in tenant if c.isalnum() or c == '_')
     final_name = f"{tenant}__{Path(safe_name).stem}_{secrets.token_hex(8)}.pdf"
     out_dir = get_pdf_preview_dir()
     out_path = out_dir / final_name
