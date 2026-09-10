@@ -716,6 +716,15 @@ async def api_personel_mesai_create(request: Request):
     return _json({'ok': True, 'id': new_id})
 
 
+@app.put('/api/personel/mesai/{hid}')
+@api_auth
+async def api_personel_mesai_update(request: Request, hid: int):
+    # tarih/tutar/saat/aciklama/odeme_sekli; AVANS/MAAS_ODEME'de bagli gider+kasa da guncellenir
+    data = await request.json()
+    personel_service.update_hareket(hid, data)
+    return _json({'ok': True})
+
+
 @app.delete('/api/personel/mesai/{hid}')
 @api_auth
 async def api_personel_mesai_delete(request: Request, hid: int):

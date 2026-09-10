@@ -8,7 +8,7 @@ from layout import (
 )
 from services.personel_service import (
     get_donem_ozet, add_personel, update_personel, delete_personel,
-    add_hareket, delete_hareket, get_hareketler, get_son_mesai_ucreti,
+    add_hareket, update_hareket, delete_hareket, get_hareketler, get_son_mesai_ucreti,
     get_rapor_ozet, get_personel,
 )
 from services.settings_service import get_company_settings
@@ -91,6 +91,10 @@ def personel_page():
         .pers-htbl .c-empty{text-align:center;color:#94a3b8;padding:44px 12px;}
         .pers-htbl td .q-btn{opacity:.5;}
         .pers-htbl td .q-btn:hover{opacity:1;}
+        /* Donem secici: baslik ortasinda, ikon yigininden ayri */
+        .pers-donem{border:1px solid #e2e8f0;border-radius:999px;background:#f8fafc;padding:1px 3px;gap:0;flex:0 0 auto;}
+        .pers-donem .q-btn{color:#64748b;}
+        .pers-donem-lbl{font-size:12.5px !important;font-weight:700;color:#334155 !important;min-width:112px;padding:0 8px !important;}
     ''')
 
     now = datetime.now()
@@ -238,19 +242,24 @@ def personel_page():
                 notify_err(f'Hata: {e}')
         confirm_dialog('Bu personeli ve tüm kayıtlarını silmek istediğinize emin misiniz?', confirmed)
 
-    def open_mesai_dialog(row):
+    def open_mesai_dialog(row, edit=None):
+        # edit: mevcut hareket satiri -> modal dolu acilir, Kaydet gunceller
         pid = row['personel_id']
         maas = row['maas']
         saat_boleni = 45 if is_haftalik else 225
         default_saat_ucret = (maas / saat_boleni) * 1.5 if maas > 0 else 0
         son_ucret = get_son_mesai_ucreti(pid)
         initial_saat_ucret = son_ucret if son_ucret and son_ucret > 0 else default_saat_ucret
+        e_saat = float(edit.get('saat', 0) or 0) if edit else 0
+        e_tutar = float(edit.get('tutar', 0) or 0) if edit else 0
+        if edit and e_saat > 0:
+            initial_saat_ucret = e_tutar / e_saat
 
         with ui.dialog() as dlg, ui.card().classes('alse-dialog im-modal').style(
                 'width: 92vw; max-width: 520px; max-height: 92vh; display: flex; flex-direction: column; padding:0;'):
             with ui.element('div').classes('im-head'):
                 ui.icon('more_time').classes('im-ic')
-                ui.label(f'Mesai Gir — {row["ad"]}').classes('im-title')
+                ui.label(f'{"Mesai Düzenle" if edit else "Mesai Gir"} — {row["ad"]}').classes('im-title')
 
             with ui.column().classes('w-full im-body gap-1').style(
                     'overflow-y:auto;flex:1 1 auto;min-height:0;'):
@@ -258,7 +267,7 @@ def personel_page():
                 with ui.row().classes('w-full gap-sm no-wrap'):
                     with ui.element('div').classes('im-field col'):
                         ui.label('MESAİ TARİHİ').classes('im-flabel')
-                        inp_tarih_m = ui.input(value=date.today().isoformat()).props(
+                        inp_tarih_m = ui.input(value=(edit['tarih'] or '')[:10] if edit else date.today().isoformat()).props(
                             'outlined dense type=date').classes('w-full ms-tarih')
                     with ui.element('div').classes('im-field').style('flex:0 0 130px'):
                         ui.label('SAAT ÜCRETİ (TL)').classes('im-flabel')
@@ -266,7 +275,7 @@ def personel_page():
                             'outlined dense input-class=text-right').classes('w-full ms-ucret')
                     with ui.element('div').classes('im-field').style('flex:0 0 110px'):
                         ui.label('MESAİ SAAT').classes('im-flabel')
-                        inp_saat = ui.number(value=0, format='%.1f').props(
+                        inp_saat = ui.number(value=e_saat, format='%.1f').props(
                             'outlined dense input-class=text-right').classes('w-full ms-saat')
 
                 ui.label(
@@ -274,7 +283,7 @@ def personel_page():
                     + (f'  •  Son girilen: {fmt_para(son_ucret)} TL' if son_ucret else '')
                 ).classes('text-caption text-grey-7')
 
-                lbl_tutar = ui.label('Mesai Tutarı: 0,00 TL').classes('text-subtitle2 text-weight-bold text-primary')
+                lbl_tutar = ui.label(f'Mesai Tutarı: {fmt_para(e_tutar)} TL').classes('text-subtitle2 text-weight-bold text-primary')
 
                 def recalc():
                     s = float(inp_saat.value or 0)
@@ -285,7 +294,7 @@ def personel_page():
 
                 with ui.element('div').classes('im-field w-full'):
                     ui.label('AÇIKLAMA').classes('im-flabel')
-                    inp_aciklama = ui.input().props('outlined dense').classes('w-full ms-acik')
+                    inp_aciklama = ui.input(value=(edit.get('aciklama') or '') if edit else '').props('outlined dense').classes('w-full ms-acik')
 
             with ui.row().classes('w-full justify-end items-center').style(
                     'flex:0 0 auto;overflow:visible;padding:11px 16px;border-top:1px solid #eef2f6;'):
@@ -302,14 +311,22 @@ def personel_page():
                         notify_err('Saat ücreti 0\'dan büyük olmalı')
                         return
                     try:
-                        add_hareket({
-                            'personel_id': pid, 'yil': state['yil'], 'ay': state['ay'],
-                            'hafta': state['hafta'] if is_haftalik else 0,
-                            'tur': 'MESAI', 'saat': saat, 'tutar': saat * ucret,
-                            'tarih': inp_tarih_m.value or date.today().isoformat(),
-                            'aciklama': inp_aciklama.value.strip() if inp_aciklama.value else '',
-                        })
-                        notify_ok('Mesai kaydedildi')
+                        if edit:
+                            update_hareket(edit['id'], {
+                                'saat': saat, 'tutar': saat * ucret,
+                                'tarih': inp_tarih_m.value or edit['tarih'],
+                                'aciklama': inp_aciklama.value.strip() if inp_aciklama.value else '',
+                            })
+                            notify_ok('Mesai güncellendi')
+                        else:
+                            add_hareket({
+                                'personel_id': pid, 'yil': state['yil'], 'ay': state['ay'],
+                                'hafta': state['hafta'] if is_haftalik else 0,
+                                'tur': 'MESAI', 'saat': saat, 'tutar': saat * ucret,
+                                'tarih': inp_tarih_m.value or date.today().isoformat(),
+                                'aciklama': inp_aciklama.value.strip() if inp_aciklama.value else '',
+                            })
+                            notify_ok('Mesai kaydedildi')
                         dlg.close()
                         _refresh()
                     except Exception as e:
@@ -347,32 +364,33 @@ def personel_page():
             });
         '''), once=True)
 
-    def open_avans_dialog(row):
+    def open_avans_dialog(row, edit=None):
         pid = row['personel_id']
         with ui.dialog() as dlg, ui.card().classes('alse-dialog im-modal').style(
                 'width: 92vw; max-width: 500px; max-height: 92vh; display: flex; flex-direction: column; padding:0;'):
             with ui.element('div').classes('im-head'):
                 ui.icon('account_balance_wallet').classes('im-ic')
-                ui.label(f'Avans Ver — {row["ad"]}').classes('im-title')
+                ui.label(f'{"Avans Düzenle" if edit else "Avans Ver"} — {row["ad"]}').classes('im-title')
 
             with ui.column().classes('w-full im-body gap-1').style(
                     'overflow-y:auto;flex:1 1 auto;min-height:0;'):
                 with ui.row().classes('w-full gap-sm no-wrap'):
                     with ui.element('div').classes('im-field col'):
                         ui.label('TARİH').classes('im-flabel')
-                        inp_tarih = ui.input(value=date.today().isoformat()).props(
+                        inp_tarih = ui.input(value=(edit['tarih'] or '')[:10] if edit else date.today().isoformat()).props(
                             'outlined dense type=date').classes('w-full av-tarih')
                     with ui.element('div').classes('im-field').style('flex:0 0 130px'):
                         ui.label('TUTAR').classes('im-flabel')
-                        inp_tutar = ui.number(value=0, format='%.2f').props(
+                        inp_tutar = ui.number(value=float(edit.get('tutar', 0) or 0) if edit else 0, format='%.2f').props(
                             'outlined dense input-class=text-right').classes('w-full av-tutar')
                     with ui.element('div').classes('im-field').style('flex:0 0 130px'):
                         ui.label('ÖDEME ŞEKLİ').classes('im-flabel')
-                        inp_odeme = ui.select(options={'NAKIT': 'Nakit', 'HAVALE': 'Havale/EFT'}, value='NAKIT').props(
+                        inp_odeme = ui.select(options={'NAKIT': 'Nakit', 'HAVALE': 'Havale/EFT'},
+                                              value=(edit.get('odeme_sekli') or 'NAKIT') if edit else 'NAKIT').props(
                             'outlined dense').classes('w-full')
                 with ui.element('div').classes('im-field w-full'):
                     ui.label('AÇIKLAMA').classes('im-flabel')
-                    inp_aciklama = ui.input().props('outlined dense').classes('w-full av-acik')
+                    inp_aciklama = ui.input(value=(edit.get('aciklama') or '') if edit else '').props('outlined dense').classes('w-full av-acik')
 
             with ui.row().classes('w-full justify-end items-center').style(
                     'flex:0 0 auto;overflow:visible;padding:11px 16px;border-top:1px solid #eef2f6;'):
@@ -385,15 +403,24 @@ def personel_page():
                         notify_err('Tutar 0\'dan büyük olmalı')
                         return
                     try:
-                        add_hareket({
-                            'personel_id': pid, 'yil': state['yil'], 'ay': state['ay'],
-                            'hafta': state['hafta'] if is_haftalik else 0,
-                            'tur': 'AVANS', 'tutar': tutar,
-                            'tarih': inp_tarih.value or date.today().isoformat(),
-                            'aciklama': inp_aciklama.value.strip() if inp_aciklama.value else '',
-                            'odeme_sekli': inp_odeme.value or 'NAKIT',
-                        })
-                        notify_ok('Avans kaydedildi')
+                        if edit:
+                            update_hareket(edit['id'], {
+                                'tutar': tutar,
+                                'tarih': inp_tarih.value or edit['tarih'],
+                                'aciklama': inp_aciklama.value.strip() if inp_aciklama.value else '',
+                                'odeme_sekli': inp_odeme.value or 'NAKIT',
+                            })
+                            notify_ok('Avans güncellendi')
+                        else:
+                            add_hareket({
+                                'personel_id': pid, 'yil': state['yil'], 'ay': state['ay'],
+                                'hafta': state['hafta'] if is_haftalik else 0,
+                                'tur': 'AVANS', 'tutar': tutar,
+                                'tarih': inp_tarih.value or date.today().isoformat(),
+                                'aciklama': inp_aciklama.value.strip() if inp_aciklama.value else '',
+                                'odeme_sekli': inp_odeme.value or 'NAKIT',
+                            })
+                            notify_ok('Avans kaydedildi')
                         dlg.close()
                         _refresh()
                     except Exception as e:
@@ -439,14 +466,14 @@ def personel_page():
             });
         '''), once=True)
 
-    def open_odeme_dialog(row):
+    def open_odeme_dialog(row, edit=None):
         pid = row['personel_id']
         kalan = row.get('kalan', 0)
         with ui.dialog() as dlg, ui.card().classes('alse-dialog im-modal').style(
                 'width: 92vw; max-width: 500px; max-height: 92vh; display: flex; flex-direction: column; padding:0;'):
             with ui.element('div').classes('im-head'):
                 ui.icon('paid').classes('im-ic')
-                ui.label(f'Maaş Ödeme — {row["ad"]}').classes('im-title')
+                ui.label(f'{"Maaş Ödeme Düzenle" if edit else "Maaş Ödeme"} — {row["ad"]}').classes('im-title')
 
             with ui.column().classes('w-full im-body gap-1').style(
                     'overflow-y:auto;flex:1 1 auto;min-height:0;'):
@@ -454,19 +481,20 @@ def personel_page():
                 with ui.row().classes('w-full gap-sm no-wrap'):
                     with ui.element('div').classes('im-field col'):
                         ui.label('TARİH').classes('im-flabel')
-                        inp_tarih = ui.input(value=date.today().isoformat()).props(
+                        inp_tarih = ui.input(value=(edit['tarih'] or '')[:10] if edit else date.today().isoformat()).props(
                             'outlined dense type=date').classes('w-full od-tarih')
                     with ui.element('div').classes('im-field').style('flex:0 0 130px'):
                         ui.label('TUTAR').classes('im-flabel')
-                        inp_tutar = ui.number(value=max(kalan, 0), format='%.2f').props(
+                        inp_tutar = ui.number(value=float(edit.get('tutar', 0) or 0) if edit else max(kalan, 0), format='%.2f').props(
                             'outlined dense input-class=text-right').classes('w-full od-tutar')
                     with ui.element('div').classes('im-field').style('flex:0 0 130px'):
                         ui.label('ÖDEME ŞEKLİ').classes('im-flabel')
-                        inp_odeme = ui.select(options={'NAKIT': 'Nakit', 'HAVALE': 'Havale/EFT'}, value='NAKIT').props(
+                        inp_odeme = ui.select(options={'NAKIT': 'Nakit', 'HAVALE': 'Havale/EFT'},
+                                              value=(edit.get('odeme_sekli') or 'NAKIT') if edit else 'NAKIT').props(
                             'outlined dense').classes('w-full')
                 with ui.element('div').classes('im-field w-full'):
                     ui.label('AÇIKLAMA').classes('im-flabel')
-                    inp_aciklama = ui.input().props('outlined dense').classes('w-full od-acik')
+                    inp_aciklama = ui.input(value=(edit.get('aciklama') or '') if edit else '').props('outlined dense').classes('w-full od-acik')
 
             with ui.row().classes('w-full justify-end items-center').style(
                     'flex:0 0 auto;overflow:visible;padding:11px 16px;border-top:1px solid #eef2f6;'):
@@ -479,15 +507,24 @@ def personel_page():
                         notify_err('Tutar 0\'dan büyük olmalı')
                         return
                     try:
-                        add_hareket({
-                            'personel_id': pid, 'yil': state['yil'], 'ay': state['ay'],
-                            'hafta': state['hafta'] if is_haftalik else 0,
-                            'tur': 'MAAS_ODEME', 'tutar': tutar,
-                            'tarih': inp_tarih.value or date.today().isoformat(),
-                            'aciklama': inp_aciklama.value.strip() if inp_aciklama.value else '',
-                            'odeme_sekli': inp_odeme.value or 'NAKIT',
-                        })
-                        notify_ok('Ödeme kaydedildi')
+                        if edit:
+                            update_hareket(edit['id'], {
+                                'tutar': tutar,
+                                'tarih': inp_tarih.value or edit['tarih'],
+                                'aciklama': inp_aciklama.value.strip() if inp_aciklama.value else '',
+                                'odeme_sekli': inp_odeme.value or 'NAKIT',
+                            })
+                            notify_ok('Ödeme güncellendi')
+                        else:
+                            add_hareket({
+                                'personel_id': pid, 'yil': state['yil'], 'ay': state['ay'],
+                                'hafta': state['hafta'] if is_haftalik else 0,
+                                'tur': 'MAAS_ODEME', 'tutar': tutar,
+                                'tarih': inp_tarih.value or date.today().isoformat(),
+                                'aciklama': inp_aciklama.value.strip() if inp_aciklama.value else '',
+                                'odeme_sekli': inp_odeme.value or 'NAKIT',
+                            })
+                            notify_ok('Ödeme kaydedildi')
                         dlg.close()
                         _refresh()
                     except Exception as e:
@@ -633,12 +670,22 @@ def personel_page():
                 notify_err(f'Hata: {e}')
         confirm_dialog('Bu hareketi silmek istediğinize emin misiniz?', ok)
 
+    def _duzenle_hareket(h, ozet):
+        # Ayni giris modali dolu acilir; Kaydet update_hareket cagirir
+        t = h.get('tur')
+        if t == 'MESAI':
+            open_mesai_dialog(ozet, edit=h)
+        elif t == 'AVANS':
+            open_avans_dialog(ozet, edit=h)
+        elif t == 'MAAS_ODEME':
+            open_odeme_dialog(ozet, edit=h)
+
     # ============================ RENDER ============================
 
-    def _render_tablo(hareketler):
+    def _render_tablo(hareketler, ozet):
         cols = [('Tarih', '92px', 'left'), ('Tür', '118px', 'center'),
                 ('Tutar', '128px', 'right'), ('Saat', '66px', 'center'),
-                ('Açıklama', None, 'center'), ('', '46px', 'center')]
+                ('Açıklama', None, 'center'), ('', '74px', 'center')]
         tur_map = {
             'AVANS': ('Avans', '#fef3c7', '#b45309'),
             'MESAI': ('Mesai', '#dbeafe', '#1d4ed8'),
@@ -677,7 +724,9 @@ def personel_page():
                                     ui.html(f'{saat:.1f}' if saat > 0 else '')
                                 with ui.element('td').style('text-align:center;'):
                                     ui.html(_html.escape(h.get('aciklama', '') or '')).classes('ellipsis')
-                                with ui.element('td').style('text-align:center;'):
+                                with ui.element('td').style('text-align:center;white-space:nowrap;'):
+                                    ui.button(icon='edit', on_click=lambda hh=h: _duzenle_hareket(hh, ozet)) \
+                                        .props('flat round dense size=sm color=grey-6').tooltip('Düzenle')
                                     ui.button(icon='close', on_click=lambda hh=h: _sil_hareket(hh)) \
                                         .props('flat round dense size=sm color=grey-6').tooltip('Sil')
 
@@ -789,48 +838,102 @@ def personel_page():
                 kpi('Avans', f'{fmt_para(ozet["avans_toplam"])} ₺', color=('#d97706' if ozet['avans_toplam'] else None))
                 kpi('Ödenen', f'{fmt_para(ozet["odenen"])} ₺', color=('#059669' if ozet['odenen'] else None))
                 kpi('Kalan', f'{fmt_para(ozet["kalan"])} ₺', color=('#dc2626' if ozet['kalan'] > 0 else '#0f172a'))
-            _render_tablo(hareketler)
+            _render_tablo(hareketler, ozet)
 
-    def _build_donem_pill():
+    def _build_donem_secici():
+        """Baslik ortasindaki `‹ Eylül 2026 ›` secicisi. Oklar ay (haftalikta hafta)
+        ileri/geri; yaziya tiklaninca Ay/Yil (+Hafta) menusu acilir."""
+        yil_min, yil_max = now.year - 3, now.year + 2
+        senk = {'kilit': False}   # oklarla degisirken select on_change'i tetiklenmesin
+
         def _lbl():
             base = f"{AY_ISIMLERI[state['ay']]} {state['yil']}"
             if is_haftalik and state.get('hafta'):
                 base += f" · {state['hafta']}.Hf"
             return base
-        pill = ui.button(icon='calendar_month').props('flat round dense color=deep-purple-6')
-        with pill:
-            tt = ui.tooltip(_lbl())
-            with ui.menu().props('anchor="bottom middle" self="top middle"'):
-                with ui.column().classes('q-pa-sm gap-2').style('min-width:240px'):
-                    ui.label('Dönem').classes('text-caption text-grey-7')
-                    ay_opts = {m: AY_ISIMLERI[m] for m in range(1, 13)}
-                    yil_opts = {y: str(y) for y in range(now.year - 2, now.year + 2)}
-                    with ui.row().classes('w-full gap-2 no-wrap'):
-                        p_ay = ui.select(ay_opts, value=state['ay'], label='Ay').props('outlined dense').classes('col')
-                        p_yil = ui.select(yil_opts, value=state['yil'], label='Yıl').props('outlined dense').classes('col')
-                    p_hafta = None
-                    if is_haftalik:
-                        _ho = {h['hafta']: h['label'] for h in _get_haftalar(state['yil'], state['ay'])}
-                        p_hafta = ui.select(_ho, value=state['hafta'], label='Hafta').props('outlined dense').classes('w-full')
 
-                    def _apply():
-                        state['yil'] = p_yil.value
-                        state['ay'] = p_ay.value
-                        if is_haftalik and p_hafta is not None:
-                            yeni = _get_haftalar(state['yil'], state['ay'])
-                            p_hafta.options = {h['hafta']: h['label'] for h in yeni}
-                            if yeni and p_hafta.value not in p_hafta.options:
-                                p_hafta.value = yeni[0]['hafta']
-                            p_hafta.update()
-                            state['hafta'] = p_hafta.value
-                        tt.set_text(_lbl())
-                        _refresh()
+        def _ay_kaydir(yon):
+            ay = state['ay'] + yon
+            yil = state['yil']
+            if ay < 1:
+                ay, yil = 12, yil - 1
+            elif ay > 12:
+                ay, yil = 1, yil + 1
+            if yil < yil_min or yil > yil_max:
+                return False
+            state['ay'], state['yil'] = ay, yil
+            return True
 
-                    p_ay.on_value_change(lambda _: _apply())
-                    p_yil.on_value_change(lambda _: _apply())
-                    if p_hafta is not None:
-                        p_hafta.on_value_change(lambda _: _apply())
-        return pill
+        def _kaydir(yon):
+            if is_haftalik:
+                hlar = _get_haftalar(state['yil'], state['ay'])
+                eski = state['hafta']
+                idx = next((k for k, h in enumerate(hlar) if h['hafta'] == eski), 0) + yon
+                if idx < 0 or idx >= len(hlar):
+                    if not _ay_kaydir(yon):
+                        return
+                    hlar = _get_haftalar(state['yil'], state['ay'])
+                    # Ay siniri asan ISO haftasi iki ayda da listelenir; ayni haftaya dusme
+                    idx = (len(hlar) - 1) if yon < 0 else 0
+                    if hlar and hlar[idx]['hafta'] == eski and len(hlar) > 1:
+                        idx += yon
+                state['hafta'] = hlar[idx]['hafta'] if hlar else 1
+            else:
+                if not _ay_kaydir(yon):
+                    return
+            senk['kilit'] = True
+            try:
+                p_yil.value = state['yil']
+                p_ay.value = state['ay']
+                if p_hafta is not None:
+                    p_hafta.options = {h['hafta']: h['label'] for h in _get_haftalar(state['yil'], state['ay'])}
+                    p_hafta.value = state['hafta']
+                    p_hafta.update()
+            finally:
+                senk['kilit'] = False
+            lbl_btn.set_text(_lbl())
+            _refresh()
+
+        with ui.row().classes('pers-donem items-center no-wrap'):
+            ui.button(icon='chevron_left', on_click=lambda: _kaydir(-1)).props('flat round dense size=sm') \
+                .tooltip('Önceki hafta' if is_haftalik else 'Önceki ay')
+            lbl_btn = ui.button(_lbl()).props('flat dense no-caps').classes('pers-donem-lbl')
+            with lbl_btn:
+                ui.tooltip('Dönem seç')
+                with ui.menu().props('anchor="bottom middle" self="top middle"'):
+                    with ui.column().classes('q-pa-sm gap-2').style('min-width:240px'):
+                        ui.label('Dönem').classes('text-caption text-grey-7')
+                        ay_opts = {m: AY_ISIMLERI[m] for m in range(1, 13)}
+                        yil_opts = {y: str(y) for y in range(yil_min, yil_max + 1)}
+                        with ui.row().classes('w-full gap-2 no-wrap'):
+                            p_ay = ui.select(ay_opts, value=state['ay'], label='Ay').props('outlined dense').classes('col')
+                            p_yil = ui.select(yil_opts, value=state['yil'], label='Yıl').props('outlined dense').classes('col')
+                        p_hafta = None
+                        if is_haftalik:
+                            _ho = {h['hafta']: h['label'] for h in _get_haftalar(state['yil'], state['ay'])}
+                            p_hafta = ui.select(_ho, value=state['hafta'], label='Hafta').props('outlined dense').classes('w-full')
+
+                        def _apply():
+                            if senk['kilit']:
+                                return
+                            state['yil'] = p_yil.value
+                            state['ay'] = p_ay.value
+                            if is_haftalik and p_hafta is not None:
+                                yeni = _get_haftalar(state['yil'], state['ay'])
+                                p_hafta.options = {h['hafta']: h['label'] for h in yeni}
+                                if yeni and p_hafta.value not in p_hafta.options:
+                                    p_hafta.value = yeni[0]['hafta']
+                                p_hafta.update()
+                                state['hafta'] = p_hafta.value
+                            lbl_btn.set_text(_lbl())
+                            _refresh()
+
+                        p_ay.on_value_change(lambda _: _apply())
+                        p_yil.on_value_change(lambda _: _apply())
+                        if p_hafta is not None:
+                            p_hafta.on_value_change(lambda _: _apply())
+            ui.button(icon='chevron_right', on_click=lambda: _kaydir(1)).props('flat round dense size=sm') \
+                .tooltip('Sonraki hafta' if is_haftalik else 'Sonraki ay')
 
     def _refresh():
         data = _list_data()
@@ -872,15 +975,15 @@ def personel_page():
                         ui.label('F2').classes('fkey-hint')
                     ui.button(icon='assessment', on_click=open_rapor_dialog).props('flat dense round color=grey-7') \
                         .tooltip('Personel raporu')
-            # SAG: baslik (isim | donem pill | islem ikonlari) + govde
+            # SAG: baslik (isim | donem secici ortada | islem ikonlari) + govde
             with ui.column().classes('pers-detay2'):
                 with ui.column().classes('w-full').style('padding:12px 16px;gap:0;'):
                     with ui.row().classes('w-full items-center no-wrap q-mb-sm'):
-                        name_slot = ui.row().classes('items-center no-wrap gap-2').style('min-width:0;max-width:55%')
+                        name_slot = ui.row().classes('items-center no-wrap gap-2').style('min-width:0;max-width:40%')
                         ui.space()
-                        with ui.row().classes('items-center no-wrap gap-1'):
-                            _build_donem_pill()
-                            btns_slot = ui.row().classes('items-center no-wrap gap-1')
+                        _build_donem_secici()
+                        ui.space()
+                        btns_slot = ui.row().classes('items-center no-wrap gap-1')
                     body_box = ui.column().classes('w-full gap-0')
 
     ui.add_css(IM_MODAL_CSS)

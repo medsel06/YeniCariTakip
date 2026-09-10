@@ -97,8 +97,20 @@ def update_personel(pid, data):
             ''', (pid, old_maas, new_maas, data.get('giris_tarih', now[:10]), 'Maas guncelleme', now))
 
 
+def _bagli_gider_sil(conn, gg_id):
+    """AVANS/MAAS_ODEME ile otomatik acilan gider + kasa kaydini sil.
+    (Eskiden sadece personel satiri siliniyor, gider ve kasa cikisi kaliyordu ->
+    'sil-yeniden gir' kasada mukerrer cikis biraktiriyordu.)"""
+    if not gg_id:
+        return
+    conn.execute('DELETE FROM kasa WHERE gelir_gider_id=?', (gg_id,))
+    conn.execute('DELETE FROM gelir_gider WHERE id=?', (gg_id,))
+
+
 def delete_personel(pid):
     with get_db() as conn:
+        for r in conn.execute('SELECT gelir_gider_id FROM personel_hareket WHERE personel_id=?', (pid,)).fetchall():
+            _bagli_gider_sil(conn, r.get('gelir_gider_id'))
         conn.execute('DELETE FROM personel_hareket WHERE personel_id=?', (pid,))
         conn.execute('DELETE FROM personel_aylik WHERE personel_id=?', (pid,))
         conn.execute('DELETE FROM personel_maas_gecmis WHERE personel_id=?', (pid,))
@@ -297,6 +309,38 @@ def delete_hareket(hareket_id):
         if not row:
             return
         conn.execute('DELETE FROM personel_hareket WHERE id=?', (hareket_id,))
+        _bagli_gider_sil(conn, row.get('gelir_gider_id'))
+        recalc_donem(conn, row['personel_id'], row['yil'], row['ay'], int(row.get('hafta', 0) or 0))
+
+
+def update_hareket(hareket_id, data):
+    """Hareketi (tarih/tutar/saat/aciklama/odeme_sekli) gunceller.
+    AVANS/MAAS_ODEME'de bagli gider + kasa kaydi da ayni degerlerle guncellenir.
+    Donem (yil/ay/hafta) ve tur degismez."""
+    with get_db() as conn:
+        row = conn.execute('SELECT * FROM personel_hareket WHERE id=?', (hareket_id,)).fetchone()
+        if not row:
+            raise ValueError('Hareket bulunamadı')
+        tutar = float(data.get('tutar', row['tutar']) or 0)
+        saat = float(data.get('saat', row['saat']) or 0)
+        tarih = data.get('tarih') or row['tarih']
+        aciklama = data.get('aciklama', row['aciklama'] or '')
+        conn.execute('UPDATE personel_hareket SET tutar=?, saat=?, tarih=?, aciklama=? WHERE id=?',
+                     (tutar, saat, tarih, aciklama, hareket_id))
+
+        gg_id = row.get('gelir_gider_id')
+        if row['tur'] in ('AVANS', 'MAAS_ODEME') and gg_id:
+            gg = conn.execute('SELECT odeme_sekli FROM gelir_gider WHERE id=?', (gg_id,)).fetchone()
+            odeme_sekli = data.get('odeme_sekli') or (gg['odeme_sekli'] if gg else '') or 'NAKIT'
+            p = conn.execute('SELECT ad FROM personel WHERE id=?', (row['personel_id'],)).fetchone()
+            p_ad = p['ad'] if p else ''
+            onek = 'Avans' if row['tur'] == 'AVANS' else 'Maaş Ödeme'
+            gg_aciklama = f"{onek}: {p_ad} - {aciklama}"
+            conn.execute('UPDATE gelir_gider SET tarih=?, aciklama=?, tutar=?, toplam=?, odeme_sekli=? WHERE id=?',
+                         (tarih, gg_aciklama, tutar, tutar, odeme_sekli, gg_id))
+            conn.execute('UPDATE kasa SET tarih=?, tutar=?, odeme_sekli=?, aciklama=? WHERE gelir_gider_id=?',
+                         (tarih, tutar, odeme_sekli, gg_aciklama, gg_id))
+
         recalc_donem(conn, row['personel_id'], row['yil'], row['ay'], int(row.get('hafta', 0) or 0))
 
 
@@ -305,12 +349,17 @@ def get_hareketler(personel_id, yil=0, ay=0, hafta=0):
         if not yil:
             # yil verilmezse personelin TUM hareketleri (ozet/yillik gorunum icin)
             rows = conn.execute(
-                'SELECT * FROM personel_hareket WHERE personel_id=? ORDER BY tarih DESC, id DESC',
+                'SELECT h.*, g.odeme_sekli FROM personel_hareket h '
+                'LEFT JOIN gelir_gider g ON g.id=h.gelir_gider_id '
+                'WHERE h.personel_id=? ORDER BY h.tarih DESC, h.id DESC',
                 (personel_id,)
             ).fetchall()
         else:
+            # odeme_sekli: AVANS/MAAS_ODEME'nin bagli giderinden (duzenleme modali on-dolum)
             rows = conn.execute(
-                'SELECT * FROM personel_hareket WHERE personel_id=? AND yil=? AND ay=? AND hafta=? ORDER BY tarih DESC, id DESC',
+                'SELECT h.*, g.odeme_sekli FROM personel_hareket h '
+                'LEFT JOIN gelir_gider g ON g.id=h.gelir_gider_id '
+                'WHERE h.personel_id=? AND h.yil=? AND h.ay=? AND h.hafta=? ORDER BY h.tarih DESC, h.id DESC',
                 (personel_id, yil, ay, hafta)
             ).fetchall()
         return [dict(r) for r in rows]
