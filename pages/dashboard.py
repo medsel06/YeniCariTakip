@@ -6,7 +6,7 @@ from db import get_db
 from services.cek_service import get_vade_uyarilari
 from services.cari_service import get_risk_uyarilari, get_orphan_date_count
 from services.kasa_service import get_kasa_bakiye
-from services.gelir_gider_service import get_gelir_gider_ozet
+from services.gelir_gider_service import get_gelir_gider_ozet, get_gelir_gider_vadeleri
 from services.personel_service import get_personel_dashboard_ozet
 from services.fx_service import get_usd_eur_rates
 from services.odeme_takibi_service import list_odeme_takibi, get_vadeli_cari, get_cek_vadeleri
@@ -31,6 +31,11 @@ def _odeme_yaklasanlar(limit=5, gun=7):
                      'vade_tarih': r.get('vade_tarih', '') or '', 'durum': r.get('durum', 'ACIK')})
     for r in get_cek_vadeleri():
         rows.append({'tip': r['tip'], 'firma_ad': r.get('firma_ad', '') or '',
+                     'kalan': float(r.get('kalan', 0) or 0),
+                     'vade_tarih': r.get('vade_tarih', '') or '', 'durum': r.get('durum', 'ACIK')})
+    for r in get_gelir_gider_vadeleri():   # odenmemis gider/gelir (vade yoksa islem tarihi)
+        ad = (r.get('firma_ad') or '').strip() or (r.get('aciklama') or '').strip()
+        rows.append({'tip': r['tip'], 'firma_ad': ad,
                      'kalan': float(r.get('kalan', 0) or 0),
                      'vade_tarih': r.get('vade_tarih', '') or '', 'durum': r.get('durum', 'ACIK')})
     out = [r for r in rows

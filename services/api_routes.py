@@ -900,6 +900,7 @@ async def api_odeme_takibi(request: Request):
         'manuel': ots.list_odeme_takibi(),
         'cari': ots.get_vadeli_cari(),
         'cek': ots.get_cek_vadeleri(),
+        'gelir_gider': gelir_gider_service.get_gelir_gider_vadeleri(),
         'ozet': ots.get_ozet(),
     })
 

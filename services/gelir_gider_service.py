@@ -184,10 +184,17 @@ def _kasa_aciklama(data, kalem_sayisi=1):
     return f"GG: {metin}"
 
 
-def _sync_kasa_for_gg(conn, gg_ids, data, toplam):
-    """ODENDI gelir/gider icin bagli TEK kasa kaydini olusturur/gunceller.
-    gg_ids: kaydin (veya grubun tum kalemlerinin) id'leri; kasa ilk id'ye (lider) baglanir,
-    tutar = toplam (grup toplami). Mevcut bagli kasa varsa update, yoksa insert."""
+ODEME_TAKIBI_ONEK = 'GG ödeme:'   # odeme takibinden (sonradan) yapilan odemelerin kasa aciklama oneki
+
+
+def _sync_kasa_for_gg(conn, gg_ids, data, toplam, eski_tarih=None):
+    """ODENDI gelir/gider icin bagli kasa kayd(lar)ini olusturur/gunceller.
+    gg_ids: kaydin (veya grubun tum kalemlerinin) id'leri; kasa ilk id'ye (lider) baglanir.
+    - Bagli kasa yoksa: TEK kayit, tutar = toplam (pesin odeme).
+    - Tek bagli kasa varsa: gunceller. Tarih, kasa kaydi giderle ayni gun acildiysa (pesin)
+      gider tarihini izler; sonradan (odeme takibinden) yapilan odemenin tarihi ve aciklamasi korunur.
+    - Birden fazla bagli kasa varsa (taksitli kapanmis): odemeler gercek para hareketleridir,
+      tarih/hesap korunur; sadece cari/tur senkronlanir, toplam farki SON odemeye yansitilir."""
     toplam = float(toplam or 0)
     if toplam <= 0 or not gg_ids:
         return
@@ -195,23 +202,11 @@ def _sync_kasa_for_gg(conn, gg_ids, data, toplam):
     kasa_tur = data.get('tur', 'GIDER')   # GG GIDER -> kasa GIDER (para cikis), GELIR -> GELIR (giris)
     banka_hesap_id = data.get('banka_hesap_id')
     ph = ','.join('?' * len(gg_ids))
-    bagli = conn.execute(
-        f'SELECT id FROM kasa WHERE gelir_gider_id IN ({ph}) ORDER BY id', list(gg_ids)
-    ).fetchone()
+    bagli = [dict(r) for r in conn.execute(
+        f'SELECT * FROM kasa WHERE gelir_gider_id IN ({ph}) ORDER BY id', list(gg_ids)
+    ).fetchall()]
     aciklama = _kasa_aciklama(data, len(gg_ids))
-    if bagli:
-        conn.execute('''
-            UPDATE kasa
-            SET tarih=?, firma_kod=?, firma_ad=?, tur=?, tutar=?, odeme_sekli=?, aciklama=?,
-                banka_hesap_id=?, gelir_gider_id=?
-            WHERE id=?
-        ''', (
-            data['tarih'], data.get('firma_kod', ''), data.get('firma_ad', ''),
-            kasa_tur, toplam, data.get('odeme_sekli', ''), aciklama,
-            banka_hesap_id, lead_id,
-            bagli['id']
-        ))
-    else:
+    if not bagli:
         conn.execute('''
             INSERT INTO kasa (tarih, firma_kod, firma_ad, tur, tutar, odeme_sekli, aciklama, gelir_gider_id, banka_hesap_id)
             VALUES (?,?,?,?,?,?,?,?,?)
@@ -220,6 +215,36 @@ def _sync_kasa_for_gg(conn, gg_ids, data, toplam):
             kasa_tur, toplam, data.get('odeme_sekli', ''), aciklama,
             lead_id, banka_hesap_id,
         ))
+        return
+    if len(bagli) == 1:
+        k = bagli[0]
+        sonradan = str(k.get('aciklama') or '').startswith(ODEME_TAKIBI_ONEK)
+        pesin = (eski_tarih is None or k.get('tarih') == eski_tarih) and not sonradan
+        conn.execute('''
+            UPDATE kasa
+            SET tarih=?, firma_kod=?, firma_ad=?, tur=?, tutar=?, odeme_sekli=?, aciklama=?,
+                banka_hesap_id=?, gelir_gider_id=?
+            WHERE id=?
+        ''', (
+            data['tarih'] if pesin else k.get('tarih'),
+            data.get('firma_kod', ''), data.get('firma_ad', ''),
+            kasa_tur, toplam,
+            data.get('odeme_sekli', '') if pesin else (k.get('odeme_sekli') or ''),
+            k.get('aciklama') if sonradan else aciklama,
+            banka_hesap_id if pesin else k.get('banka_hesap_id'),
+            lead_id, k['id'],
+        ))
+        return
+    for k in bagli:
+        conn.execute('UPDATE kasa SET firma_kod=?, firma_ad=?, tur=?, gelir_gider_id=? WHERE id=?',
+                     (data.get('firma_kod', ''), data.get('firma_ad', ''), kasa_tur, lead_id, k['id']))
+    onceki = sum(float(k.get('tutar') or 0) for k in bagli[:-1])
+    son_tutar = round(toplam - onceki, 2)
+    if son_tutar > 0.001:
+        conn.execute('UPDATE kasa SET tutar=? WHERE id=?', (son_tutar, bagli[-1]['id']))
+    else:
+        # Toplam, onceki odemelerin altina dustu: son odeme fazlaya dustu -> kaldir
+        conn.execute('DELETE FROM kasa WHERE id=?', (bagli[-1]['id'],))
 
 
 def _create_or_update_kasa_for_gg(conn, rec_id, data):
@@ -264,6 +289,14 @@ def _save_grup_conn(conn, kalemler, silinen_idler=None):
     if len(kalemler) <= 1:
         grup_id = ''
     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+    # Guncellemede eski islem tarihi: pesin kasa kaydinin tarihi giderle birlikte kayar,
+    # sonradan yapilan odemelerin tarihi korunur (_sync_kasa_for_gg)
+    eski_tarih = None
+    for k in kalemler:
+        if k.get('id'):
+            eski = conn.execute('SELECT tarih FROM gelir_gider WHERE id=?', (k['id'],)).fetchone()
+            eski_tarih = eski['tarih'] if eski else None
+            break
     ids = []
     for k in kalemler:
         k = dict(k)
@@ -283,10 +316,13 @@ def _save_grup_conn(conn, kalemler, silinen_idler=None):
     bas = kalemler[0]
     toplam = sum(float(k.get('toplam', 0) or 0) for k in kalemler)
     if bas.get('odeme_durumu') == 'ODENDI':
-        _sync_kasa_for_gg(conn, ids, bas, toplam)
+        _sync_kasa_for_gg(conn, ids, bas, toplam, eski_tarih=eski_tarih)
     else:
+        # ODENMEDI/KISMI: formdan gelen pesin kasa kaydi kaldirilir; odeme takibinden yapilan
+        # (sonradan) kismi odemeler gercek para hareketi oldugu icin KORUNUR.
         ph = ','.join('?' * len(ids))
-        conn.execute(f'DELETE FROM kasa WHERE gelir_gider_id IN ({ph})', ids)
+        conn.execute(f"DELETE FROM kasa WHERE gelir_gider_id IN ({ph}) AND COALESCE(aciklama,'') NOT LIKE ?",
+                     ids + [ODEME_TAKIBI_ONEK + '%'])
     return grup_id, ids[0]
 
 
@@ -355,7 +391,8 @@ def delete_gelir_gider(rec_id):
         if len(ids) == 1:
             conn.execute("UPDATE gelir_gider SET grup_id='' WHERE id=?", (ids[0],))
         if kalan[0].get('odeme_durumu') == 'ODENDI':
-            _sync_kasa_for_gg(conn, ids, kalan[0], sum(float(k.get('toplam') or 0) for k in kalan))
+            _sync_kasa_for_gg(conn, ids, kalan[0], sum(float(k.get('toplam') or 0) for k in kalan),
+                              eski_tarih=kalan[0].get('tarih'))
 
 
 def delete_gelir_gider_grup(grup_id):
@@ -370,6 +407,153 @@ def delete_gelir_gider_grup(grup_id):
         ph = ','.join('?' * len(ids))
         conn.execute(f'DELETE FROM kasa WHERE gelir_gider_id IN ({ph})', ids)
         conn.execute('DELETE FROM gelir_gider WHERE grup_id=?', (grup_id,))
+
+
+def _gg_grup_satirlari(conn, gg_id):
+    """Kaydin ait oldugu grubun tum satirlari (grup yoksa tek satir). Donus: list[dict] (id sirali)."""
+    rec = conn.execute('SELECT * FROM gelir_gider WHERE id=?', (gg_id,)).fetchone()
+    if not rec:
+        return []
+    gid = rec['grup_id'] or ''
+    if gid:
+        return [dict(r) for r in conn.execute(
+            'SELECT * FROM gelir_gider WHERE grup_id=? ORDER BY id', (gid,)).fetchall()]
+    return [dict(rec)]
+
+
+def _gg_odenen(conn, ids):
+    ph = ','.join('?' * len(ids))
+    r = conn.execute(f'SELECT COALESCE(SUM(tutar),0) FROM kasa WHERE gelir_gider_id IN ({ph})', list(ids)).fetchone()
+    return float(r[0] or 0)
+
+
+def gg_odeme_durumu_yenile(conn, gg_id):
+    """Bagli kasa (odeme) kayitlarina gore grubun odeme_durumu'nu yeniden hesaplar.
+    Odeme takibinden yapilan bir odeme silinince cagrilir (gider kalir, durumu geri doner)."""
+    rows = _gg_grup_satirlari(conn, gg_id)
+    if not rows:
+        return None
+    ids = [r['id'] for r in rows]
+    toplam = sum(float(r.get('toplam') or 0) for r in rows)
+    odenen = _gg_odenen(conn, ids)
+    if odenen >= toplam - 0.01 and toplam > 0:
+        durum = 'ODENDI'
+    elif odenen > 0.01:
+        durum = 'KISMI'
+    else:
+        durum = 'ODENMEDI'
+    ph = ','.join('?' * len(ids))
+    if durum == 'ODENMEDI':
+        conn.execute(f"UPDATE gelir_gider SET odeme_durumu=?, odeme_sekli='' WHERE id IN ({ph})", [durum] + ids)
+    else:
+        conn.execute(f"UPDATE gelir_gider SET odeme_durumu=? WHERE id IN ({ph})", [durum] + ids)
+    return durum
+
+
+def get_gelir_gider_vadeleri():
+    """Odenmemis / kismi odenmis gelir-gider kayitlarini (grup bazinda tek satir) odeme takibi
+    formatinda dondurur. GIDER -> BORC (odenecek), GELIR -> ALACAK (tahsil edilecek).
+    Odenen = bagli kasa kayitlari toplami. Vade girilmemisse islem tarihi esas alinir
+    (vade_varsayilan=True). Cari bakiyeyi ETKILEMEZ; turetilmis rapordur."""
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT id, tarih, tur, COALESCE(kategori,'') AS kategori, COALESCE(aciklama,'') AS aciklama, "
+            "       COALESCE(toplam,0) AS toplam, odeme_durumu, "
+            "       COALESCE(NULLIF(vade_tarih,''),'') AS vade_tarih, "
+            "       COALESCE(firma_kod,'') AS firma_kod, COALESCE(firma_ad,'') AS firma_ad, "
+            "       COALESCE(grup_id,'') AS grup_id "
+            "FROM gelir_gider WHERE odeme_durumu IN ('ODENMEDI','KISMI') "
+            "ORDER BY COALESCE(NULLIF(vade_tarih,''), tarih), tarih, id"
+        ).fetchall()
+        if not rows:
+            return []
+        ids = [r['id'] for r in rows]
+        ph = ','.join('?' * len(ids))
+        odenen_map = {r['gelir_gider_id']: float(r['t'] or 0) for r in conn.execute(
+            f"SELECT gelir_gider_id, COALESCE(SUM(tutar),0) AS t FROM kasa "
+            f"WHERE gelir_gider_id IN ({ph}) GROUP BY gelir_gider_id", ids).fetchall()}
+    out, gmap = [], {}
+    for r in rows:
+        key = r['grup_id'] or f"#{r['id']}"
+        if key in gmap:
+            g = gmap[key]
+            g['tutar'] += float(r['toplam'] or 0)
+            g['odenen'] += odenen_map.get(r['id'], 0.0)
+            g['_kategoriler'].append(r['kategori'])
+            continue
+        g = {
+            'kaynak': 'GG',
+            'kaynak_label': 'Gider' if r['tur'] == 'GIDER' else 'Gelir',
+            'tip': 'BORC' if r['tur'] == 'GIDER' else 'ALACAK',
+            'gg_id': r['id'],
+            'grup_id': r['grup_id'],
+            'firma_kod': r['firma_kod'],
+            'firma_ad': r['firma_ad'],
+            'aciklama': '',
+            '_aciklama': r['aciklama'],
+            '_kategoriler': [r['kategori']],
+            'tutar': float(r['toplam'] or 0),
+            'odenen': odenen_map.get(r['id'], 0.0),
+            'kalan': 0.0,
+            'islem_tarih': r['tarih'] or '',
+            'vade_tarih': r['vade_tarih'] or r['tarih'] or '',
+            'vade_varsayilan': not r['vade_tarih'],
+            'durum': 'ACIK',
+        }
+        gmap[key] = g
+        out.append(g)
+    for g in out:
+        kats = g.pop('_kategoriler')
+        etiket = kats[0] + (f" +{len(kats) - 1}" if len(kats) > 1 else '')
+        acik = g.pop('_aciklama')
+        g['aciklama'] = f"{etiket}: {acik}" if acik else etiket
+        g['tutar'] = round(g['tutar'], 2)
+        g['odenen'] = round(g['odenen'], 2)
+        g['kalan'] = round(max(g['tutar'] - g['odenen'], 0.0), 2)
+        g['durum'] = 'KISMI' if g['odenen'] > 0.01 else 'ACIK'
+    return out
+
+
+def ode_gelir_gider(gg_id, tarih=None, tutar=None, banka_hesap_id=None):
+    """Odenmemis/kismi bir gelir-gider kaydini (grubunu) oder / tahsil eder.
+    Kasa kaydi olusturur (GIDER -> kasa GIDER, GELIR -> kasa GELIR), lider kaleme baglar
+    ('GG ödeme:' onekli — sonradan odeme; silinirse gider kalir, durumu geri doner).
+    tutar None ise kalanin tamami. Kalandan fazla odeme reddedilir. Donus: kasa_id."""
+    now_ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+    tarih = tarih or datetime.now().strftime('%Y-%m-%d')
+    with get_db() as conn:
+        rows = _gg_grup_satirlari(conn, gg_id)
+        if not rows:
+            raise ValueError('Kayıt bulunamadı')
+        ids = [r['id'] for r in rows]
+        toplam = sum(float(r.get('toplam') or 0) for r in rows)
+        odenen = _gg_odenen(conn, ids)
+        kalan = round(toplam - odenen, 2)
+        odenecek = round(float(tutar), 2) if tutar else kalan
+        if odenecek <= 0:
+            raise ValueError('Ödenecek tutar geçersiz')
+        if odenecek > kalan + 0.01:
+            raise ValueError(f'Kalan tutardan ({kalan:,.2f}) fazla ödenemez')
+        bas = rows[0]
+        etiket = (bas.get('kategori') or '') + (f" +{len(rows) - 1}" if len(rows) > 1 else '')
+        if bas.get('aciklama'):
+            etiket += f": {bas['aciklama']}"
+        odeme_sekli = 'BANKA' if banka_hesap_id else 'NAKIT'
+        cur = conn.execute('''
+            INSERT INTO kasa (tarih, firma_kod, firma_ad, tur, tutar, odeme_sekli, aciklama,
+                              gelir_gider_id, banka_hesap_id, created_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?) RETURNING id
+        ''', (
+            tarih, bas.get('firma_kod', '') or '', bas.get('firma_ad', '') or '',
+            bas.get('tur', 'GIDER'), odenecek, odeme_sekli,
+            f"{ODEME_TAKIBI_ONEK} {etiket}"[:200], ids[0], banka_hesap_id, now_ts,
+        ))
+        kasa_id = cur.fetchone()['id']
+        yeni_durum = 'ODENDI' if odenen + odenecek >= toplam - 0.01 else 'KISMI'
+        ph = ','.join('?' * len(ids))
+        conn.execute(f"UPDATE gelir_gider SET odeme_durumu=?, odeme_sekli=? WHERE id IN ({ph})",
+                     [yeni_durum, odeme_sekli] + ids)
+        return kasa_id
 
 
 def gelir_gider_grupla(rows):

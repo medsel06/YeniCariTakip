@@ -9,6 +9,7 @@ from services.odeme_takibi_service import (
 from services.cari_service import get_firma_list
 from services.banka_service import list_banka_hesaplari
 from services.kasa_service import add_kasa
+from services.gelir_gider_service import get_gelir_gider_vadeleri, ode_gelir_gider
 
 KAYNAK = {'CARI': 'Cari', 'KART': 'Kredi Kartı', 'VERGI': 'Vergi', 'SGK': 'SGK', 'CEK': 'Çek', 'DIGER': 'Diğer'}
 DURUM_TR = {'ACIK': 'Açık', 'ODENDI': 'Ödendi', 'KISMI': 'Kısmi'}
@@ -106,6 +107,8 @@ def odeme_takibi_page():
             d = dict(r); d['_src'] = 'CARI'; rows.append(d)
         for r in get_cek_vadeleri():
             d = dict(r); d['_src'] = 'CEK'; rows.append(d)
+        for r in get_gelir_gider_vadeleri():   # odenmemis / kismi gider-gelir (vade yoksa islem tarihi)
+            d = dict(r); d['_src'] = 'GG'; rows.append(d)
         # Toplu odeme modunda: sadece odenmemis kredi karti borclari (donem/diger filtre bypass)
         if mode['secim']:
             rows = [r for r in rows if r['_src'] == 'MANUEL' and r.get('kaynak') == 'KART'
@@ -174,7 +177,7 @@ def odeme_takibi_page():
                 bos_tbl.add_slot('no-data', r'''
                     <div class="full-width row flex-center q-pa-lg text-grey-6" style="gap:8px;">
                         <q-icon name="inbox" size="20px" />
-                        <span style="font-size:12.5px;">Kayıt yok. Vadeli alış/satış girince veya manuel plan ekleyince burada görünür.</span>
+                        <span style="font-size:12.5px;">Kayıt yok. Vadeli alış/satış, ödenmemiş gider/gelir girince veya manuel plan ekleyince burada görünür.</span>
                     </div>
                 ''')
                 with ui.row().classes('w-full items-center justify-end no-wrap q-px-md') \
@@ -187,7 +190,8 @@ def odeme_takibi_page():
             for r in data:
                 src = r['_src']
                 rid = f"M{r.get('id')}" if src == 'MANUEL' else (
-                    f"C{r.get('hareket_id')}" if src == 'CARI' else f"K{r.get('cek_id')}")
+                    f"C{r.get('hareket_id')}" if src == 'CARI' else (
+                        f"G{r.get('gg_id')}" if src == 'GG' else f"K{r.get('cek_id')}"))
                 vt = r.get('vade_tarih', '') or ''
                 urg, gk = _urgency(vt, r['durum'])
                 vade_disp = '-' if not vt else '.'.join(reversed(str(vt)[:10].split('-')))
@@ -197,6 +201,8 @@ def odeme_takibi_page():
                     urgtext = 'bugün' if gk == 0 else f"{gk} gün kaldı"
                 else:
                     urgtext = ''
+                if r.get('vade_varsayilan'):
+                    urgtext = ('Vade girilmedi — işlem tarihi esas alındı' + (f' · {urgtext}' if urgtext else ''))
                 disp.append({
                     '_rid': rid, '_src': src,
                     'id': r.get('id'), 'firma_kod': r.get('firma_kod', '') or '',
@@ -207,7 +213,8 @@ def odeme_takibi_page():
                     'tutar': fmt_para(r['tutar']), '_kalanraw': r['kalan'],
                     'kalan': fmt_para(r['kalan']),
                     'vade_tarih': vade_disp, '_vade_disp': vade_disp,
-                    '_urg': urg, '_urgtext': urgtext,
+                    '_urg': urg, '_urgtext': urgtext, '_vadevars': bool(r.get('vade_varsayilan')),
+                    '_ggid': r.get('gg_id'),
                     'durum': DURUM_TR.get(r['durum'], r['durum']), '_durumraw': r['durum'],
                 })
             if mode['secim']:
@@ -240,7 +247,7 @@ def odeme_takibi_page():
                         :style="props.row._urg==='GECIKTI' ? 'background:#fee2e2;color:#b91c1c;' :
                                 props.row._urg==='YAKLASIYOR' ? 'background:#fce7f3;color:#be185d;' :
                                 'background:transparent;color:#334155;'">
-                        {{ props.row._vade_disp }}
+                        {{ props.row._vade_disp }}<span v-if="props.row._vadevars" style="margin-left:2px;color:#d97706;font-weight:800;">?</span>
                         <q-tooltip v-if="props.row._urgtext">{{ props.row._urgtext }}</q-tooltip>
                     </span>
                 </q-td>''')
@@ -254,6 +261,7 @@ def odeme_takibi_page():
                                     props.row._kkod==='CEK' ? 'background:#ffedd5;color:#c2410c;' :
                                     props.row._kkod==='VERGI' ? 'background:#fee2e2;color:#b91c1c;' :
                                     props.row._kkod==='SGK' ? 'background:#ccfbf1;color:#0f766e;' :
+                                    props.row._kkod==='GG' ? 'background:#fef3c7;color:#b45309;' :
                                     (props.row._kkod==='KREDI' || props.row._kkod==='BANKA_KREDI') ? 'background:#e0e7ff;color:#4338ca;' :
                                     'background:#f1f5f9;color:#475569;'">
                             <q-icon size="13px"
@@ -262,12 +270,13 @@ def odeme_takibi_page():
                                        props.row._kkod==='CEK' ? 'description' :
                                        props.row._kkod==='VERGI' ? 'gavel' :
                                        props.row._kkod==='SGK' ? 'health_and_safety' :
+                                       props.row._kkod==='GG' ? 'receipt' :
                                        (props.row._kkod==='KREDI' || props.row._kkod==='BANKA_KREDI') ? 'account_balance' : 'label'" />
                             {{ props.value }}
                         </span>
                         <q-icon :name="props.row._src==='MANUEL' ? 'edit_note' : 'autorenew'" size="14px"
                             :color="props.row._src==='MANUEL' ? 'grey-6' : 'cyan-7'">
-                            <q-tooltip>{{ props.row._src==='MANUEL' ? 'Manuel eklendi' : 'Otomatik oluştu (vadeli işlem / çek)' }}</q-tooltip>
+                            <q-tooltip>{{ props.row._src==='MANUEL' ? 'Manuel eklendi' : props.row._src==='GG' ? 'Otomatik oluştu (ödenmemiş gider/gelir)' : 'Otomatik oluştu (vadeli işlem / çek)' }}</q-tooltip>
                         </q-icon>
                     </div>
                 </q-td>''')
@@ -288,12 +297,16 @@ def odeme_takibi_page():
                                 @click.stop="$parent.$emit('ode', props.row)"><q-tooltip>Öde/Tahsil</q-tooltip></q-btn>
                             <q-btn v-else-if="props.row._src==='CARI' && props.row._durumraw!=='ODENDI'" flat round dense icon="account_balance_wallet" color="positive" size="sm"
                                 @click.stop="$parent.$emit('cari_ode', props.row)"><q-tooltip>Tahsilat / Ödeme yap</q-tooltip></q-btn>
+                            <q-btn v-else-if="props.row._src==='GG' && props.row._durumraw!=='ODENDI'" flat round dense icon="account_balance_wallet" color="positive" size="sm"
+                                @click.stop="$parent.$emit('gg_ode', props.row)"><q-tooltip>Öde / Tahsil et</q-tooltip></q-btn>
                             <q-btn v-else-if="props.row._src==='CEK'" flat round dense icon="open_in_new" color="primary" size="sm"
                                 @click.stop="$parent.$emit('goto_cek', props.row)"><q-tooltip>Çek Sayfası</q-tooltip></q-btn>
                         </span>
                         <span style="display:inline-flex;width:30px;justify-content:center;">
                             <q-btn v-if="props.row._src==='MANUEL'" flat round dense icon="edit" color="primary" size="sm"
                                 @click.stop="$parent.$emit('edit', props.row)" />
+                            <q-btn v-else-if="props.row._src==='GG'" flat round dense icon="open_in_new" color="primary" size="sm"
+                                @click.stop="$parent.$emit('goto_gg', props.row)"><q-tooltip>Gelir/Gider kaydını aç</q-tooltip></q-btn>
                         </span>
                         <span style="display:inline-flex;width:30px;justify-content:center;">
                             <q-btn v-if="props.row._src==='MANUEL'" flat round dense icon="delete" color="negative" size="sm"
@@ -305,7 +318,9 @@ def odeme_takibi_page():
             tbl.on('edit', lambda e: _edit_manuel(e.args))
             tbl.on('sil', lambda e: _sil(e.args))
             tbl.on('cari_ode', lambda e: _cari_ode_dialog(e.args))
+            tbl.on('gg_ode', lambda e: _gg_ode_dialog(e.args))
             tbl.on('goto_cek', lambda e: ui.navigate.to('/cekler'))
+            tbl.on('goto_gg', lambda e: ui.navigate.to(f"/gelir-gider?focus={e.args.get('_ggid')}"))
             tbl.on('row-click', lambda e: _show_row_detail(e.args[1]))
 
             top_tutar = sum(float(r['tutar'] or 0) for r in data)
@@ -352,6 +367,41 @@ def odeme_takibi_page():
                             'aciklama': ('Tahsilat' if is_tahsilat else 'Ödeme') + f": {row.get('aciklama', '')}",
                             'banka_hesap_id': bhid,
                         })
+                        notify_ok('Kaydedildi')
+                        dlg.close(); _refresh()
+                    except Exception as e:
+                        notify_err(f'Hata: {e}')
+                ui.button('Onayla', color='positive', on_click=_save).props('unelevated')
+        dlg.open()
+
+    def _gg_ode_dialog(row):
+        """Odenmemis gider/gelir icin odeme/tahsilat: kasa kaydi olusur, gider Odendi/Kismi olur.
+        Odeme kasadan silinirse gider kalir, durumu geri doner."""
+        is_tahsilat = row.get('_tipraw') == 'ALACAK'
+        baslik = 'Tahsilat Yap' if is_tahsilat else 'Ödeme Yap'
+        hesap_opts = {'__nakit__': 'Nakit Kasa'}
+        for h in list_banka_hesaplari(sadece_aktif=True):
+            hesap_opts[str(h['id'])] = h['ad']
+        with ui.dialog() as dlg, ui.card().classes('q-pa-md').style('min-width: 380px'):
+            ui.label(baslik).classes('text-h6')
+            ui.label(f"{row.get('firma_ad', '') if row.get('firma_ad') != '-' else ''} — {row.get('aciklama', '')}") \
+                .classes('text-caption text-grey-7')
+            inp_tarih = ui.input('Tarih', value=date.today().isoformat()).props('outlined dense type=date').classes('w-full')
+            inp_tutar = ui.number('Tutar', value=float(row.get('_kalanraw') or 0), format='%.2f').props('outlined dense').classes('w-full')
+            ui.label(f"Kalan: {fmt_para(float(row.get('_kalanraw') or 0))} TL — daha azını girerseniz kısmi ödeme olur") \
+                .classes('text-caption text-grey-6')
+            inp_hesap = ui.select(hesap_opts, value='__nakit__', label='Hesap (nakit/banka)').props('outlined dense').classes('w-full')
+            with ui.row().classes('w-full justify-end q-mt-md'):
+                ui.button('İptal', on_click=dlg.close).props('flat color=grey')
+
+                def _save():
+                    tutar = float(inp_tutar.value or 0)
+                    if tutar <= 0:
+                        notify_err("Tutar 0'dan büyük olmalı"); return
+                    bhid = None if inp_hesap.value == '__nakit__' else int(inp_hesap.value)
+                    try:
+                        ode_gelir_gider(row.get('_ggid'), tarih=inp_tarih.value or date.today().isoformat(),
+                                        tutar=tutar, banka_hesap_id=bhid)
                         notify_ok('Kaydedildi')
                         dlg.close(); _refresh()
                     except Exception as e:
@@ -610,6 +660,14 @@ def odeme_takibi_page():
                         ui.button('Ödeme Yap', icon='account_balance_wallet', 
                                   on_click=lambda: (dlg.close(), _cari_ode_dialog(row))) \
                             .props('unelevated no-caps color=positive dense')
+                    elif src == 'GG':
+                        if durumraw != 'ODENDI':
+                            ui.button('Öde / Tahsil', icon='account_balance_wallet',
+                                      on_click=lambda: (dlg.close(), _gg_ode_dialog(row))) \
+                                .props('unelevated no-caps color=positive dense')
+                        ui.button('Gelir/Gider Kaydı', icon='open_in_new',
+                                  on_click=lambda: (dlg.close(), ui.navigate.to(f"/gelir-gider?focus={row.get('_ggid')}"))) \
+                            .props('unelevated no-caps color=primary dense')
                     elif src == 'CEK':
                         ui.button('Çek Sayfası', icon='open_in_new', 
                                   on_click=lambda: (dlg.close(), ui.navigate.to('/cekler'))) \
@@ -678,12 +736,16 @@ def odeme_takibi_page():
 
                 baslik('Bu ekran ne işe yarar?')
                 md('Vadesi gelecek **ödeme ve tahsilatlarınızı tek yerden** takip edersiniz. '
-                   'Üç kaynak otomatik birleşir:')
+                   'Dört kaynak otomatik birleşir:')
                 md('- **Cari (otomatik):** İşlemler\'de alış/satışa **vade** girdiyseniz buraya düşer. '
                    'Yeşil ⟳ *otomatik* simgesiyle gösterilir. Cariyi nereden kapatırsanız kapatın '
                    '(havale, nakit, cari ekstre) durum otomatik güncellenir (FIFO: en eski vade önce kapanır).\n'
                    '- **Çek / Senet (otomatik):** Açık çek/senet vadeleri otomatik listelenir. Ödeme/tahsilat '
                    '**Çek/Senet sayfasından** yapılır (buradaki ↗ buton oraya götürür).\n'
+                   '- **Gider / Gelir (otomatik):** Gelir/Gider sayfasında **Ödenmedi** seçilen her kayıt buraya düşer '
+                   '(gider = borç, gelir = alacak). Vade girilmediyse **işlem tarihi** esas alınır ve tarihin yanında '
+                   'turuncu **?** çıkar. Cüzdan simgesiyle buradan ödersiniz; kasa kaydı oluşur, gider **Ödendi** olur. '
+                   'Kısmi ödeme yapabilirsiniz, kalan takipte durur.\n'
                    '- **Manuel:** Vergi, SGK, kira, kredi kartı gibi kayıtları **+ Yeni Plan** ile elle eklersiniz.')
 
                 baslik('Renkler ve aciliyet')
@@ -707,7 +769,7 @@ def odeme_takibi_page():
 
                 baslik('Filtreler')
                 md('- **Göster:** Tümü / Borçlar / Alacaklar.\n'
-                   '- **Kaynak:** Tümü / Cari / Çek-Senet / Manuel.\n'
+                   '- **Kaynak:** Tümü / Cari / Gider-Gelir / Çek-Senet / Manuel.\n'
                    '- **Dönem:** 📅 buton → Aylık / Yıllık / Tümü. Varsayılan **içinde bulunduğunuz ay** '
                    '(liste sade kalsın diye); geçmiş/gelecek için değiştirin.')
             with ui.element('div').classes('alse-dialog-footer'):
@@ -744,7 +806,7 @@ def odeme_takibi_page():
             with ui.column().classes('gap-0'):
                 ui.label('Kaynak').style('font-size:8.5px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:0.5px')
                 segment_group(
-                    [('ALL', 'Tümü', '#475569'), ('CARI', 'Cari', '#2563eb'),
+                    [('ALL', 'Tümü', '#475569'), ('CARI', 'Cari', '#2563eb'), ('GG', 'Gider/Gelir', '#b45309'),
                      ('CEK', 'Çek/Senet', '#ea580c'), ('MANUEL', 'Manuel', '#64748b')],
                     _on_kaynak, active='ALL')
 

@@ -135,6 +135,13 @@ def delete_kasa(id):
 
         # 2) Gelir-gider bagli ise — gider/gelir satirini DA sil (kullanici karari)
         gg_id = rec['gelir_gider_id']
+        if gg_id and str(rec['aciklama'] or '').startswith('GG ödeme:'):
+            # Odeme takibinden (sonradan) yapilan odeme: yalniz odeme geri alinir, gider KALIR;
+            # gider durumu kalan odemelere gore yeniden hesaplanir (ODENMEDI/KISMI/ODENDI)
+            from services.gelir_gider_service import gg_odeme_durumu_yenile
+            conn.execute('DELETE FROM kasa WHERE id=?', (id,))
+            gg_odeme_durumu_yenile(conn, gg_id)
+            return
         if gg_id:
             gg = conn.execute('SELECT grup_id FROM gelir_gider WHERE id=?', (gg_id,)).fetchone()
             gid = (gg['grup_id'] if gg else '') or ''
@@ -168,7 +175,15 @@ def get_kasa_silme_etkisi(id):
 
         # Gelir-gider baglantisi
         gg_id = rec_d.get('gelir_gider_id')
-        if gg_id:
+        if gg_id and str(rec_d.get('aciklama') or '').startswith('GG ödeme:'):
+            gg = conn.execute('SELECT * FROM gelir_gider WHERE id=?', (gg_id,)).fetchone()
+            if gg:
+                gg_d = dict(gg)
+                tip_ad = 'Gider' if gg_d.get('tur') == 'GIDER' else 'Gelir'
+                etkiler.append(f"ℹ Odeme takibinden yapilan odeme geri alinacak — {tip_ad} kaydi KALIR, "
+                               f"durumu Odenmedi/Kismi olur (gelir_gider id={gg_id})")
+                detay['gelir_gider'] = gg_d
+        elif gg_id:
             gg = conn.execute('SELECT * FROM gelir_gider WHERE id=?', (gg_id,)).fetchone()
             if gg:
                 gg_d = dict(gg)

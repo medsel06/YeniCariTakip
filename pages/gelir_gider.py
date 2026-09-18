@@ -533,6 +533,9 @@ def gelir_gider_page(focus: int = None):
                     if val != 'ODENMEDI':
                         # Odenen'i toplamla eslestir
                         inp_odenen.value = _guncel_toplam()
+                    elif not inp_vade.value:
+                        # Odenmedi: vade bos kalmasin — varsayilan islem tarihi (odeme takibi bunu esas alir)
+                        inp_vade.value = inp_tarih.value or date.today().isoformat()
                     _recalc_kalan()
                 inp_durum.on_value_change(on_durum_change)
                 inp_odenen.on_value_change(lambda _: _recalc_kalan())
