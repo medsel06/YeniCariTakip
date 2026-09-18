@@ -661,6 +661,10 @@ def _create_business_tables(conn):
     if not _col_exists(conn, 'hareketler', 'grup_id'):
         conn.execute("ALTER TABLE hareketler ADD COLUMN grup_id TEXT DEFAULT ''")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_hareketler_grup ON hareketler(grup_id)")
+    # Gelir/Gider coklu kalem (kategori bazli): kalemler ayri satir, grup_id ile baglanir
+    if not _col_exists(conn, 'gelir_gider', 'grup_id'):
+        conn.execute("ALTER TABLE gelir_gider ADD COLUMN grup_id TEXT DEFAULT ''")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_gelir_gider_grup ON gelir_gider(grup_id)")
     # Soft-delete (Paket 8): firma/urun pasife alma
     if not _col_exists(conn, 'firmalar', 'aktif'):
         conn.execute("ALTER TABLE firmalar ADD COLUMN aktif INTEGER DEFAULT 1")

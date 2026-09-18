@@ -475,7 +475,8 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
             h.miktar AS miktar,
             COALESCE(NULLIF(u.birim, ''), 'KG') AS birim,
             h.birim_fiyat AS birim_fiyat,
-            COALESCE(h.grup_id, '') AS grup_id
+            COALESCE(h.grup_id, '') AS grup_id,
+            h.urun_ad AS kalem_ad
         FROM hareketler h
         LEFT JOIN urunler u ON u.kod = h.urun_kod
         WHERE 1=1 {firma_clause.replace('firma_kod', 'h.firma_kod')}{date_flt.replace('tarih', 'h.tarih')}
@@ -490,7 +491,8 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
             CASE WHEN tur='GELIR' THEN toplam ELSE 0 END AS alacak,
             COALESCE(aciklama, kategori) AS aciklama, NULL AS belge_no,
             NULL AS miktar, NULL AS birim, NULL AS birim_fiyat,
-            '' AS grup_id
+            COALESCE(grup_id, '') AS grup_id,
+            kategori AS kalem_ad
         FROM gelir_gider
         WHERE firma_kod IS NOT NULL AND firma_kod != '' {firma_clause}{date_flt}
         """,
@@ -504,7 +506,7 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
             CASE WHEN tur='GIDER' THEN tutar ELSE 0 END AS alacak,
             aciklama, NULL AS belge_no,
             NULL AS miktar, NULL AS birim, NULL AS birim_fiyat,
-            '' AS grup_id
+            '' AS grup_id, NULL AS kalem_ad
         FROM kasa
         WHERE firma_kod IS NOT NULL AND firma_kod != '' AND cek_id IS NULL {firma_clause}{date_flt}
         """,
@@ -532,7 +534,7 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
             END AS alacak,
             cek_no AS aciklama, cek_no AS belge_no,
             NULL AS miktar, NULL AS birim, NULL AS birim_fiyat,
-            '' AS grup_id
+            '' AS grup_id, NULL AS kalem_ad
         FROM cekler
         WHERE firma_kod IS NOT NULL AND firma_kod != '' {firma_clause}
           AND COALESCE(NULLIF(kesim_tarih, ''), vade_tarih) IS NOT NULL
@@ -556,7 +558,7 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
             tutar AS alacak,
             cek_no AS aciklama, cek_no AS belge_no,
             NULL AS miktar, NULL AS birim, NULL AS birim_fiyat,
-            '' AS grup_id
+            '' AS grup_id, NULL AS kalem_ad
         FROM cekler
         WHERE durum='CIRO_EDILDI'
           AND ciro_firma_kod IS NOT NULL AND ciro_firma_kod != ''
@@ -659,9 +661,10 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
                     'birim_fiyat': float(bfiyat_raw) if bfiyat_raw is not None else None,
                 }
                 gid = (r['grup_id'] if 'grup_id' in r.keys() else '') or ''
-                if satir['kaynak'] == 'H' and gid:
+                if satir['kaynak'] in ('H', 'G') and gid:
+                    kalem_ad = (r['kalem_ad'] if 'kalem_ad' in r.keys() else None) or satir['aciklama']
                     kalem = {
-                        'urun_ad': satir['aciklama'],
+                        'urun_ad': kalem_ad,
                         'miktar': satir['miktar'],
                         'birim': satir['birim'],
                         'birim_fiyat': satir['birim_fiyat'],
@@ -679,7 +682,11 @@ def get_cari_ledger(firma_kod=None, yil=None, ay=None, include_devir=True):
             # Coklu kalemli gruplarin ozet gorunumu; tek kalemli grup normal satir gibi kalir
             for s in grup_index.values():
                 if len(s.get('kalemler', [])) > 1:
-                    s['aciklama'] = f"{len(s['kalemler'])} kalem: {s['kalemler'][0]['urun_ad']} +{len(s['kalemler']) - 1}"
+                    ozet = f"{len(s['kalemler'])} kalem: {s['kalemler'][0]['urun_ad']} +{len(s['kalemler']) - 1}"
+                    # Gelir/gider grubu: ortak aciklama varsa ozete eklenir
+                    if s['kaynak'] == 'G' and s['aciklama'] and s['aciklama'] != s['kalemler'][0]['urun_ad']:
+                        ozet += f" · {s['aciklama']}"
+                    s['aciklama'] = ozet
                     s['miktar'] = None
                     s['birim'] = ''
                     s['birim_fiyat'] = None

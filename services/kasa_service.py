@@ -136,7 +136,13 @@ def delete_kasa(id):
         # 2) Gelir-gider bagli ise — gider/gelir satirini DA sil (kullanici karari)
         gg_id = rec['gelir_gider_id']
         if gg_id:
-            conn.execute('DELETE FROM gelir_gider WHERE id=?', (gg_id,))
+            gg = conn.execute('SELECT grup_id FROM gelir_gider WHERE id=?', (gg_id,)).fetchone()
+            gid = (gg['grup_id'] if gg else '') or ''
+            if gid:
+                # Coklu kalemli islem: kasa grubun tek odemesi -> tum kalemler silinir
+                conn.execute('DELETE FROM gelir_gider WHERE grup_id=?', (gid,))
+            else:
+                conn.execute('DELETE FROM gelir_gider WHERE id=?', (gg_id,))
 
         # 3) Transfer bacagi ise — diger bacagi DA sil (atomik, Codex #7)
         tid = rec.get('transfer_id') if isinstance(rec, dict) else rec['transfer_id']
@@ -167,7 +173,13 @@ def get_kasa_silme_etkisi(id):
             if gg:
                 gg_d = dict(gg)
                 tip_ad = 'Gider' if gg_d.get('tur') == 'GIDER' else 'Gelir'
-                etkiler.append(f"⚠ Bagli {tip_ad} kaydi DA silinecek (gelir_gider id={gg_id})")
+                gid = gg_d.get('grup_id') or ''
+                n_kalem = conn.execute(
+                    'SELECT COUNT(*) FROM gelir_gider WHERE grup_id=?', (gid,)).fetchone()[0] if gid else 1
+                if n_kalem > 1:
+                    etkiler.append(f"⚠ Bagli {tip_ad} kaydi ({n_kalem} kalem) DA silinecek (gelir_gider id={gg_id})")
+                else:
+                    etkiler.append(f"⚠ Bagli {tip_ad} kaydi DA silinecek (gelir_gider id={gg_id})")
                 detay['gelir_gider'] = gg_d
 
         # Cek baglantisi

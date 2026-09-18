@@ -2,12 +2,13 @@
 from datetime import date, datetime
 from nicegui import ui
 from layout import (
-    create_layout, fmt_para, ozet_pill, PARA_SLOT, TARIH_SLOT,
+    create_layout, fmt_para, ozet_pill,
     notify_ok, notify_err, confirm_dialog, normalize_search, donem_secici, donem_popover_btn,
 )
 from services.gelir_gider_service import (
     get_gelir_gider_list, get_gelir_gider_ozet,
-    add_gelir_gider, update_gelir_gider, delete_gelir_gider,
+    delete_gelir_gider, delete_gelir_gider_grup,
+    save_gelir_gider_grup, get_gelir_gider_grup, gelir_gider_grupla,
     get_gelir_gider_rapor, kategori_ozet,
     kategori_normalize, kategori_ikon, get_kategori_kullanim, KATEGORI_IKON,
     GELIR_KATEGORILER, GIDER_KATEGORILER, ONE_CIKAN_GIDER_KATEGORILER,
@@ -80,10 +81,47 @@ def gelir_gider_page(focus: int = None):
     .gg-fhint { position:absolute; top:100%; left:50%; transform:translateX(-50%);
         font-size:8.5px; color:#94a3b8; font-weight:700; letter-spacing:.5px;
         line-height:1; margin-top:2px; pointer-events:none; }
+
+    /* --- Kalem tablosu (Yeni Islem ile ayni yapi): basliklar + 1-3 satir, sonra kaydirma --- */
+    .im-ktable { border:1px solid #e2e8f0; border-radius:9px; overflow:hidden; flex:0 0 auto; }
+    .gg-kgrid { grid-template-columns:1fr 112px 58px 92px 104px 26px; }
+    .im-kthead { display:grid; background:#f1f5f9; font-size:10px; font-weight:700; letter-spacing:.03em;
+        text-transform:uppercase; color:#64748b; padding-right:8px; }
+    .im-kthead > * { padding:5px 8px; }
+    .im-kthead > *:nth-child(2), .im-kthead > *:nth-child(4), .im-kthead > *:nth-child(5) { text-align:right; }
+    .im-kthead > *:nth-child(3) { text-align:center; }
+    .im-kbody { min-height:33px; max-height:99px; overflow-y:auto; scrollbar-gutter:stable;
+        scrollbar-width:thin; scrollbar-color:#dbe1e8 transparent; }
+    .im-kbody::-webkit-scrollbar { width:8px; }
+    .im-kbody::-webkit-scrollbar-thumb { background:#dbe1e8; border-radius:4px; }
+    .im-kbody::-webkit-scrollbar-track { background:transparent; }
+    .im-krow { display:grid; gap:0; align-items:center; border-top:1px solid #eef2f6; padding:1px 0; }
+    .im-krow:first-child { border-top:none; }
+    .im-krow .q-field { width:100%; }
+    .im-modal .im-krow .q-field--dense .q-field__control,
+    .im-modal .im-krow .q-field--dense .q-field__append { height:30px !important; min-height:30px !important; }
+    .im-modal .im-krow .q-field__control { padding-left:8px !important; padding-right:8px !important; }
+    .im-modal .im-krow .q-field__native, .im-modal .im-krow .q-field__input { text-align:right; padding:0 !important; }
+    .im-modal .im-krow .q-select .q-field__native,
+    .im-modal .im-krow .q-select input { text-align:left !important; }
+    .im-modal .im-krow .q-field--focused .q-field__control { background:#f0fdf9 !important; }
+    .im-modal .im-krow .im-kkdv .q-field__native { text-align:center !important; justify-content:center; }
+    .im-ktutar { text-align:right; font-weight:700; color:#0f766e; font-size:12.5px;
+        font-variant-numeric:tabular-nums; padding-right:8px; }
+    .im-modal .im-kgt { color:#047857 !important; font-weight:800; }
+    /* "Yeni kalem eklensin mi?" onayi: SECILI buton belirgin (JS 'imsel' sinifi) */
+    .im-confirm-card button.imsel { outline:3px solid #059669 !important; outline-offset:2px;
+        box-shadow:0 0 0 4px rgba(5,150,105,.20) !important; }
+    /* Liste: coklu kalem akordeonu (Islemler sayfasiyla ayni renkler) */
+    .gg-table tbody tr.gg-grup-acik td { background:#e0f2fe !important; }
+    .gg-table tbody tr.gg-kalem-tr td { background:#f0f9ff !important; }
+    .gg-table tbody tr.gg-grup-acik td:first-child,
+    .gg-table tbody tr.gg-kalem-tr td:first-child { box-shadow:inset 3px 0 0 #0284c7; }
     ''')
 
     table_ref = None
-    all_rows = []
+    all_rows = []        # ham satirlar (her kalem ayri) — kategori ozeti/PDF bunu kullanir
+    grouped_rows = []    # liste gorunumu: ayni grup_id'li kalemler tek satirda (akordeon)
     ozet_box = None
     view_button = None
     back_button = None
@@ -126,7 +164,7 @@ def gelir_gider_page(focus: int = None):
         if not q:
             return rows
         return [r for r in rows if
-                q in normalize_search(r.get('kategori', '')) or
+                q in normalize_search(r.get('kategori_tum') or r.get('kategori', '')) or
                 q in normalize_search(r.get('aciklama', '')) or
                 q in normalize_search(r.get('firma_ad', '')) or
                 q in normalize_search(r.get('tur', ''))]
@@ -194,7 +232,7 @@ def gelir_gider_page(focus: int = None):
             table_ref.pagination = {'rowsPerPage': 50, 'sortBy': 'tarih', 'descending': True}
         else:
             table_ref.columns = normal_columns
-            table_ref.rows = rows
+            table_ref.rows = _filter_rows(grouped_rows)
             table_ref.pagination = {'rowsPerPage': 50, 'sortBy': 'tarih', 'descending': True}
 
         _update_view_header()
@@ -228,8 +266,9 @@ def gelir_gider_page(focus: int = None):
             _show_row_detail(row)
 
     def load_data():
-        nonlocal all_rows
+        nonlocal all_rows, grouped_rows
         all_rows = get_gelir_gider_list(yil=state['yil'], ay=state['ay'])
+        grouped_rows = gelir_gider_grupla(all_rows)
         apply_filters()
         ozet = get_gelir_gider_ozet(yil=state['yil'], ay=state['ay'])
         if ozet_box is not None:
@@ -328,7 +367,7 @@ def gelir_gider_page(focus: int = None):
         firma_options = {f['kod']: f['ad'] for f in firmalar}
 
         with ui.dialog() as dlg, ui.card().classes('alse-dialog im-modal').style(
-                'width: 92vw; max-width: 660px; max-height: 92vh; display: flex; flex-direction: column; padding:0;'):
+                'width: 92vw; max-width: 700px; max-height: 92vh; display: flex; flex-direction: column; padding:0;'):
             with ui.element('div').classes('im-head'):
                 ui.icon('payments' if not is_edit else 'drive_file_rename_outline').classes('im-ic')
                 ui.label(title).classes('im-title')
@@ -336,47 +375,27 @@ def gelir_gider_page(focus: int = None):
             # Icerik kendi icinde kayar; buton satiri altta sabit
             with ui.column().classes('w-full im-body gap-1').style(
                     'overflow-y:auto;flex:1 1 auto;min-height:0;'):
-                # Satir 1: Tarih + Tur + Kategori (etiket kutu USTUNDE — Yeni Islem D4 yapisi)
+                # Satir 1: Tarih + Tur + Cari (etiket kutu USTUNDE — Yeni Islem D4 yapisi)
                 with ui.row().classes('w-full gap-sm no-wrap'):
-                    with ui.element('div').classes('im-field col'):
+                    with ui.element('div').classes('im-field').style('flex:0 0 150px'):
                         ui.label('TARİH').classes('im-flabel')
                         inp_tarih = ui.input(value=date.today().isoformat()).props(
                             'outlined dense type=date').classes('w-full')
-                    with ui.element('div').classes('im-field col'):
+                    with ui.element('div').classes('im-field').style('flex:0 0 118px'):
                         ui.label('TÜR').classes('im-flabel')
                         inp_tur = ui.select(
                             options={'GELIR': 'Gelir', 'GIDER': 'Gider'}, value='GIDER'
                         ).props('outlined dense').classes('w-full')
                     with ui.element('div').classes('im-field col'):
-                        ui.label('KATEGORİ').classes('im-flabel')
-                        inp_kategori = ui.select(
-                            options=_build_kategori_options('GIDER'), value='Nakliye'
-                        ).props('outlined dense').classes('w-full')
-                        with inp_kategori.add_slot('append'):
+                        ui.label('CARİ (OPSİYONEL)').classes('im-flabel')
+                        # transition-duration=0: Enter ile kapanan cari listesinin 300ms kapanis
+                        # zamanlayicisi, hemen ardindan acilan kategori listesini kapatiyordu.
+                        inp_firma = ui.select(
+                            options=firma_options, with_input=True, clearable=True,
+                        ).props('outlined dense transition-duration=0').classes('w-full gg-cari')
+                        with inp_firma.add_slot('append'):
                             ui.icon('add', size='20px').classes('cursor-pointer').style('color:#059669').on(
-                                'click', lambda: open_quick_kategori_dialog(_on_kategori_added))
-
-                # One cikan uyari (Nakliye/Ardiye icin)
-                lbl_one_cikan = ui.label('').classes('text-caption text-orange-9 q-pl-sm')
-
-                def on_tur_change(e):
-                    opts = _build_kategori_options(e.value)
-                    inp_kategori.options = opts
-                    first_key = next(iter(opts))
-                    inp_kategori.value = first_key
-                    inp_kategori.update()
-                    on_kategori_change(None)
-                inp_tur.on_value_change(on_tur_change)
-
-                # Cari (opsiyonel; + kutu ICINDE — Yeni Islem firma alani gibi)
-                with ui.element('div').classes('im-field w-full'):
-                    ui.label('CARİ (OPSİYONEL)').classes('im-flabel')
-                    inp_firma = ui.select(
-                        options=firma_options, with_input=True, clearable=True,
-                    ).props('outlined dense').classes('w-full gg-cari')
-                    with inp_firma.add_slot('append'):
-                        ui.icon('add', size='20px').classes('cursor-pointer').style('color:#059669').on(
-                            'click', lambda: open_quick_firma_dialog(_on_firma_added))
+                                'click', lambda: open_quick_firma_dialog(_on_firma_added))
 
                 def _on_firma_added(kod, ad):
                     firmalar2 = get_firma_list()
@@ -385,37 +404,21 @@ def gelir_gider_page(focus: int = None):
                     inp_firma.value = kod
                     inp_firma.update()
 
-                def on_kategori_change(_e):
-                    kat = inp_kategori.value or ''
-                    if kat in ONE_CIKAN_GIDER_KATEGORILER:
-                        lbl_one_cikan.set_text(f'⭐ {kat}: Cari seçerek borç takibi yapabilirsiniz')
-                    else:
-                        lbl_one_cikan.set_text('')
-                inp_kategori.on_value_change(on_kategori_change)
+                # --- Kalemler (kategori bazli): her kalem ayri gelir_gider satiri olur, grup_id ile baglanir ---
+                kalemler_state = []   # {'row','kat','matrah','kdv','lbl_kdv','lbl_top','gg_id','nav','kdv_nav'}
+                silinen_idler = []    # duzenlemede cikarilan kalemlerin gelir_gider id'leri
 
-                def _on_kategori_added(ad):
-                    """Yeni olusturulan kategoriyi en uste ekle (iconlu) ve sec."""
-                    opts = dict(inp_kategori.options)
-                    if ad not in opts:
-                        ikon = kategori_ikon(ad)
-                        yeni = {ad: (f'{ikon} {ad}' if ikon else ad)}
-                        yeni.update(opts)
-                        inp_kategori.options = yeni
-                    inp_kategori.value = ad
-                    inp_kategori.update()
-                    on_kategori_change(None)
-
-                # Satir 3: Tutar + KDV
-                with ui.row().classes('w-full gap-sm no-wrap'):
-                    with ui.element('div').classes('im-field col'):
-                        ui.label('TUTAR (NET)').classes('im-flabel')
-                        inp_tutar = ui.number(value=0, format='%.2f').props(
-                            'outlined dense input-class=text-right').classes('w-full gg-tutar')
-                    with ui.element('div').classes('im-field col'):
-                        ui.label('KDV ORANI').classes('im-flabel')
-                        inp_kdv = ui.select(
-                            options={0: '%0', 1: '%1', 10: '%10', 20: '%20'}, value=20
-                        ).props('outlined dense').classes('w-full')
+                ui.label('KALEMLER').classes('im-flabel').style('margin-top:2px')
+                with ui.element('div').classes('im-ktable w-full'):
+                    with ui.element('div').classes('im-kthead gg-kgrid'):
+                        for _h in ('Kategori', 'Matrah (Net)', 'KDV %', 'KDV', 'Toplam', ''):
+                            ui.label(_h)
+                    kalemler_box = ui.element('div').classes('im-kbody')
+                with ui.row().classes('w-full items-center no-wrap').style('gap:8px;margin-top:-2px'):
+                    ui.button('Kalem Ekle', icon='add', on_click=lambda: add_kalem_row()).props(
+                        'dense flat no-caps color=green-7 size=sm').style('font-size:11px;padding:2px 6px')
+                    # One cikan uyari (Nakliye/Ardiye icin)
+                    lbl_one_cikan = ui.label('').classes('text-caption text-orange-9')
 
                 # Odeme durumu: pill radio; klavyeyle gelince belirgin kutu (ok tuslariyla secim)
                 with ui.element('div').classes('im-field w-full'):
@@ -456,12 +459,12 @@ def gelir_gider_page(focus: int = None):
                         inp_vade = ui.input(value='').props(
                             'outlined dense type=date clearable').classes('w-full gg-vade')
 
-                # Aciklama
+                # Aciklama (tum kalemler icin ortak)
                 with ui.element('div').classes('im-field w-full'):
                     ui.label('AÇIKLAMA').classes('im-flabel')
                     inp_aciklama = ui.input().props('outlined dense').classes('w-full gg-aciklama')
 
-                # Toplam cubugu (Yeni Islem'deki gibi)
+                # Toplam cubugu (Yeni Islem'deki gibi) — tum kalemlerin toplami
                 def _tot_cell(baslik):
                     with ui.element('div').classes('im-tot'):
                         ui.label(baslik).classes('tk')
@@ -476,24 +479,32 @@ def gelir_gider_page(focus: int = None):
                     s = f"{abs(val):,.2f}"
                     return s.replace(',', 'X').replace('.', ',').replace('X', '.')
 
-                def _guncel_toplam():
-                    t = float(inp_tutar.value or 0)
-                    ko = float(inp_kdv.value or 0)
+                def _kalem_hesap(entry):
+                    """(matrah, oran, kdv, toplam)"""
+                    t = float(entry['matrah'].value or 0)
+                    ko = float(entry['kdv'].value or 0)
                     kdv = t * ko / 100
-                    return t + kdv
+                    return t, ko, kdv, t + kdv
+
+                def _guncel_toplam():
+                    return sum(_kalem_hesap(e)[3] for e in kalemler_state)
 
                 def recalc():
-                    t = float(inp_tutar.value or 0)
-                    ko = float(inp_kdv.value or 0)
-                    kdv = t * ko / 100
-                    toplam = t + kdv
-                    lbl_tutar.set_text(fmt_tr(t))
-                    lbl_kdv.set_text(fmt_tr(kdv))
-                    lbl_toplam.set_text(fmt_tr(toplam) + ' ₺')
+                    t_net = t_kdv = t_top = 0.0
+                    for e in kalemler_state:
+                        t, ko, kdv, top = _kalem_hesap(e)
+                        e['lbl_kdv'].set_text(fmt_tr(kdv))
+                        e['lbl_top'].set_text(fmt_tr(top))
+                        t_net += t
+                        t_kdv += kdv
+                        t_top += top
+                    lbl_tutar.set_text(fmt_tr(t_net))
+                    lbl_kdv.set_text(fmt_tr(t_kdv))
+                    lbl_toplam.set_text(fmt_tr(t_top) + ' ₺')
 
                     # Odenen varsayilan: toplam (sadece ODENMEDI degilse ve kullanici ellemediyse guncellenir)
                     if (inp_durum.value or 'NAKIT') != 'ODENMEDI':
-                        inp_odenen.value = toplam
+                        inp_odenen.value = t_top
                     _recalc_kalan()
 
                 def _recalc_kalan():
@@ -524,21 +535,179 @@ def gelir_gider_page(focus: int = None):
                         inp_odenen.value = _guncel_toplam()
                     _recalc_kalan()
                 inp_durum.on_value_change(on_durum_change)
-
-                inp_tutar.on_value_change(lambda _: recalc())
-                inp_kdv.on_value_change(lambda _: recalc())
                 inp_odenen.on_value_change(lambda _: _recalc_kalan())
 
+                # --- Kategori yardimcilari ---
+                _kat_busy = {'v': False}   # programatik kategori degisimi (tur degisince) odak akisini tetiklemesin
+
+                def _kategori_uyari():
+                    one = [e['kat'].value for e in kalemler_state
+                           if (e['kat'].value or '') in ONE_CIKAN_GIDER_KATEGORILER]
+                    lbl_one_cikan.set_text(f'⭐ {one[0]}: Cari seçerek borç takibi yapabilirsiniz' if one else '')
+
+                def _kategori_eklendi(sel, ad):
+                    """Yeni olusturulan kategoriyi ilgili kalemin listesine en uste ekle (iconlu) ve sec."""
+                    opts = dict(sel.options)
+                    if ad not in opts:
+                        ikon = kategori_ikon(ad)
+                        opts = {ad: (f'{ikon} {ad}' if ikon else ad), **opts}
+                        sel.options = opts
+                    sel.value = ad
+                    sel.update()
+
+                def on_tur_change(e):
+                    opts = _build_kategori_options(e.value)
+                    first_key = next(iter(opts))
+                    _kat_busy['v'] = True
+                    try:
+                        for en in kalemler_state:
+                            en['kat'].options = opts
+                            en['kat'].value = first_key
+                            en['kat'].update()
+                    finally:
+                        _kat_busy['v'] = False
+                    _kategori_uyari()
+                inp_tur.on_value_change(on_tur_change)
+
+                def _matraha(entry):
+                    entry['matrah'].run_method('focus')
+                    entry['matrah'].run_method('select')
+
+                def _ac_kat(entry, gecikme_ms=0):
+                    """Klavye akisi: kalemin kategori listesini ac (secince/kapaninca Matrah'a gecer).
+                    showPopup yerine kontrol tiklamasi: onceki bir liste (orn. Cari) kapanirken
+                    showPopup Quasar tarafindan yutuluyor; tiklama mouse akisiyla birebir ayni."""
+                    entry['nav'] = True
+                    sel_cls = f'gg-kkat-{entry["kat"].id}'
+                    # Acik bir liste/onay penceresi kapanis animasyonunu (~300ms, DOM'da kalir) bitirmeden
+                    # tiklanirsa Quasar yeni listeyi de kapatiyor -> DOM'da portal kalmayana kadar (max 1.5 sn) bekle.
+                    ui.run_javascript(
+                        "(()=>{const t0=Date.now();"
+                        "const tick=()=>{const acik=document.querySelector('.q-menu,.im-confirm-card')!==null;"
+                        "if(acik&&Date.now()-t0<1500){setTimeout(tick,40);return;}"
+                        f"const c=document.querySelector('.{sel_cls} .q-field__control');if(c)c.click();}};"
+                        f"setTimeout(tick,{int(gecikme_ms)});}})()")
+
+                def _kalem_soru():
+                    """KDV secildikten sonra Enter: yeni kalem eklensin mi? Enter=Hayır(ödeme durumuna), → ile Evet."""
+                    with ui.dialog() as kdlg, ui.card().classes('q-pa-md im-confirm-card').style('min-width:360px;border-radius:12px'):
+                        ui.label('Yeni kalem eklensin mi?').classes('text-subtitle2 text-weight-bold').style('color:#0f766e')
+                        ui.label('Enter = Hayır (ödeme durumuna geçer)   ·   → ile Evet').classes('text-caption text-grey-6 q-mb-sm')
+
+                        def _evet():
+                            kdlg.close()
+                            _ac_kat(add_kalem_row())
+
+                        def _hayir():
+                            kdlg.close()
+                            _js_focus('.im-modal .im-vpwrap')
+
+                        with ui.row().classes('w-full justify-end gap-2'):
+                            ui.button('Hayır', on_click=_hayir).props('flat color=grey')
+                            ui.button('Evet', on_click=_evet).props('unelevated color=positive')
+                    kdlg.open()
+                    ui.timer(0.12, lambda: ui.run_javascript('''
+                        const card = [...document.querySelectorAll('.im-confirm-card')].pop();
+                        if(!card) return;
+                        const btns = card.querySelectorAll('button');
+                        if(btns.length < 2) return;
+                        const noBtn = btns[0], yesBtn = btns[1];
+                        const mark = (b) => { noBtn.classList.remove('imsel'); yesBtn.classList.remove('imsel');
+                                              b.classList.add('imsel'); b.focus(); };
+                        mark(noBtn);
+                        card.addEventListener('keydown', (e) => {
+                            if(e.key === 'ArrowLeft'){ mark(noBtn); e.preventDefault(); }
+                            else if(e.key === 'ArrowRight'){ mark(yesBtn); e.preventDefault(); }
+                        });
+                    '''), once=True)
+
+                def remove_kalem(entry):
+                    if len(kalemler_state) <= 1:
+                        notify_err('En az bir kalem olmalı')
+                        return
+                    if entry.get('gg_id'):
+                        silinen_idler.append(entry['gg_id'])
+                    kalemler_state.remove(entry)
+                    entry['row'].delete()
+                    recalc()
+                    _kategori_uyari()
+
+                def add_kalem_row(kayit=None, ilk=False):
+                    kayit = kayit or {}
+                    entry = {'gg_id': kayit.get('id'), 'nav': False, 'kdv_nav': False}
+                    _kdv0 = kayit.get('kdv_orani')
+                    _kdv0 = int(float(_kdv0)) if _kdv0 not in (None, '') else 20
+                    if _kdv0 not in (0, 1, 10, 20):
+                        _kdv0 = 20
+                    opts = _build_kategori_options(inp_tur.value or 'GIDER')
+                    kat0 = kayit.get('kategori') or None
+                    if kat0 and kat0 not in opts:
+                        opts = {kat0: f'{kategori_ikon(kat0)} {kat0}', **opts}
+                    if not kat0:
+                        kat0 = next(iter(opts))
+                    _t0 = kayit.get('tutar')
+                    with kalemler_box:
+                        with ui.element('div').classes('im-krow gg-kgrid') as krow:
+                            k_kat = ui.select(options=opts, value=kat0).props('borderless dense').classes('gg-kkat')
+                            k_kat.classes(f'gg-kkat-{k_kat.id}')   # klavye akisi hedefi (satira ozel)
+                            with k_kat.add_slot('append'):
+                                ui.icon('add', size='16px').classes('cursor-pointer').style('color:#059669').on(
+                                    'click', lambda _, sel=k_kat: open_quick_kategori_dialog(
+                                        lambda ad, sel=sel: _kategori_eklendi(sel, ad)))
+                            k_matrah = ui.number(
+                                value=(float(_t0) if _t0 not in (None, '') else None), format='%.2f'
+                            ).props('borderless dense placeholder="0.00" input-class=text-right').classes('gg-kmatrah')
+                            k_kdv = ui.select(
+                                options={0: '0', 1: '1', 10: '10', 20: '20'}, value=_kdv0
+                            ).props('borderless dense').classes('im-kkdv gg-kkdv')
+                            k_lbl_kdv = ui.label('0,00').classes('im-ktutar')            # kdv tutari
+                            k_lbl_top = ui.label('0,00').classes('im-ktutar im-kgt')     # kalem toplami
+                            ui.button(icon='close', on_click=lambda: remove_kalem(entry)).props(
+                                'round dense flat color=grey size=sm').tooltip('Kalemi çıkar')
+                    entry.update({'row': krow, 'kat': k_kat, 'matrah': k_matrah, 'kdv': k_kdv,
+                                  'lbl_kdv': k_lbl_kdv, 'lbl_top': k_lbl_top})
+                    k_matrah.on_value_change(lambda _: recalc())
+                    k_kdv.on_value_change(lambda _: recalc())
+
+                    # Kategori: klavyeyle acildiysa liste kapaninca, mouse ile secildiyse hemen -> Matrah
+                    def _kat_hide():
+                        if entry['nav']:
+                            entry['nav'] = False
+                            _matraha(entry)
+                    k_kat.on('popup-hide', _kat_hide)
+
+                    def _kat_changed():
+                        if _kat_busy['v']:
+                            return
+                        _kategori_uyari()
+                        if not entry['nav']:
+                            _matraha(entry)
+                    k_kat.on_value_change(lambda _: _kat_changed())
+
+                    # Matrah Enter -> KDV listesi acilir; secince "yeni kalem eklensin mi?" (mouse akisi etkilenmez)
+                    def _matrah_enter():
+                        entry['kdv_nav'] = True
+                        k_kdv.run_method('focus')
+                        k_kdv.run_method('showPopup')
+                    k_matrah.on('keydown.enter.prevent', _matrah_enter)
+
+                    def _kdv_hide():
+                        if entry['kdv_nav']:
+                            entry['kdv_nav'] = False
+                            _kalem_soru()
+                    k_kdv.on('popup-hide', _kdv_hide)
+
+                    kalemler_state.append(entry)
+                    if not ilk:
+                        recalc()
+                    return entry
+
             # Duzenleme modunda doldur
+            mevcut_grup_id = ''
+            grup_created_at = ''
             if is_edit:
                 inp_tarih.value = edit_row.get('tarih', '')
                 inp_tur.value = edit_row.get('tur', 'GIDER')
-                cats = _build_kategori_options(edit_row.get('tur', 'GIDER'))
-                inp_kategori.options = cats
-                inp_kategori.value = edit_row.get('kategori', next(iter(cats)))
-                inp_kategori.update()
-                inp_tutar.value = edit_row.get('tutar', 0)
-                inp_kdv.value = int(edit_row.get('kdv_orani', 0))
                 inp_firma.value = edit_row.get('firma_kod', '') or None
                 # Duzenleme: durum → mevcut odeme_sekli'nden cikar
                 odm_sk = (edit_row.get('odeme_sekli') or 'NAKIT').upper()
@@ -556,15 +725,25 @@ def gelir_gider_page(focus: int = None):
                     inp_banka.value = str(edit_row.get('banka_hesap_id'))
                 inp_vade.value = edit_row.get('vade_tarih', '') or ''
                 inp_aciklama.value = edit_row.get('aciklama', '')
+                # Grup uyesi ise tum kalemleri yukle, degilse tek kalem
+                mevcut_grup_id = edit_row.get('grup_id') or ''
+                grup_rows = get_gelir_gider_grup(mevcut_grup_id) if mevcut_grup_id else []
+                if grup_rows:
+                    grup_created_at = grup_rows[0].get('created_at', '') or ''
+                    for r in grup_rows:
+                        add_kalem_row(r, ilk=True)
+                else:
+                    grup_created_at = edit_row.get('created_at', '') or ''
+                    add_kalem_row(edit_row, ilk=True)
                 recalc()
-                on_kategori_change(None)
             else:
-                # Yeni kayit: recalc ve initial state
+                # Yeni kayit: tek bos kalem + initial state
+                add_kalem_row(ilk=True)
                 on_durum_change(None)
                 recalc()
 
             # Initial kategori uyari cek
-            on_kategori_change(None)
+            _kategori_uyari()
 
             with ui.row().classes('w-full justify-end items-center').style(
                     'flex:0 0 auto;overflow:visible;padding:11px 16px;border-top:1px solid #eef2f6;'):
@@ -575,14 +754,18 @@ def gelir_gider_page(focus: int = None):
                     if not inp_tarih.value:
                         notify_err('Tarih seçmelisiniz')
                         return
-                    t = float(inp_tutar.value or 0)
-                    if t <= 0:
-                        notify_err('Tutar 0\'dan büyük olmalı')
-                        return
-
-                    ko = float(inp_kdv.value or 0)
-                    kdv = t * ko / 100
-                    toplam = t + kdv
+                    kalem_vals = []
+                    for i, e in enumerate(kalemler_state, 1):
+                        t, ko, kdv, top = _kalem_hesap(e)
+                        kat = e['kat'].value or ''
+                        if not kat:
+                            notify_err(f'{i}. kalem: kategori seçmelisiniz')
+                            return
+                        if t <= 0:
+                            notify_err(f'{i}. kalem: matrah 0\'dan büyük olmalı')
+                            return
+                        kalem_vals.append((e, kat, t, ko, kdv, top))
+                    toplam = sum(v[5] for v in kalem_vals)
 
                     durum = inp_durum.value or 'NAKIT'
                     odenen = float(inp_odenen.value or 0) if durum != 'ODENMEDI' else 0
@@ -615,41 +798,55 @@ def gelir_gider_page(focus: int = None):
                                 firma_ad = f['ad']
                                 break
 
-                    data = {
+                    # Ortak (baslik) alanlar: tum kalemlerde ayni
+                    ortak = {
                         'tarih': inp_tarih.value,
                         'tur': inp_tur.value,
-                        'kategori': inp_kategori.value or '',
                         'aciklama': inp_aciklama.value.strip() if inp_aciklama.value else '',
-                        'tutar': t,
-                        'kdv_orani': ko,
-                        'kdv_tutar': kdv,
-                        'toplam': toplam,
                         'odeme_sekli': odeme_sekli,
                         'firma_kod': firma_kod,
                         'firma_ad': firma_ad,
                         'odeme_durumu': odeme_durumu,
                         'vade_tarih': inp_vade.value if durum == 'ODENMEDI' else '',
                         'banka_hesap_id': banka_hesap_id,
+                        'grup_id': mevcut_grup_id,
                     }
+                    kalemler_data = []
+                    for e, kat, t, ko, kdv, top in kalem_vals:
+                        data = dict(ortak)
+                        data.update({
+                            'kategori': kat,
+                            'tutar': t,
+                            'kdv_orani': ko,
+                            'kdv_tutar': kdv,
+                            'toplam': top,
+                        })
+                        if e.get('gg_id'):
+                            data['id'] = e['gg_id']
+                        elif grup_created_at:
+                            # Duzenlemede eklenen yeni kalem, grubun zaman damgasini alir
+                            data['created_at'] = grup_created_at
+                        kalemler_data.append(data)
 
                     try:
                         if is_edit:
-                            update_gelir_gider(edit_row['id'], data)
+                            save_gelir_gider_grup(kalemler_data, silinen_idler)
                             notify_ok('Kayıt güncellendi')
                         else:
-                            gg_id = add_gelir_gider(data)
+                            _gid, gg_id = save_gelir_gider_grup(kalemler_data)
 
                             # Sadece KISMI odemede kasa kaydini burada olustur.
-                            # ODENDI (tam) durumunda add_gelir_gider() zaten otomatik
-                            # kasa kaydi olusturuyor -> mukerrer kayit olmasin diye buraya girme.
+                            # ODENDI (tam) durumunda servis zaten grubun tek kasa kaydini
+                            # olusturuyor -> mukerrer kayit olmasin diye buraya girme.
                             if odeme_durumu == 'KISMI':
                                 kasa_tur = 'GELIR' if inp_tur.value == 'GELIR' else 'GIDER'
-                                kat = inp_kategori.value or ''
+                                kat = kalemler_data[0]['kategori']
+                                if len(kalemler_data) > 1:
+                                    kat += f' +{len(kalemler_data) - 1}'
                                 kasa_aciklama = f'{kat}'
-                                if data['aciklama']:
-                                    kasa_aciklama += f': {data["aciklama"]}'
-                                if odeme_durumu == 'KISMI':
-                                    kasa_aciklama += f' [Kismi ödeme: {odenen:.2f} / {toplam:.2f}]'
+                                if ortak['aciklama']:
+                                    kasa_aciklama += f': {ortak["aciklama"]}'
+                                kasa_aciklama += f' [Kismi ödeme: {odenen:.2f} / {toplam:.2f}]'
                                 add_kasa({
                                     'tarih': inp_tarih.value,
                                     'firma_kod': firma_kod,
@@ -679,14 +876,14 @@ def gelir_gider_page(focus: int = None):
                     'background:#059669;color:#fff;font-weight:700;padding:7px 22px;border-radius:9px')
 
                 # --- Enter akisi (sunucu tarafi: popup acma zinciri) ---
-                # Tarih -> Tur(liste) -> Kategori(liste) -> Cari -> Tutar -> KDV(liste)
+                # Tarih -> Tur(liste) -> Cari -> [Kalem: Kategori(liste) -> Matrah -> KDV(liste) -> "yeni kalem?"]
                 # -> Odeme Durumu kutusu -> (Vade | Banka -> Odenen | Odenen) -> Aciklama -> Kaydet
                 def _js_focus(sel_css, select_all=False):
                     ui.run_javascript(
                         f"const el=[...document.querySelectorAll('{sel_css}')].pop();"
                         "if(el){el.focus();" + ("if(el.select)el.select();" if select_all else "") + "}")
 
-                _nav = {'tur': False, 'kat': False, 'kdv': False, 'banka': False}
+                _nav = {'tur': False, 'cari': False, 'banka': False}
 
                 def _ac(sel, flag):
                     _nav[flag] = True
@@ -698,22 +895,23 @@ def gelir_gider_page(focus: int = None):
                 def _tur_hide():
                     if _nav['tur']:
                         _nav['tur'] = False
-                        _ac(inp_kategori, 'kat')
+                        inp_firma.run_method('focus')
                 inp_tur.on('popup-hide', _tur_hide)
 
-                def _kat_hide():
-                    if _nav['kat']:
-                        _nav['kat'] = False
-                        inp_firma.run_method('focus')
-                inp_kategori.on('popup-hide', _kat_hide)
+                # Cari Enter -> ilk kalemin kategori listesi. Quasar ayni Enter'la cari listesini
+                # ACAR (kapaliysa) / secimi bitirip KAPATIR; kapanis tamamlanmadan acilan liste
+                # Quasar tarafindan kapatiliyor -> kategori listesi 'popup-hide' olayinda acilir.
+                def _cari_enter():
+                    _nav['cari'] = True
+                    inp_firma.run_method('hidePopup')
+                inp_firma.on('keydown.enter', _cari_enter)
 
-                inp_tutar.on('keydown.enter.prevent', lambda: _ac(inp_kdv, 'kdv'))
-
-                def _kdv_hide():
-                    if _nav['kdv']:
-                        _nav['kdv'] = False
-                        _js_focus('.im-modal .im-vpwrap')
-                inp_kdv.on('popup-hide', _kdv_hide)
+                def _cari_hide():
+                    if _nav['cari']:
+                        _nav['cari'] = False
+                        if kalemler_state:
+                            _ac_kat(kalemler_state[0])
+                inp_firma.on('popup-hide', _cari_hide)
 
                 def _durum_enter():
                     val = inp_durum.value or 'NAKIT'
@@ -734,7 +932,7 @@ def gelir_gider_page(focus: int = None):
         # Acilinca odak Tarih'e
         ui.timer(0.2, lambda: inp_tarih.run_method('focus'), once=True)
         # Klavye akisi (CLIENT-SIDE, gecikmesiz): durum kutusunda ok tuslari,
-        # Cari/Odenen/Vade/Aciklama Enter atlamalari, Kaydet<->Iptal ok gecisi
+        # Odenen/Vade/Aciklama Enter atlamalari, Kaydet<->Iptal ok gecisi
         ui.timer(0.3, lambda: ui.run_javascript('''
             const modal = [...document.querySelectorAll('.im-modal')].pop();
             if(!modal || modal.__ggFlow) return;
@@ -751,10 +949,6 @@ def gelir_gider_page(focus: int = None):
                     const n = r[Math.min(i + 1, r.length - 1)]; if(n) n.click(); dw.focus(); }
                 else if(e.key === 'ArrowLeft'){ e.preventDefault();
                     const p = r[Math.max(i - 1, 0)]; if(p) p.click(); dw.focus(); }
-            });
-            const cari = modal.querySelector('.gg-cari input');
-            if(cari) cari.addEventListener('keydown', (e) => {
-                if(e.key === 'Enter'){ setTimeout(() => go('.gg-tutar input', true), 80); }
             });
             const odenen = modal.querySelector('.gg-odenen input');
             if(odenen) odenen.addEventListener('keydown', (e) => {
@@ -776,10 +970,29 @@ def gelir_gider_page(focus: int = None):
             });
         '''), once=True)
 
-    def do_delete(rec_id):
+    def do_delete(row):
+        if not isinstance(row, dict):
+            row = {'id': row}
+        grup_id = row.get('grup_id') or ''
+        grup_rows = get_gelir_gider_grup(grup_id) if grup_id else []
+        if len(grup_rows) > 1:
+            n = len(grup_rows)
+
+            def grup_confirmed():
+                try:
+                    delete_gelir_gider_grup(grup_id)
+                    notify_ok(f'Kayıt silindi ({n} kalem)')
+                    load_data()
+                except Exception as e:
+                    notify_err(f'Hata: {e}')
+            confirm_dialog(
+                f'Bu kayıt {n} kalemli bir işlem. Tamamı ({n} kalem) ve bağlı kasa kaydı silinecek. Emin misiniz?',
+                grup_confirmed)
+            return
+
         def confirmed():
             try:
-                delete_gelir_gider(rec_id)
+                delete_gelir_gider(row['id'])
                 notify_ok('Kayıt silindi')
                 load_data()
             except Exception as e:
@@ -836,7 +1049,16 @@ def gelir_gider_page(focus: int = None):
                 toplam = row.get('toplam', 0)
                 info_row('Tutar (Matrah)', f"{fmt_para(toplam)} TL", is_mono=True, extra_style='font-weight: 700; color: #1e293b; font-size: 15px;')
                 
-                info_row('Kategori', row.get('kategori'))
+                kalemler = row.get('kalemler') or []
+                if len(kalemler) > 1:
+                    # Coklu kalemli islem: her kalem ayri satir (kategori — matrah + KDV = toplam)
+                    for i, k in enumerate(kalemler, 1):
+                        info_row(f'{i}. Kalem',
+                                 f"{k.get('kategori', '')} — {fmt_para(k.get('tutar') or 0)}"
+                                 f" + KDV %{int(k.get('kdv_orani') or 0)} = {fmt_para(k.get('toplam') or 0)} TL",
+                                 is_mono=True)
+                else:
+                    info_row('Kategori', row.get('kategori'))
                 
                 # Ödeme Durumu
                 durum = row.get('odeme_durumu', '')
@@ -857,7 +1079,7 @@ def gelir_gider_page(focus: int = None):
                               on_click=lambda: (dlg.close(), open_dialog(edit_row=row))) \
                         .props('unelevated no-caps color=primary dense')
                     ui.button('Sil', icon='delete', 
-                              on_click=lambda: (dlg.close(), do_delete(row.get('id')))) \
+                              on_click=lambda: (dlg.close(), do_delete(row))) \
                         .props('unelevated no-caps color=negative dense')
                         
         dlg.open()
@@ -870,6 +1092,7 @@ def gelir_gider_page(focus: int = None):
     # --- PAGE CONTENT ---
     with ui.column().classes('w-full q-pa-sm'):
         all_rows = get_gelir_gider_list(yil=state['yil'], ay=state['ay'])
+        grouped_rows = gelir_gider_grupla(all_rows)
         ozet = get_gelir_gider_ozet(yil=state['yil'], ay=state['ay'])
 
         with ui.element('div').classes('w-full q-mb-sm'):
@@ -1016,68 +1239,69 @@ def gelir_gider_page(focus: int = None):
 
         # Table
         table_ref = ui.table(
-            columns=normal_columns, rows=all_rows, row_key='id',
+            columns=normal_columns, rows=grouped_rows, row_key='id',
             pagination={'rowsPerPage': 50, 'sortBy': 'tarih', 'descending': True}
         ).classes('w-full gg-table').style('--table-extra-rows: 2;')
         table_ref.props('flat bordered dense')
 
-        table_ref.add_slot('body-cell-tarih', TARIH_SLOT)
-        table_ref.add_slot('body-cell-toplam', PARA_SLOT)
-        table_ref.add_slot('body-cell-matrah', PARA_SLOT)
-        table_ref.add_slot('body-cell-kdv', r'''
-            <q-td :props="props">
-                {{ (Number(props.value) || 0).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' TL' }}
-            </q-td>
-        ''')
-        table_ref.add_slot('body-cell-yuzde', r'''
-            <q-td :props="props">
-                <span class="text-weight-bold text-grey-8">%{{ Math.round(Number(props.value) || 0) }}</span>
-            </q-td>
-        ''')
-
-        table_ref.add_slot('body-cell-tur', r'''
-            <q-td :props="props">
-                <q-chip dense :color="props.value === 'GELIR' ? 'positive' : 'negative'" text-color="white" size="sm">
-                    {{ props.value === 'GELIR' ? 'Gelir' : 'Gider' }}
-                </q-chip>
-            </q-td>
-        ''')
-
-        # Kategori - Nakliye/Ardiye one cikan
-        # Kategori hucresi: dropdown ile ayni emoji-ikonlu gorunum (tum kategoriler ayni stil)
+        # Tek 'body' slot: hucre icerikleri + coklu kalemli kayitlar icin akordeon satiri.
+        # Coklu kalemli satira tiklayinca kalemler acilir; digerlerinde detay modali (veya kategori detayi).
         import json as _json
         _kat_ikon_js = _json.dumps(KATEGORI_IKON, ensure_ascii=False)
-        table_ref.add_slot('body-cell-kategori', (r'''
-            <q-td :props="props">
-                <span>{{ props.value ? (((__IKONMAP__)[props.value] || '🏷️') + ' ' + props.value) : '' }}</span>
-            </q-td>
-        ''').replace('__IKONMAP__', _kat_ikon_js))
-
-        # Firma / Cari adi
-        table_ref.add_slot('body-cell-firma_ad', r'''
-            <q-td :props="props">
-                <span v-if="props.value" class="text-weight-medium text-indigo-8">{{ props.value }}</span>
+        _fmt_js = "toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2})"
+        body_slot = (r'''
+    <q-tr :props="props"
+          :class="props.expand && props.row.kalemler && props.row.kalemler.length > 1 ? 'gg-grup-acik' : ''"
+          @click="props.row.kalemler && props.row.kalemler.length > 1 ? props.expand = !props.expand : $parent.$emit('rowdetail', props.row)">
+        <q-td v-for="col in props.cols" :key="col.name" :props="props"
+              :class="col.name === 'tarih' && !props.row.tarih ? 'tarihsiz-cell' : ''">
+            <template v-if="col.name === 'tarih'">
+                <span v-if="props.row.tarih" style="font-weight:700;font-size:11px;color:#334155;">{{ props.row.tarih.split('-').reverse().join('.') }}</span>
+                <span v-else style="color:#b91c1c;font-weight:600;">⚠ TARİH YOK</span>
+            </template>
+            <template v-else-if="col.name === 'tur'">
+                <q-chip dense :color="props.row.tur === 'GELIR' ? 'positive' : 'negative'" text-color="white" size="sm">
+                    {{ props.row.tur === 'GELIR' ? 'Gelir' : 'Gider' }}
+                </q-chip>
+            </template>
+            <template v-else-if="col.name === 'kategori'">
+                <div style="display:flex;align-items:center;">
+                    <q-icon v-if="props.row.kalemler && props.row.kalemler.length > 1"
+                            :name="props.expand ? 'expand_less' : 'expand_more'"
+                            size="16px" class="q-mr-xs text-primary" />
+                    <span v-if="props.row.kalemler && props.row.kalemler.length > 1" class="text-weight-medium">
+                        {{ props.row.kalemler.length }} kalem: {{ props.row.kategori }}
+                    </span>
+                    <span v-else>{{ props.row.kategori ? (((__IKONMAP__)[props.row.kategori] || '🏷️') + ' ' + props.row.kategori) : '' }}</span>
+                </div>
+            </template>
+            <template v-else-if="col.name === 'firma_ad'">
+                <span v-if="props.row.firma_ad" class="text-weight-medium text-indigo-8">{{ props.row.firma_ad }}</span>
                 <span v-else class="text-grey-5">-</span>
-            </q-td>
-        ''')
-
-        # Odeme durumu
-        table_ref.add_slot('body-cell-odeme_durumu', r'''
-            <q-td :props="props">
-                <q-chip v-if="props.value === 'ODENMEDI'" dense color="red-7" text-color="white" size="sm" icon="schedule">
+            </template>
+            <template v-else-if="col.name === 'toplam' || col.name === 'matrah'">
+                {{ props.row[col.name] != null && props.row[col.name] !== 0
+                    ? (props.row[col.name] < 0 ? '-' : '') + Math.abs(props.row[col.name]).__FMT__ + ' TL'
+                    : '' }}
+            </template>
+            <template v-else-if="col.name === 'kdv'">
+                {{ (Number(props.row.kdv) || 0).__FMT__ + ' TL' }}
+            </template>
+            <template v-else-if="col.name === 'yuzde'">
+                <span class="text-weight-bold text-grey-8">%{{ Math.round(Number(props.row.yuzde) || 0) }}</span>
+            </template>
+            <template v-else-if="col.name === 'odeme_durumu'">
+                <q-chip v-if="props.row.odeme_durumu === 'ODENMEDI'" dense color="red-7" text-color="white" size="sm" icon="schedule">
                     Ödenmedi
                 </q-chip>
-                <q-chip v-else-if="props.value === 'KISMI'" dense color="orange-8" text-color="white" size="sm" icon="hourglass_bottom">
+                <q-chip v-else-if="props.row.odeme_durumu === 'KISMI'" dense color="orange-8" text-color="white" size="sm" icon="hourglass_bottom">
                     Kısmi
                 </q-chip>
                 <q-chip v-else dense color="green-7" text-color="white" size="sm" icon="check">
                     Ödendi
                 </q-chip>
-            </q-td>
-        ''')
-
-        table_ref.add_slot('body-cell-actions', r'''
-            <q-td :props="props">
+            </template>
+            <template v-else-if="col.name === 'actions'">
                 <q-btn flat round dense icon="edit" color="primary" size="sm"
                     @click.stop="$parent.$emit('edit', props.row)">
                     <q-tooltip>Düzenle</q-tooltip>
@@ -1086,12 +1310,36 @@ def gelir_gider_page(focus: int = None):
                     @click.stop="$parent.$emit('delete', props.row)">
                     <q-tooltip>Sil</q-tooltip>
                 </q-btn>
+            </template>
+            <template v-else>{{ col.value }}</template>
+        </q-td>
+    </q-tr>
+    <template v-if="props.row.kalemler && props.row.kalemler.length > 1 && props.expand">
+        <q-tr v-for="(k, ki) in props.row.kalemler" :key="'kalem' + ki" :props="props" class="gg-kalem-tr">
+            <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                <template v-if="col.name === 'kategori'">
+                    <span style="display:inline-flex;align-items:center;color:#334155;font-weight:600;font-size:12px;">
+                        <q-icon name="subdirectory_arrow_right" size="14px" class="q-mr-xs text-grey-6" />
+                        {{ ((__IKONMAP__)[k.kategori] || '🏷️') + ' ' + k.kategori }}
+                    </span>
+                </template>
+                <template v-else-if="col.name === 'aciklama'">
+                    <span style="font-size:11.5px;color:#64748b;">
+                        Matrah {{ Number(k.tutar || 0).__FMT__ }} · KDV %{{ Math.round(Number(k.kdv_orani) || 0) }} = {{ Number(k.kdv_tutar || 0).__FMT__ }}
+                    </span>
+                </template>
+                <template v-else-if="col.name === 'toplam'">
+                    <span class="num-mono" style="font-size:12px;color:#0f766e;font-weight:700;">{{ Number(k.toplam || 0).__FMT__ + ' TL' }}</span>
+                </template>
             </q-td>
-        ''')
+        </q-tr>
+    </template>
+        ''').replace('__IKONMAP__', _kat_ikon_js).replace('__FMT__', _fmt_js)
+        table_ref.add_slot('body', body_slot)
 
         table_ref.on('edit', lambda e: open_dialog(edit_row=e.args))
-        table_ref.on('delete', lambda e: do_delete(e.args['id']))
-        table_ref.on('row-click', lambda e: _handle_table_row_click(e.args[1]))
+        table_ref.on('delete', lambda e: do_delete(e.args))
+        table_ref.on('rowdetail', lambda e: _handle_table_row_click(e.args))
 
         # Islemler detay modalindan 'Kaynak -> kayda git' ile gelinince ilgili kaydi ac
         if focus:
